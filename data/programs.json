@@ -1,0 +1,11 @@
+[
+  {
+    "id": "p1",
+    "title": "Rue des Carmes",
+    "city": "Rouen",
+    "dispositif": "MALRAUX",
+    "summary": "Réhabilitation de caractère au cœur historique.",
+    "externalUrl": "https://immo-carmes.replit.app",
+    "visible": true
+  }
+]

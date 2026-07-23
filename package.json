@@ -1,0 +1,51 @@
+{
+  "name": "lemeille-patrimoine",
+  "version": "2.0.3",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -H 0.0.0.0 -p ${PORT:-3000}",
+    "build": "next build",
+    "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
+    "lint": "next lint",
+    "seed": "node scripts/seed.js",
+    "doctor": "node scripts/doctor.js",
+    "postinstall": "node scripts/postinstall.js",
+    "sitemap": "next-sitemap"
+  },
+  "dependencies": {
+    "@axe-core/puppeteer": "^4.11.0",
+    "@tailwindcss/typography": "^0.5.19",
+    "@tanstack/react-query": "^5.90.5",
+    "@turf/turf": "^7.2.0",
+    "@types/google.maps": "^3.58.1",
+    "@types/node": "^20.19.23",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "cheerio": "^1.1.2",
+    "clsx": "2.1.1",
+    "drizzle-kit": "^0.31.5",
+    "drizzle-orm": "^0.44.7",
+    "drizzle-zod": "^0.8.3",
+    "lighthouse": "^12.8.2",
+    "linkinator": "^7.5.0",
+    "lucide-react": "0.453.0",
+    "next": "14.2.4",
+    "next-sitemap": "4.2.3",
+    "openai": "^6.7.0",
+    "pdf-lib": "1.17.1",
+    "puppeteer": "^24.29.1",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "resend": "^6.4.1",
+    "tailwindcss-animate": "^1.0.7",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "autoprefixer": "10.4.19",
+    "eslint": "8.57.0",
+    "eslint-config-next": "14.2.4",
+    "postcss": "8.4.45",
+    "tailwindcss": "3.4.10",
+    "typescript": "5.4.5"
+  }
+}

@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+    
+    --background: 35 27% 95%;
+    --foreground: 0 0% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+    --card-border: 0 0% 92%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+    --popover-border: 0 0% 92%;
+    --primary: 162 34% 18%;
+    --primary-foreground: 0 0% 100%;
+    --primary-border: hsl(162 34% 12%);
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 10%;
+    --secondary-border: hsl(0 0% 90%);
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --muted-border: hsl(0 0% 90%);
+    --accent: 35 27% 95%;
+    --accent-foreground: 0 0% 10%;
+    --accent-border: hsl(35 27% 85%);
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --destructive-border: hsl(0 84% 50%);
+    --border: 0 0% 92%;
+    --input: 0 0% 92%;
+    --ring: 162 34% 18%;
+    --chart-1: 162 34% 18%;
+    --chart-2: 35 27% 70%;
+    --chart-3: 0 0% 60%;
+    --chart-4: 162 34% 35%;
+    --chart-5: 35 27% 85%;
+  }
+}
+
+@layer components {
+  body {
+    @apply bg-cream text-[#1A1A1A] font-sans antialiased;
+  }
+  
+  .container {
+    @apply max-w-5xl mx-auto px-4;
+  }
+  
+  .card {
+    @apply bg-white rounded-2xl shadow-soft border border-black/5 p-6;
+  }
+  
+  .btn {
+    @apply inline-flex items-center justify-center rounded-2xl px-4 py-2 border border-black/10 bg-white hover:bg-black/5 transition-colors font-medium;
+  }
+  
+  .btn-gold {
+    @apply bg-gold text-white hover:bg-[#a88e60] transition-colors border-0;
+  }
+  
+  .luxe {
+    @apply text-luxe tracking-wide font-serif;
+  }
+  
+  a {
+    @apply text-luxe hover:opacity-70 transition-opacity;
+  }
+  
+  .btn-luxe {
+    @apply bg-luxe text-white hover:bg-[#173024] transition-colors border-0;
+  }
+  
+  .btn-ghost {
+    @apply text-white border border-white/60 hover:bg-white/10 transition-colors;
+  }
+}
+
+/* === Lemeille Patrimoine — Contraste & branding === */
+:root{
+  --luxe:#1F3B2C;     /* vert foncé */
+  --gold:#8A6D3F;     /* or assombri pour contraste WCAG 4.5:1 */
+  --cream:#F4F1EB;    /* crème */
+  --ink:#222222;      /* texte courant */
+}
+
+body{ color:var(--ink); }
+
+/* Liens navigation (en-tête) */
+header a, nav a{ color:var(--luxe); }
+header a:hover, nav a:hover{ color:var(--gold); }
+
+/* Logo hover effect */
+header .logo-group:hover .logo-text{ fill:var(--gold) !important; }
+header .logo-text{ transition: fill 0.3s ease; }
+
+/* Boutons */
+.btn{ @apply inline-flex items-center justify-center px-5 py-2 rounded-2xl font-medium; }
+.btn-gold{ background:var(--gold); color:#fff; }
+.btn-gold:hover{ filter:brightness(0.95); }
+
+/* Le "ghost" doit rester lisible sur fond sombre */
+.btn-ghost{
+  background:transparent !important;
+  color:var(--cream) !important;
+  border:1.5px solid rgba(244,241,235,.9) !important;
+}
+.btn-ghost:hover{ background:rgba(244,241,235,.08) !important; }
+
+/* Cartes et titres */
+.card{ @apply bg-white rounded-2xl border border-black/5 shadow-sm; }
+.luxe{ color:var(--luxe); font-family: Georgia, "Times New Roman", serif; }
+
+/* Utilitaires */
+.bg-luxe{ background-color:var(--luxe); }
+.text-cream{ color:var(--cream); }
+.text-ink{ color:var(--ink); }
+
+/* Champs de formulaire */
+.input{ @apply w-full rounded-2xl border border-black/10 bg-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#B89C6D]/40; }
+
+/* Petite pastille cliquable (optionnel) */
+.pill{ @apply inline-flex items-center gap-2 rounded-2xl border px-3 py-1 text-sm bg-white hover:border-[#B89C6D]; }
+
+/* Styles pour les checkboxes dans les pills */
+.pill input{ accent-color:#B89C6D; }
+
+/* Input avec unité à droite */
+.input-unit{ position:relative; }
+.input-unit .unit-badge{
+  position:absolute; right:8px; top:50%; transform:translateY(-50%);
+  padding:2px 8px; border-radius:9999px; border:1px solid #e6e3dd; background:#fff;
+  font-size:12px; color:#6b6b6b;
+}
