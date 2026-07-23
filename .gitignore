@@ -12,3 +12,4 @@ public/uploads/*
 !public/uploads/.gitkeep
 data/properties.json
 data/leads.json
+data/analytics.json
