@@ -1,9 +1,7 @@
 import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import Section from "@/components/Section";
-import dynamic from "next/dynamic";
-
-const EstimationForm = dynamic(() => import("@/components/EstimationForm"), { ssr: false });
+import EstimationForm from "@/components/EstimationFormLoader";
 
 export const metadata = {
   title: "Estimation gratuite — Lemeille Patrimoine",

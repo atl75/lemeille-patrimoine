@@ -3,13 +3,14 @@ import { readJSON, writeJSON } from '@/lib/utils';
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const updates = await req.json();
     const leads = await readJSON('leads.json');
-    
-    const leadIndex = leads.findIndex((l: any) => l.id === params.id);
+
+    const leadIndex = leads.findIndex((l: any) => l.id === id);
     if (leadIndex === -1) {
       return NextResponse.json({ error: 'Lead non trouvé' }, { status: 404 });
     }
@@ -18,7 +19,7 @@ export async function PATCH(
     leads[leadIndex] = {
       ...leads[leadIndex],
       ...updates,
-      id: params.id, // S'assurer que l'ID ne change pas
+      id, // S'assurer que l'ID ne change pas
       createdAt: leads[leadIndex].createdAt, // Conserver la date de création
     };
 
@@ -32,12 +33,13 @@ export async function PATCH(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const leads = await readJSON('leads.json');
-    
-    const leadIndex = leads.findIndex((l: any) => l.id === params.id);
+
+    const leadIndex = leads.findIndex((l: any) => l.id === id);
     if (leadIndex === -1) {
       return NextResponse.json({ error: 'Lead non trouvé' }, { status: 404 });
     }

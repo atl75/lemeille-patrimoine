@@ -3,13 +3,14 @@ import { readJSON, writeJSON } from '@/lib/utils';
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const action = await req.json();
     const leads = await readJSON('leads.json');
-    
-    const leadIndex = leads.findIndex((l: any) => l.id === params.id);
+
+    const leadIndex = leads.findIndex((l: any) => l.id === id);
     if (leadIndex === -1) {
       return NextResponse.json({ error: 'Lead non trouvé' }, { status: 404 });
     }
