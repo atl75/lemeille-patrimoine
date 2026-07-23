@@ -1,14 +1,15 @@
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
-
 export async function analyzePropertyDocument(documentBase64: string): Promise<any> {
   try {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY non défini");
+    }
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
     // Extraire le type MIME et les données
-    const base64Data = documentBase64.includes(',') 
-      ? documentBase64.split(',')[1] 
+    const base64Data = documentBase64.includes(',')
+      ? documentBase64.split(',')[1]
       : documentBase64;
 
     const response = await openai.chat.completions.create({
