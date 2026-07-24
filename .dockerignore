@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.env
+.env.local
+.env*.local
+data/*.json
+public/uploads
+*.tar.gz
+.DS_Store
+scratchpad
