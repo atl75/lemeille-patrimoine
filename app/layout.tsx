@@ -5,6 +5,7 @@ import Script from 'next/script';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
+import ChatWidget from '@/components/ChatWidget';
 import { OrganizationSchema } from '@/components/OrganizationSchema';
 import { Providers } from './providers';
 
@@ -81,6 +82,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <Footer />
           <WhatsAppButton />
+          <ChatWidget />
         </Providers>
       </body>
     </html>
