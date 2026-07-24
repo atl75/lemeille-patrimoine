@@ -4,11 +4,38 @@ import DPECard from "@/components/DPECard";
 import MapEmbed from "@/components/MapEmbed";
 import PropertyGallery from "@/components/PropertyGallery";
 import { getVideoEmbedUrl, isImageDocument } from "@/lib/utils";
+import type { Metadata } from 'next';
 
 async function getProperty(id: string){
   const base = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT||'3000'}`;
   const r = await fetch(`${base}/api/properties/${id}`, { cache: 'no-store' });
   return r.ok ? r.json() : null;
+}
+
+export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await props.params;
+  const p = await getProperty(id);
+  if (!p) return { title: "Bien introuvable | Lemeille Patrimoine" };
+
+  const region = p.region ? String(p.region).replaceAll('_', ' ') : '';
+  const title = `${p.title} — ${p.city}${region ? `, ${region}` : ''} | Lemeille Patrimoine`;
+  const description = p.description
+    ? p.description.slice(0, 155)
+    : `${p.type === 'MAISON' ? 'Maison' : 'Appartement'} à ${p.city}, ${p.surface ?? '—'} m², ${p.rooms ?? '—'} pièces.`;
+  const coverImage = Array.isArray(p.images) && p.images.length ? p.images[0] : undefined;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/immobilier/biens/${p.id}` },
+    openGraph: {
+      title,
+      description,
+      url: `/immobilier/biens/${p.id}`,
+      type: 'website',
+      images: coverImage ? [{ url: coverImage }] : undefined,
+    }
+  };
 }
 
 export default async function Page(props: { params: Promise<{ id: string }> }){
