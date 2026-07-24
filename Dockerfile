@@ -1,7 +1,10 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+# --ignore-scripts : le postinstall (scripts/postinstall.js) ne fait que
+# créer les dossiers data/ & public/uploads, gérés directement dans le
+# stage runner. Le fichier scripts/ n'est pas encore copié à ce stade.
+RUN npm ci --ignore-scripts
 
 FROM node:22-alpine AS builder
 WORKDIR /app
