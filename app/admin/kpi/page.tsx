@@ -2,6 +2,16 @@
 import AdminShell from "@/components/AdminShell";
 import Breadcrumb from "@/components/Breadcrumb";
 import { useEffect, useState, useMemo } from "react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Cell,
+} from "recharts";
 
 type Lead = {
   id: string;
@@ -104,9 +114,36 @@ export default function Page(){
       return acc;
     }, {} as Record<string, number>);
 
-    const growth = lastMonthLeads.length > 0 
+    const growth = lastMonthLeads.length > 0
       ? Math.round(((thisMonthLeads.length - lastMonthLeads.length) / lastMonthLeads.length) * 100)
       : 0;
+
+    // Évolution mensuelle (12 derniers mois)
+    const monthlyMap = new Map<string, number>();
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      monthlyMap.set(key, 0);
+    }
+    leads.forEach(l => {
+      const d = new Date(l.createdAt);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (monthlyMap.has(key)) monthlyMap.set(key, (monthlyMap.get(key) || 0) + 1);
+    });
+    const monthlyEvolution = Array.from(monthlyMap.entries()).map(([key, count]) => {
+      const [y, m] = key.split('-');
+      const label = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('fr-FR', { month: 'short' });
+      return { month: label, leads: count };
+    });
+
+    // Entonnoir de conversion (statuts ordonnés)
+    const STATUS_ORDER = ['new', 'contacted', 'qualified', 'closed'];
+    const STATUS_LABEL: Record<string, string> = { new: 'Nouveau', contacted: 'Contacté', qualified: 'Qualifié', closed: 'Fermé' };
+    const funnel = STATUS_ORDER.map(status => ({
+      status: STATUS_LABEL[status],
+      count: byStatus[status] || 0,
+      rate: leads.length > 0 ? Math.round(((byStatus[status] || 0) / leads.length) * 100) : 0
+    }));
 
     return {
       total: leads.length,
@@ -116,7 +153,9 @@ export default function Page(){
       bySource,
       byTopic,
       byStatus,
-      byCategory
+      byCategory,
+      monthlyEvolution,
+      funnel
     };
   }, [leads]);
 
@@ -493,6 +532,42 @@ export default function Page(){
               <div className={`text-3xl font-semibold mt-1 ${kpi.growth >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                 {kpi.growth >= 0 ? '+' : ''}{kpi.growth}%
               </div>
+            </div>
+          </div>
+
+          {/* Évolution mensuelle des leads */}
+          <div className="card p-6 mb-4">
+            <h3 className="luxe text-xl mb-4">Évolution des leads (12 derniers mois)</h3>
+            <div style={{ width: '100%', height: 260 }}>
+              <ResponsiveContainer>
+                <BarChart data={kpi.monthlyEvolution} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                  <Tooltip formatter={(value: any) => [value, 'Leads']} />
+                  <Bar dataKey="leads" fill="#B89C6D" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Entonnoir de conversion */}
+          <div className="card p-6 mb-4">
+            <h3 className="luxe text-xl mb-4">Taux de conversion des leads</h3>
+            <div style={{ width: '100%', height: 220 }}>
+              <ResponsiveContainer>
+                <BarChart data={kpi.funnel} layout="vertical" margin={{ top: 8, right: 24, left: 8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
+                  <YAxis type="category" dataKey="status" tick={{ fontSize: 12 }} width={80} />
+                  <Tooltip formatter={(value: any, _name: any, item: any) => [`${value} (${item.payload.rate}%)`, 'Leads']} />
+                  <Bar dataKey="count" fill="#1F3B2C" radius={[0, 4, 4, 0]}>
+                    {kpi.funnel.map((_, i) => (
+                      <Cell key={i} fillOpacity={1 - i * 0.18} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
