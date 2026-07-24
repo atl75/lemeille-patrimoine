@@ -1,6 +1,7 @@
 "use client";
 import AdminShell from "@/components/AdminShell";
 import Breadcrumb from "@/components/Breadcrumb";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { useEffect, useState } from "react";
 
 type Program = {
@@ -27,6 +28,7 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Program> | null>(null);
   const [saving, setSaving] = useState(false);
+  const { confirm, dialog } = useConfirm();
 
   const fetchPrograms = async () => {
     try {
@@ -65,7 +67,7 @@ export default function Page() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Supprimer ce programme ?')) return;
+    if (!(await confirm('Ce programme sera définitivement supprimé.', { title: 'Supprimer ce programme ?' }))) return;
     try {
       const res = await fetch(`/api/programs/${id}`, { method: 'DELETE' });
       if (res.ok) {
@@ -248,6 +250,7 @@ export default function Page() {
           ))}
         </div>
       )}
+      {dialog}
     </AdminShell>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 import AdminShell from "@/components/AdminShell";
 import Breadcrumb from "@/components/Breadcrumb";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { useEffect, useState } from "react";
 
 type Review = {
@@ -27,6 +28,7 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Review> | null>(null);
   const [saving, setSaving] = useState(false);
+  const { confirm, dialog } = useConfirm();
 
   const fetchReviews = async () => {
     try {
@@ -65,7 +67,7 @@ export default function Page() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Supprimer cet avis ?')) return;
+    if (!(await confirm('Cet avis sera définitivement supprimé.', { title: 'Supprimer cet avis ?' }))) return;
     try {
       const res = await fetch(`/api/reviews/${id}`, { method: 'DELETE' });
       if (res.ok) {
@@ -250,6 +252,7 @@ export default function Page() {
           ))}
         </div>
       )}
+      {dialog}
     </AdminShell>
   );
 }

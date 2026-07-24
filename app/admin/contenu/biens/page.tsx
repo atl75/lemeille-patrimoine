@@ -8,6 +8,7 @@ import ImageUploader from "@/components/ImageUploader";
 import DocumentUploader from "@/components/DocumentUploader";
 import MultiDocumentUploader from "@/components/MultiDocumentUploader";
 import CompanyAutocomplete from "@/components/CompanyAutocomplete";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { useEffect, useState } from "react";
 
 type Property = {
@@ -83,6 +84,9 @@ type Property = {
   propertyRules?: string;
   agMinutes?: string[];
   chargesStatement?: string;
+  // Plan et vidéo
+  floorPlan?: string;
+  videoUrl?: string;
 };
 
 const EMPTY_PROPERTY: Partial<Property> = {
@@ -120,7 +124,9 @@ const EMPTY_PROPERTY: Partial<Property> = {
   estimation: undefined,
   propertyRules: undefined,
   agMinutes: [],
-  chargesStatement: undefined
+  chargesStatement: undefined,
+  floorPlan: undefined,
+  videoUrl: undefined
 };
 
 export default function Page() {
@@ -133,6 +139,7 @@ export default function Page() {
   const [analyzing, setAnalyzing] = useState(false);
   const [searchingCadastre, setSearchingCadastre] = useState(false);
   const [calculationMode, setCalculationMode] = useState<'FROM_NET' | 'FROM_FAI'>('FROM_NET'); // Mode de calcul financier
+  const { confirm, dialog } = useConfirm();
 
   // Fonction pour rechercher la parcelle cadastrale
   const searchCadastralReference = async () => {
@@ -339,7 +346,7 @@ export default function Page() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Supprimer ce bien ?')) return;
+    if (!(await confirm('Ce bien sera définitivement supprimé.', { title: 'Supprimer ce bien ?' }))) return;
     try {
       const res = await fetch(`/api/properties/${id}`, { 
         method: 'DELETE',
@@ -588,7 +595,8 @@ export default function Page() {
                   if (viewing.propertyTax) docs.push({ name: "Taxe foncière", url: viewing.propertyTax });
                   if (viewing.mandate) docs.push({ name: "Mandat", url: viewing.mandate });
                   if (viewing.estimation) docs.push({ name: "Estimation", url: viewing.estimation });
-                  
+                  if (viewing.floorPlan) docs.push({ name: "Plan du bien", url: viewing.floorPlan });
+
                   if (viewing.type === 'APPARTEMENT') {
                     if (viewing.propertyRules) docs.push({ name: "Règlement de propriété", url: viewing.propertyRules });
                     if (viewing.chargesStatement) docs.push({ name: "Relevé de charges", url: viewing.chargesStatement });
@@ -1697,6 +1705,19 @@ export default function Page() {
             />
           </div>
 
+          {/* Vidéo */}
+          <div className="mb-3">
+            <label className="block text-xs font-medium mb-1">Vidéo (lien YouTube / Vimeo)</label>
+            <input
+              type="url"
+              value={editing.videoUrl || ''}
+              onChange={(e) => updateField('videoUrl', e.target.value)}
+              className="w-full px-2 py-1 text-xs border rounded"
+              placeholder="https://www.youtube.com/watch?v=..."
+              data-testid="input-video-url"
+            />
+          </div>
+
           {/* Section Documents administratifs ultra-compact */}
           <div className="mb-2 p-1.5 bg-gray-50 rounded">
             <div className="flex justify-between items-center mb-1.5">
@@ -1773,6 +1794,15 @@ export default function Page() {
                   document={editing.estimation}
                   onChange={doc => updateField('estimation', doc)}
                   label=""
+                />
+              </div>
+              <div>
+                <label className="block mb-0.5 text-[10px] font-medium">Plan du bien</label>
+                <DocumentUploader
+                  document={editing.floorPlan}
+                  onChange={doc => updateField('floorPlan', doc)}
+                  label=""
+                  accept=".pdf,.jpg,.jpeg,.png,.webp"
                 />
               </div>
               {editing.type === 'APPARTEMENT' && (
@@ -1996,6 +2026,7 @@ export default function Page() {
                             property.propertyTax,
                             property.mandate,
                             property.estimation,
+                            property.floorPlan,
                             property.propertyRules,
                             property.chargesStatement,
                             ...(Array.isArray(property.agMinutes) ? property.agMinutes : [])
@@ -2042,6 +2073,7 @@ export default function Page() {
           </>
         );
       })()}
+      {dialog}
     </AdminShell>
   );
 }

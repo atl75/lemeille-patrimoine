@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import type { Metadata } from 'next';
@@ -30,7 +31,7 @@ export default function Page(){
         <p>Contenus et éléments graphiques © Lemeille Patrimoine. Toute reproduction non autorisée est interdite.</p>
 
         <h2 className="luxe text-2xl mt-8">Contact</h2>
-        <p>Pour toute question, utilisez le formulaire de <a href="/contact" className="underline">contact</a>.</p>
+        <p>Pour toute question, utilisez le formulaire de <Link href="/contact" className="underline">contact</Link>.</p>
       </section>
     </main>
   );

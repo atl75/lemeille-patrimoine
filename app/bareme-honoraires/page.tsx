@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import type { Metadata } from 'next';
@@ -216,7 +217,7 @@ export default function Page(){
             ✉️ <a href="mailto:arthur.lemeille@lemeillepatrimoine.com" className="text-[#B89C6D] hover:underline">arthur.lemeille@lemeillepatrimoine.com</a>
           </li>
           <li>
-            <a href="/contact" className="text-[#B89C6D] hover:underline">Formulaire de contact</a>
+            <Link href="/contact" className="text-[#B89C6D] hover:underline">Formulaire de contact</Link>
           </li>
         </ul>
       </section>

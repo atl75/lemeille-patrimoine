@@ -1,3 +1,4 @@
+import Link from "next/link";
 import AdminShell from "@/components/AdminShell";
 import Breadcrumb from "@/components/Breadcrumb";
 import { readJSON } from "@/lib/utils";
@@ -30,14 +31,14 @@ export default async function Page(){
         
         {/* Quick Action Button */}
         <div className="mb-6">
-          <a 
-            href="/admin/contenu/biens?action=new" 
+          <Link
+            href="/admin/contenu/biens?action=new"
             className="inline-flex items-center gap-2 px-6 py-3 bg-[#B89C6D] text-white rounded-md hover:bg-[#A68B5E] transition-colors"
             data-testid="button-add-property"
           >
             <Plus className="h-5 w-5" />
             <span className="font-medium">Ajouter une annonce</span>
-          </a>
+          </Link>
         </div>
 
         {/* KPI Cards */}
@@ -84,18 +85,18 @@ export default async function Page(){
 
         {/* Main Navigation Cards */}
         <div className="grid md:grid-cols-3 gap-6">
-          <a className="card p-6 hover:border-[#B89C6D]" href="/admin/contenu" data-testid="link-content">
+          <Link className="card p-6 hover:border-[#B89C6D]" href="/admin/contenu" data-testid="link-content">
             <h3 className="luxe text-xl">Gestion du contenu</h3>
             <p className="opacity-80 mt-2">Biens, programmes, avis — ajouter/modifier/supprimer.</p>
-          </a>
-          <a className="card p-6 hover:border-[#B89C6D]" href="/admin/crm" data-testid="link-crm">
+          </Link>
+          <Link className="card p-6 hover:border-[#B89C6D]" href="/admin/crm" data-testid="link-crm">
             <h3 className="luxe text-xl">CRM</h3>
             <p className="opacity-80 mt-2">Leads entrants, suivi, statut et export CSV.</p>
-          </a>
-          <a className="card p-6 hover:border-[#B89C6D]" href="/admin/kpi" data-testid="link-kpi">
+          </Link>
+          <Link className="card p-6 hover:border-[#B89C6D]" href="/admin/kpi" data-testid="link-kpi">
             <h3 className="luxe text-xl">Indicateurs</h3>
             <p className="opacity-80 mt-2">Trafic, conversions, programmes, portefeuille.</p>
-          </a>
+          </Link>
         </div>
       </AdminShell>
     </main>

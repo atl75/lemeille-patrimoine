@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import Section from "@/components/Section";
 import HomeSeoJsonLd from "@/components/HomeSeoJsonLd";
@@ -91,17 +92,17 @@ export default function Home() {
                 ["Normandie","Rouen, Mont-Saint-Aignan, Bois-Guillaume • Résidentiel recherché, maisons et appartements de caractère.","/immobilier"],
                 ["Côte d'Azur","Saint-Aygulf, Fréjus, Sainte-Maxime, Estérel • Villas de standing, vue mer, environnement préservé.","/immobilier"]
               ].map(([t,s,href],i)=>(
-                <a key={i} href={href} className="card p-6 block hover:border-[#B89C6D] transition" data-testid={`link-sector-${i}`}>
+                <Link key={i} href={href} className="card p-6 block hover:border-[#B89C6D] transition" data-testid={`link-sector-${i}`}>
                   <div className="luxe text-xl mb-2">{t}</div>
                   <p className="opacity-80 text-sm">{s}</p>
-                </a>
+                </Link>
               ))}
             </div>
-            
+
             {/* Bouton vers la page des biens */}
             <div className="mt-8 text-center">
-              <a 
-                href="/immobilier" 
+              <Link
+                href="/immobilier"
                 className="btn btn-gold inline-flex items-center gap-2"
                 data-testid="button-voir-biens"
               >
@@ -110,7 +111,7 @@ export default function Home() {
                   <path d="M5 12h14"/>
                   <path d="m12 5 7 7-7 7"/>
                 </svg>
-              </a>
+              </Link>
             </div>
           </Section>
         </>

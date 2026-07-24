@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default async function DebugPage() {
   const base = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT||'3000'}`;
   const res = await fetch(`${base}/api/properties`, { cache: 'no-store' });
@@ -39,7 +41,7 @@ export default async function DebugPage() {
       </div>
 
       <div className="mt-6">
-        <a href="/immobilier" className="btn btn-gold">← Retour à la page immobilier</a>
+        <Link href="/immobilier" className="btn btn-gold">← Retour à la page immobilier</Link>
       </div>
     </main>
   );

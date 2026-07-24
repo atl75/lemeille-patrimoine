@@ -1,6 +1,7 @@
 "use client";
 import AdminShell from "@/components/AdminShell";
 import Breadcrumb from "@/components/Breadcrumb";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { useEffect, useState } from "react";
 import { Plus, X, Calendar, CheckCircle2, Circle, Edit2, Trash2, Paperclip, Download, Eye } from "lucide-react";
 
@@ -74,6 +75,7 @@ export default function Page(){
   });
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const { confirm, dialog } = useConfirm();
 
   const fetchLeads = () => {
     fetch('/api/leads')
@@ -239,7 +241,7 @@ export default function Page(){
   };
 
   const handleDeleteLead = async (leadId: string, leadName: string) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer le lead "${leadName}" ? Cette action est irréversible.`)) {
+    if (!(await confirm(`Le lead "${leadName}" sera définitivement supprimé.`, { title: "Supprimer ce lead ?" }))) {
       return;
     }
 
@@ -817,6 +819,7 @@ export default function Page(){
           ))}
         </div>
       )}
+      {dialog}
     </AdminShell>
   );
 }

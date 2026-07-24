@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import Img from "@/components/Img";
@@ -217,7 +218,7 @@ export default async function Page({ searchParams }: {
             <div className="luxe text-lg">Vous vendez ? Estimation gratuite en 2 minutes</div>
             <div className="text-sm opacity-80">Obtenez une fourchette indicative puis un avis de valeur précis.</div>
           </div>
-          <a className="btn btn-gold" href="/immobilier/estimation" data-testid="link-estimation">Estimer mon bien</a>
+          <Link className="btn btn-gold" href="/immobilier/estimation" data-testid="link-estimation">Estimer mon bien</Link>
         </div>
 
         {/* Bouton basculer entre biens en vente et vendus */}
@@ -288,7 +289,7 @@ export default async function Page({ searchParams }: {
             
             // Vue "Biens en vente" : affichage normal (cliquable)
             return (
-              <a key={p.id} href={`/immobilier/biens/${p.id}`} className="card p-0 hover:border-[#B89C6D] transition" data-testid={`card-property-${p.id}`}>
+              <Link key={p.id} href={`/immobilier/biens/${p.id}`} className="card p-0 hover:border-[#B89C6D] transition" data-testid={`card-property-${p.id}`}>
                 <Img 
                   src={(p.images?.[0])||"/logo.png"} 
                   alt={p.title} 
@@ -308,7 +309,7 @@ export default async function Page({ searchParams }: {
                   {p.price && <div className="mt-2 font-semibold">{Number(p.price).toLocaleString('fr-FR')} €</div>}
                   {p.dpe && <div className="mt-2 text-xs opacity-70">DPE : {p.dpe.classEnergy} · GES : {p.dpe.classGES}</div>}
                 </div>
-              </a>
+              </Link>
             );
           })}
           {!items.length && (

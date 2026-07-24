@@ -100,6 +100,9 @@ export const properties = pgTable("properties", {
   propertyTax: text("property_tax"), // Taxe foncière
   mandate: text("mandate"), // Mandat
   estimation: text("estimation"), // Estimation
+  // Plan et vidéo
+  floorPlan: text("floor_plan"), // Plan du bien (image ou PDF, base64)
+  videoUrl: text("video_url"), // Lien vidéo (YouTube / Vimeo)
   // Documents spécifiques aux appartements
   propertyRules: text("property_rules"), // Règlement de propriété
   agMinutes: jsonb("ag_minutes").$type<string[]>(), // PV d'AG (3 derniers)
@@ -134,6 +137,8 @@ export const insertPropertySchema = createInsertSchema(properties, {
   propertyTax: z.string().optional(),
   mandate: z.string().optional(),
   estimation: z.string().optional(),
+  floorPlan: z.string().optional(),
+  videoUrl: z.string().url().optional().or(z.literal('')),
   propertyRules: z.string().optional(),
   agMinutes: z.array(z.string()).optional(),
   chargesStatement: z.string().optional()

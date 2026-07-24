@@ -3,6 +3,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import DPECard from "@/components/DPECard";
 import MapEmbed from "@/components/MapEmbed";
 import PropertyGallery from "@/components/PropertyGallery";
+import { getVideoEmbedUrl, isImageDocument } from "@/lib/utils";
 
 async function getProperty(id: string){
   const base = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT||'3000'}`;
@@ -15,6 +16,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
   const p = await getProperty(params.id);
   if (!p) return <main className="container py-12">Bien introuvable.</main>;
   const imgs: string[] = Array.isArray(p.images) && p.images.length ? p.images : ['/logo.svg'];
+  const videoEmbedUrl = getVideoEmbedUrl(p.videoUrl);
+  const floorPlanIsImage = isImageDocument(p.floorPlan);
 
   return (
     <main>
@@ -32,6 +35,21 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
         {/* Colonne gauche (galerie + infos) */}
         <div className="md:col-span-2">
           <PropertyGallery images={imgs} title={p.title} />
+
+          {videoEmbedUrl && (
+            <div className="card p-6 mt-6">
+              <h2 className="luxe text-2xl mb-3">Visite en vidéo</h2>
+              <div className="relative w-full pt-[56.25%] rounded-xl overflow-hidden">
+                <iframe
+                  src={videoEmbedUrl}
+                  title={`Vidéo — ${p.title}`}
+                  className="absolute inset-0 w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+          )}
 
           <div className="card p-6 mt-6">
             <h2 className="luxe text-2xl mb-3">Caractéristiques</h2>
@@ -57,6 +75,20 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
             <h2 className="luxe text-2xl mb-3">Description</h2>
             <p>{p.description}</p>
           </div>
+
+          {p.floorPlan && (
+            <div className="card p-6 mt-4">
+              <h2 className="luxe text-2xl mb-3">Plan du bien</h2>
+              {floorPlanIsImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={p.floorPlan} alt={`Plan — ${p.title}`} className="w-full h-auto rounded-xl border" />
+              ) : (
+                <a href={p.floorPlan} target="_blank" rel="noopener noreferrer" className="btn btn-gold inline-flex">
+                  Consulter le plan (PDF)
+                </a>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Colonne droite */}

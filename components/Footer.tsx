@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function Footer(){
   return (
     <footer className="border-t border-black/5 mt-16">
@@ -35,10 +37,11 @@ export function Footer(){
         </div>
         <div className="justify-self-end">
           <nav className="flex flex-col gap-2 text-right">
-            <a href="/bareme-honoraires" className="hover:text-[#B89C6D]">Barème d&apos;honoraires</a>
-            <a href="/mentions-legales" className="hover:text-[#B89C6D]">Mentions légales</a>
-            <a href="/politique-de-confidentialite" className="hover:text-[#B89C6D]">Confidentialité</a>
-            <a href="/cookies" className="hover:text-[#B89C6D]">Cookies</a>
+            <Link href="/actualites" className="hover:text-[#B89C6D]">Actualités</Link>
+            <Link href="/bareme-honoraires" className="hover:text-[#B89C6D]">Barème d&apos;honoraires</Link>
+            <Link href="/mentions-legales" className="hover:text-[#B89C6D]">Mentions légales</Link>
+            <Link href="/politique-de-confidentialite" className="hover:text-[#B89C6D]">Confidentialité</Link>
+            <Link href="/cookies" className="hover:text-[#B89C6D]">Cookies</Link>
           </nav>
         </div>
       </div>

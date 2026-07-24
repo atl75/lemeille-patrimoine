@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import Img from "@/components/Img";
@@ -129,7 +130,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       <section className="container pb-12">
         <div className="grid md:grid-cols-2 gap-6">
           {items.map((p:any)=>(
-            <a key={p.id} href={`/immobilier/biens/${p.id}`} className="card p-0 hover:border-[#B89C6D] transition" data-testid={`card-property-${p.id}`}>
+            <Link key={p.id} href={`/immobilier/biens/${p.id}`} className="card p-0 hover:border-[#B89C6D] transition" data-testid={`card-property-${p.id}`}>
               <Img src={(p.images?.[0])||"/logo.png"} alt={p.title} width={1200} height={600} className="w-full h-64 object-cover rounded-t-2xl" />
               <div className="p-6">
                 <h3 className="luxe text-2xl">{p.title}</h3>
@@ -141,7 +142,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                 {p.price && <div className="mt-2 font-semibold">{Number(p.price).toLocaleString('fr-FR')} €</div>}
                 {p.dpe && <div className="mt-2 text-xs opacity-70">DPE : {p.dpe.classEnergy} · GES : {p.dpe.classGES}</div>}
               </div>
-            </a>
+            </Link>
           ))}
           {!items.length && <div className="opacity-70">Aucun bien pour ce secteur pour le moment.</div>}
         </div>

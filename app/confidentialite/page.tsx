@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import type { Metadata } from 'next';
@@ -29,7 +30,7 @@ export default function Page(){
         <p>Jusqu&apos;à 3 ans après le dernier contact pour la prospection ; obligations légales pour le reste.</p>
 
         <h2 className="luxe text-2xl mt-8">Vos droits</h2>
-        <p>Accès, rectification, opposition, effacement, limitation, portabilité. Exercez vos droits via <a href="/contact" className="underline">le formulaire</a>.</p>
+        <p>Accès, rectification, opposition, effacement, limitation, portabilité. Exercez vos droits via <Link href="/contact" className="underline">le formulaire</Link>.</p>
 
         <h2 className="luxe text-2xl mt-8">Sous-traitants</h2>
         <p>Hébergement Replit, DNS/Squarespace. Les données sont stockées au sein de l&apos;UE ou avec garanties adéquates.</p>

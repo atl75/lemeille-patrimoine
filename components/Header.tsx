@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
 
 export function Header(){
@@ -9,7 +10,7 @@ export function Header(){
   return (
     <header className="border-b border-black/5 bg-white/60 backdrop-blur sticky top-0 z-40">
       <div className="container py-3 flex items-center justify-between">
-        <a href="/" className="logo-group" data-testid="link-home">
+        <Link href="/" className="logo-group" data-testid="link-home">
           <svg xmlns="http://www.w3.org/2000/svg" width="280" height="64" viewBox="0 0 280 64" role="img" aria-label="Lemeille Patrimoine" className="h-10 w-auto">
             <defs>
               <style>{`.serif { font-family: Georgia, "Times New Roman", Times, serif; } .logo-text { display: none; } @media (min-width: 768px) { .logo-text { display: block; } }`}</style>
@@ -20,14 +21,16 @@ export function Header(){
               Lemeille Patrimoine
             </text>
           </svg>
-        </a>
-        
+        </Link>
+
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-4 text-sm">
-          <a href="/immobilier" data-testid="link-immobilier">Immobilier</a>
-          <a href="/patrimoine" data-testid="link-patrimoine">Gestion de patrimoine</a>
-          <a href="/programmes" data-testid="link-programmes">Programmes</a>
-          <a href="/contact" data-testid="link-contact">Contact</a>
+          <Link href="/immobilier" data-testid="link-immobilier">Immobilier</Link>
+          <Link href="/patrimoine" data-testid="link-patrimoine">Gestion de patrimoine</Link>
+          <Link href="/programmes" data-testid="link-programmes">Programmes</Link>
+          <Link href="/actualites" data-testid="link-actualites">Actualités</Link>
+          <Link href="/avis" data-testid="link-avis">Avis</Link>
+          <Link href="/contact" data-testid="link-contact">Contact</Link>
         </nav>
 
         {/* Mobile Menu Button */}
@@ -49,38 +52,54 @@ export function Header(){
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-black/5 bg-white">
           <nav className="container py-4 flex flex-col gap-4">
-            <a 
-              href="/immobilier" 
+            <Link
+              href="/immobilier"
               className="py-2 text-base border-b border-black/5"
               onClick={() => setMobileMenuOpen(false)}
               data-testid="link-mobile-immobilier"
             >
               Immobilier
-            </a>
-            <a 
-              href="/patrimoine" 
+            </Link>
+            <Link
+              href="/patrimoine"
               className="py-2 text-base border-b border-black/5"
               onClick={() => setMobileMenuOpen(false)}
               data-testid="link-mobile-patrimoine"
             >
               Gestion de patrimoine
-            </a>
-            <a 
-              href="/programmes" 
+            </Link>
+            <Link
+              href="/programmes"
               className="py-2 text-base border-b border-black/5"
               onClick={() => setMobileMenuOpen(false)}
               data-testid="link-mobile-programmes"
             >
               Programmes
-            </a>
-            <a 
-              href="/contact" 
+            </Link>
+            <Link
+              href="/actualites"
+              className="py-2 text-base border-b border-black/5"
+              onClick={() => setMobileMenuOpen(false)}
+              data-testid="link-mobile-actualites"
+            >
+              Actualités
+            </Link>
+            <Link
+              href="/avis"
+              className="py-2 text-base border-b border-black/5"
+              onClick={() => setMobileMenuOpen(false)}
+              data-testid="link-mobile-avis"
+            >
+              Avis
+            </Link>
+            <Link
+              href="/contact"
               className="py-2 text-base"
               onClick={() => setMobileMenuOpen(false)}
               data-testid="link-mobile-contact"
             >
               Contact
-            </a>
+            </Link>
           </nav>
         </div>
       )}
