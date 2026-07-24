@@ -20,7 +20,7 @@ export default function Home() {
     <main>
       {/* HERO vert */}
       <section className="bg-luxe text-white">
-        <div className="container py-16 md:py-24">
+        <div className="container py-8 md:py-12 min-h-[360px] md:min-h-[380px] flex flex-col justify-center">
           <h1 className="text-4xl md:text-5xl luxe text-cream">Lemeille Patrimoine</h1>
           <p className="mt-3 max-w-2xl text-cream/90">
             Agence immobilière haut de gamme — transaction dans l&apos;ancien (Paris, Normandie, Côte d&apos;Azur)

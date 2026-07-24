@@ -14,7 +14,7 @@ export default function Hero({
 }) {
   return (
     <section className="bg-luxe text-white">
-      <div className="container py-16 md:py-24 min-h-[320px] md:min-h-[360px] flex flex-col justify-center">
+      <div className="container py-8 md:py-12 min-h-[360px] md:min-h-[380px] flex flex-col justify-center">
         <h1 className="text-4xl md:text-5xl luxe text-cream">{title}</h1>
         {subtitle && <p className="mt-3 max-w-2xl text-cream/90">{subtitle}</p>}
         {(primary || secondary) && (
