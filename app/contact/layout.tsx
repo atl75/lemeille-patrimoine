@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Contact - Bureaux Rouen & Fréjus | Lemeille Patrimoine',
-  description: 'Contactez Lemeille Patrimoine. Bureaux à Rouen (19 rue de l\'École) et Fréjus (722 avenue Alfred de Musset). Tél : 06 87 15 72 59. Conseil immobilier et patrimonial.',
+  description: 'Contactez Lemeille Patrimoine. Bureaux à Rouen (35 rue Ganterie) et Fréjus (722 avenue Alfred de Musset). Tél : 06 87 15 72 59. Conseil immobilier et patrimonial.',
   alternates: {
     canonical: '/contact'
   },

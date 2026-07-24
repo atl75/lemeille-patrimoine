@@ -19,10 +19,11 @@ export default function Page(){
       <section className="container pb-14 prose max-w-none">
         <h2 className="luxe text-2xl">Éditeur</h2>
         <p><strong>Lemeille Patrimoine</strong>, marque du groupe <strong>Novus Capital</strong> (SIREN 937 847 937).<br/>
-        Bureaux : 19 rue de l&apos;École, 76000 Rouen — 722 avenue Alfred de Musset, 83370 Saint-Aygulf.</p>
+        Siège social : 50 rue de la Garenne, 76130 Mont-Saint-Aignan.<br/>
+        Bureaux : 35 rue Ganterie, 76000 Rouen — 722 avenue Alfred de Musset, 83370 Saint-Aygulf.</p>
 
         <h2 className="luxe text-2xl mt-8">Hébergement</h2>
-        <p>Application hébergée via Replit. Le nom de domaine est géré par Squarespace Domains II LLC.</p>
+        <p>Application hébergée sur Google Cloud Platform (Google Cloud Run, région europe-west1). Le nom de domaine est géré par Squarespace Domains II LLC.</p>
 
         <h2 className="luxe text-2xl mt-8">Responsabilité</h2>
         <p>Les informations publiées sont fournies à titre indicatif et ne sauraient se substituer à un conseil personnalisé.</p>

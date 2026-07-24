@@ -9,7 +9,8 @@ export default function HomeSeoJsonLd(){
     "email":"arthur.lemeille@lemeillepatrimoine.com",
     "telephone":"+33687157259",
     "address":[
-      {"@type":"PostalAddress","streetAddress":"19 rue de l'École","addressLocality":"Rouen","postalCode":"76000","addressCountry":"FR"},
+      {"@type":"PostalAddress","streetAddress":"50 rue de la Garenne","addressLocality":"Mont-Saint-Aignan","postalCode":"76130","addressCountry":"FR"},
+      {"@type":"PostalAddress","streetAddress":"35 rue Ganterie","addressLocality":"Rouen","postalCode":"76000","addressCountry":"FR"},
       {"@type":"PostalAddress","streetAddress":"722 avenue Alfred de Musset","addressLocality":"Fréjus","postalCode":"83370","addressCountry":"FR"}
     ],
     "areaServed":[

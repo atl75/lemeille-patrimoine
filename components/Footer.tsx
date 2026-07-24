@@ -11,18 +11,27 @@ export function Footer(){
         <div>
           <div className="font-semibold">Nos bureaux</div>
           <div className="flex flex-col gap-1 mt-1">
-            <a 
-              href="https://www.google.com/maps/search/?api=1&query=19+rue+de+l%27%C3%89cole%2C+76000+Rouen" 
-              target="_blank" 
+            <a
+              href="https://www.google.com/maps/search/?api=1&query=50+rue+de+la+Garenne%2C+76130+Mont-Saint-Aignan"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[#B89C6D]"
+              data-testid="link-map-siege"
+            >
+              Siège — 50 rue de la Garenne, 76130 Mont-Saint-Aignan
+            </a>
+            <a
+              href="https://www.google.com/maps/search/?api=1&query=35+rue+Ganterie%2C+76000+Rouen"
+              target="_blank"
               rel="noopener noreferrer"
               className="hover:text-[#B89C6D]"
               data-testid="link-map-rouen"
             >
-              Rouen — 19 rue de l&apos;École, 76000
+              Rouen — 35 rue Ganterie, 76000
             </a>
-            <a 
-              href="https://www.google.com/maps/search/?api=1&query=722+avenue+Alfred+de+Musset%2C+83370+Fr%C3%A9jus" 
-              target="_blank" 
+            <a
+              href="https://www.google.com/maps/search/?api=1&query=722+avenue+Alfred+de+Musset%2C+83370+Fr%C3%A9jus"
+              target="_blank"
               rel="noopener noreferrer"
               className="hover:text-[#B89C6D]"
               data-testid="link-map-frejus"

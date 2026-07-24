@@ -45,12 +45,31 @@ export default function Page(){
           </div>
 
           <div className="mb-6">
-            <div className="font-semibold">Rouen</div>
-            <div>19 rue de l&apos;École, 76000</div>
+            <div className="font-semibold">Siège social — Mont-Saint-Aignan</div>
+            <div>50 rue de la Garenne, 76130</div>
             <div className="mt-2 rounded-2xl overflow-hidden border relative group">
-              <iframe title="Rouen — 19 rue de l'École" src={"https://www.google.com/maps?hl=fr&q="+encodeURIComponent("19 rue de l'École, 76000 Rouen")+"&z=16&output=embed"} style={{border:0, width:"100%", height:"260px"}} loading="lazy" />
-              <a 
-                href={"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent("19 rue de l'École, 76000 Rouen")}
+              <iframe title="Siège social — 50 rue de la Garenne, Mont-Saint-Aignan" src={"https://www.google.com/maps?hl=fr&q="+encodeURIComponent("50 rue de la Garenne, 76130 Mont-Saint-Aignan")+"&z=16&output=embed"} style={{border:0, width:"100%", height:"260px"}} loading="lazy" />
+              <a
+                href={"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent("50 rue de la Garenne, 76130 Mont-Saint-Aignan")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/20 transition-colors"
+                data-testid="link-map-siege"
+              >
+                <span className="opacity-0 group-hover:opacity-100 bg-white px-4 py-2 rounded-2xl shadow-lg text-sm font-medium transition-opacity">
+                  Ouvrir dans Google Maps
+                </span>
+              </a>
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <div className="font-semibold">Rouen</div>
+            <div>35 rue Ganterie, 76000</div>
+            <div className="mt-2 rounded-2xl overflow-hidden border relative group">
+              <iframe title="Rouen — 35 rue Ganterie" src={"https://www.google.com/maps?hl=fr&q="+encodeURIComponent("35 rue Ganterie, 76000 Rouen")+"&z=16&output=embed"} style={{border:0, width:"100%", height:"260px"}} loading="lazy" />
+              <a
+                href={"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent("35 rue Ganterie, 76000 Rouen")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/20 transition-colors"

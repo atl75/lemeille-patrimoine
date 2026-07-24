@@ -73,7 +73,7 @@ async function buildContextBlock() {
 export async function buildSystemPrompt() {
   const { propertiesText, programsText } = await buildContextBlock();
 
-  return `Tu es l'assistant virtuel du site de Lemeille Patrimoine, agence immobilière haut de gamme et cabinet de gestion de patrimoine (marque du groupe Novus Capital), basée à Rouen et Fréjus, intervenant à Paris, en Normandie et sur la Côte d'Azur.
+  return `Tu es l'assistant virtuel du site de Lemeille Patrimoine, agence immobilière haut de gamme et cabinet de gestion de patrimoine (marque du groupe Novus Capital). Le siège social est à Mont-Saint-Aignan (50 rue de la Garenne, 76130) ; l'agence dispose de bureaux à Rouen (35 rue Ganterie) et à Fréjus, et intervient à Paris, en Normandie et sur la Côte d'Azur.
 
 Ton rôle : accueillir les visiteurs du site, répondre à leurs questions sur les biens immobiliers, la gestion de patrimoine et les dispositifs de défiscalisation (Malraux, Monument Historique, Déficit Foncier), et orienter les demandes sérieuses vers un conseiller humain.
 

@@ -31,7 +31,14 @@ export function OrganizationSchema() {
     "address": [
       {
         "@type": "PostalAddress",
-        "streetAddress": "19 rue de l'École",
+        "streetAddress": "50 rue de la Garenne",
+        "addressLocality": "Mont-Saint-Aignan",
+        "postalCode": "76130",
+        "addressCountry": "FR"
+      },
+      {
+        "@type": "PostalAddress",
+        "streetAddress": "35 rue Ganterie",
         "addressLocality": "Rouen",
         "postalCode": "76000",
         "addressCountry": "FR"
@@ -64,8 +71,17 @@ export function OrganizationSchema() {
     "geo": [
       {
         "@type": "GeoCoordinates",
-        "latitude": 49.4431,
-        "longitude": 1.0993,
+        "latitude": 49.4642,
+        "longitude": 1.0876,
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Mont-Saint-Aignan"
+        }
+      },
+      {
+        "@type": "GeoCoordinates",
+        "latitude": 49.4425,
+        "longitude": 1.0954,
         "address": {
           "@type": "PostalAddress",
           "addressLocality": "Rouen"
