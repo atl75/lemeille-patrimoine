@@ -3,9 +3,12 @@ import type { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { readJSON, writeJSON, uid } from "@/lib/utils";
 import { CHAT_MODEL, SAVE_LEAD_TOOL, buildSystemPrompt } from "@/lib/chatbot";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 const MAX_HISTORY = 16;
 const MAX_MESSAGE_LENGTH = 2000;
+const RATE_LIMIT = 15; // messages
+const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
@@ -33,6 +36,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "L'assistant n'est pas configuré (ANTHROPIC_API_KEY manquante)." },
       { status: 503 }
+    );
+  }
+
+  const ip = getClientIp(req);
+  const { allowed, retryAfterSeconds } = rateLimit(`chat:${ip}`, RATE_LIMIT, RATE_LIMIT_WINDOW_MS);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Trop de messages envoyés, merci de patienter quelques minutes avant de réessayer." },
+      { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
     );
   }
 

@@ -5,10 +5,10 @@ const path = require('path');
 module.exports = {
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://lemeillepatrimoine.com',
   generateRobotsTxt: true,
-  exclude: ['/admin', '/admin/*'],
+  exclude: ['/admin', '/admin/*', '/debug-immobilier'],
   robotsTxtOptions: {
     policies: [
-      { userAgent: '*', allow: '/', disallow: ['/admin', '/admin/*'] },
+      { userAgent: '*', allow: '/', disallow: ['/admin', '/admin/*', '/debug-immobilier'] },
     ],
   },
   additionalPaths: async (config) => {

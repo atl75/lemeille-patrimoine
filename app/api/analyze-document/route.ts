@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzePropertyDocument } from "@/lib/documentAnalysis";
 import { isAdmin } from "@/lib/adminGuard";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
+
+const RATE_LIMIT = 20; // analyses
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 
 export async function POST(req: NextRequest) {
   if (!isAdmin(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const ip = getClientIp(req);
+  const { allowed, retryAfterSeconds } = rateLimit(`analyze-document:${ip}`, RATE_LIMIT, RATE_LIMIT_WINDOW_MS);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Trop d'analyses lancées, merci de patienter quelques minutes avant de réessayer." },
+      { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+    );
   }
 
   try {
