@@ -108,6 +108,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ reply, leadSaved });
   } catch (err) {
     console.error("Erreur chatbot:", err);
+    if (err instanceof Anthropic.APIError && err.status === 400 && /credit balance/i.test(err.message)) {
+      return NextResponse.json(
+        { error: "L'assistant est temporairement indisponible (crédits API épuisés). Contactez-nous directement via le formulaire ou par téléphone." },
+        { status: 503 }
+      );
+    }
     return NextResponse.json({ error: "Une erreur est survenue, réessayez dans un instant." }, { status: 500 });
   }
 }
