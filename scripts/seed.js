@@ -19,7 +19,7 @@ w('properties.json', [
   }
 ]);
 w('programs.json', [
-  { id:"p1", title:"Rue des Carmes", city:"Rouen", dispositif:"MALRAUX", summary:"Réhabilitation de caractère au cœur historique.", externalUrl:"https://immo-carmes.replit.app", visible:true }
+  { id:"p1", title:"Rue des Carmes", city:"Rouen", dispositif:"MALRAUX", summary:"Réhabilitation de caractère au cœur historique.", externalUrl:"", visible:true }
 ]);
 w('reviews.json', [
   { id:"r1", author:"J. Martin", rating:5, source:"Google", text:"Accompagnement remarquable et grande discrétion.", date:"2025-01-12", published:true }

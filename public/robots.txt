@@ -3,6 +3,7 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /admin/*
+Disallow: /debug-immobilier
 
 # Host
 Host: https://lemeillepatrimoine.com

@@ -25,11 +25,9 @@ export function Header(){
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-4 text-sm">
-          <Link href="/immobilier" data-testid="link-immobilier">Immobilier</Link>
-          <Link href="/patrimoine" data-testid="link-patrimoine">Gestion de patrimoine</Link>
-          <Link href="/programmes" data-testid="link-programmes">Programmes</Link>
+          <Link href="/immobilier" data-testid="link-immobilier">Nos Biens</Link>
+          <Link href="/programmes" data-testid="link-programmes">Défiscalisation</Link>
           <Link href="/actualites" data-testid="link-actualites">Actualités</Link>
-          <Link href="/avis" data-testid="link-avis">Avis</Link>
           <Link href="/contact" data-testid="link-contact">Contact</Link>
         </nav>
 
@@ -58,15 +56,7 @@ export function Header(){
               onClick={() => setMobileMenuOpen(false)}
               data-testid="link-mobile-immobilier"
             >
-              Immobilier
-            </Link>
-            <Link
-              href="/patrimoine"
-              className="py-2 text-base border-b border-black/5"
-              onClick={() => setMobileMenuOpen(false)}
-              data-testid="link-mobile-patrimoine"
-            >
-              Gestion de patrimoine
+              Nos Biens
             </Link>
             <Link
               href="/programmes"
@@ -74,7 +64,7 @@ export function Header(){
               onClick={() => setMobileMenuOpen(false)}
               data-testid="link-mobile-programmes"
             >
-              Programmes
+              Défiscalisation
             </Link>
             <Link
               href="/actualites"
@@ -83,14 +73,6 @@ export function Header(){
               data-testid="link-mobile-actualites"
             >
               Actualités
-            </Link>
-            <Link
-              href="/avis"
-              className="py-2 text-base border-b border-black/5"
-              onClick={() => setMobileMenuOpen(false)}
-              data-testid="link-mobile-avis"
-            >
-              Avis
             </Link>
             <Link
               href="/contact"

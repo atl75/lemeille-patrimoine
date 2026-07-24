@@ -9,7 +9,7 @@ type ChatMessage = { role: "user" | "assistant"; content: string };
 const WELCOME_MESSAGE: ChatMessage = {
   role: "assistant",
   content:
-    "Bonjour, je suis l'assistant de Lemeille Patrimoine. Je peux répondre à vos questions sur nos biens, la gestion de patrimoine ou la défiscalisation (Malraux, Monument Historique...). Comment puis-je vous aider ?",
+    "Bonjour, je suis l'assistant de Lemeille Patrimoine. Je peux répondre à vos questions sur nos biens et la défiscalisation (Malraux, Monument Historique, Déficit Foncier...). Comment puis-je vous aider ?",
 };
 
 export default function ChatWidget() {

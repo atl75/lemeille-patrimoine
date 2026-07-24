@@ -8,466 +8,242 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const p = data.find((x: any) => x.id === id);
     if (!p) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-    // Import pdf-lib dynamically to avoid issues
     const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
-
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595, 842]);
-    
-    // Fonts - use Times for serif (luxury) and Helvetica for body
+
     const fontSerif = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // Colors - from site design
-    const gold = rgb(0.722, 0.612, 0.427); // #B89C6D
-    const navy = rgb(0.122, 0.231, 0.173); // #1F3B2C
-    const cream = rgb(0.957, 0.945, 0.922); // #F4F1EB
+    const gold = rgb(0.541, 0.427, 0.247);   // #8A6D3F
+    const navy = rgb(0.122, 0.231, 0.173);   // #1F3B2C
+    const cream = rgb(0.957, 0.945, 0.922);   // #F4F1EB
     const darkText = rgb(0.1, 0.1, 0.1);
     const lightText = rgb(0.4, 0.4, 0.4);
+    const white = rgb(1, 1, 1);
 
-    // Helper to clean text for PDF
-    const cleanText = (t: string) => t
-      .replace(/[\u00A0\u202F\u2009]/g, ' ')
-      .replace(/[\u2019]/g, "'")
-      .replace(/[\u2082]/g, '2')
-      .replace(/[\u2080-\u2089]/g, (m) => String.fromCharCode(m.charCodeAt(0) - 0x2080 + 48));
-    
-    // Helper function to draw vector logo (circle + LP monogram)
-    const drawVectorLogo = (x: number, y: number, size: number) => {
+    const PAGE_W = 595, PAGE_H = 842;
+    const MARGIN = 50;
+    const CONTENT_W = PAGE_W - MARGIN * 2;
+    const TOP = 770;          // début du contenu sous l'en-tête
+    const BOTTOM_LIMIT = 100; // au-dessus du pied de page
+
+    const cleanText = (t: string) => (t ?? '').toString()
+      .replace(/[   ]/g, ' ')
+      .replace(/[‘’]/g, "'")
+      .replace(/[“”]/g, '"')
+      .replace(/[–—]/g, '-')
+      .replace(/[₂]/g, '2')
+      .replace(/[₀-₉]/g, (m) => String.fromCharCode(m.charCodeAt(0) - 0x2080 + 48));
+
+    const drawVectorLogo = (page: any, x: number, y: number, size: number, color: any) => {
       const radius = size / 2;
-      const centerX = x + radius;
-      const centerY = y + radius;
-      
-      // Draw circle outline
-      const circlePoints = 64;
-      for (let i = 0; i < circlePoints; i++) {
-        const angle1 = (i / circlePoints) * 2 * Math.PI;
-        const angle2 = ((i + 1) / circlePoints) * 2 * Math.PI;
-        const x1 = centerX + (radius - 1) * Math.cos(angle1);
-        const y1 = centerY + (radius - 1) * Math.sin(angle1);
-        const x2 = centerX + (radius - 1) * Math.cos(angle2);
-        const y2 = centerY + (radius - 1) * Math.sin(angle2);
-        
+      const cx = x + radius, cy = y + radius;
+      const n = 64;
+      for (let i = 0; i < n; i++) {
+        const a1 = (i / n) * 2 * Math.PI, a2 = ((i + 1) / n) * 2 * Math.PI;
         page.drawLine({
-          start: { x: x1, y: y1 },
-          end: { x: x2, y: y2 },
-          thickness: 1.5,
-          color: gold,
+          start: { x: cx + (radius - 1) * Math.cos(a1), y: cy + (radius - 1) * Math.sin(a1) },
+          end: { x: cx + (radius - 1) * Math.cos(a2), y: cy + (radius - 1) * Math.sin(a2) },
+          thickness: 1.5, color,
         });
       }
-      
-      // Draw "LP" text in center
-      const fontSize = size * 0.35;
-      page.drawText('LP', {
-        x: centerX - (fontSize * 0.55),
-        y: centerY - (fontSize * 0.35),
-        size: fontSize,
-        font: fontSerif,
-        color: gold,
-      });
+      const fs = size * 0.35;
+      page.drawText('LP', { x: cx - fs * 0.55, y: cy - fs * 0.35, size: fs, font: fontSerif, color });
     };
-    
-    // Background cream color
-    page.drawRectangle({
-      x: 0,
-      y: 0,
-      width: 595,
-      height: 842,
-      color: cream,
-    });
 
-    // Header with gold accent bar
-    page.drawRectangle({
-      x: 0,
-      y: 792,
-      width: 595,
-      height: 50,
-      color: navy,
-    });
+    const drawChrome = (page: any) => {
+      page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: cream });
+      // en-tête
+      page.drawRectangle({ x: 0, y: 792, width: PAGE_W, height: 50, color: navy });
+      page.drawRectangle({ x: 0, y: 787, width: PAGE_W, height: 5, color: gold });
+      drawVectorLogo(page, MARGIN, 799.5, 35, gold);
+      page.drawText('LEMEILLE PATRIMOINE', { x: MARGIN + 50, y: 811, size: 16, font: fontSerif, color: gold });
+      // pied de page
+      page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: 80, color: navy });
+      drawVectorLogo(page, MARGIN, 45, 25, gold);
+      page.drawText('06 87 15 72 59', { x: 360, y: 60, size: 9, font: fontBold, color: gold });
+      page.drawText('arthur.lemeille@lemeillepatrimoine.com', { x: 360, y: 48, size: 8, font, color: gold });
+      page.drawText('www.lemeillepatrimoine.com', { x: 360, y: 36, size: 8, font, color: cream });
+      page.drawText('Novus Capital (SIREN 937 847 937)', { x: 360, y: 20, size: 7, font, color: rgb(0.6, 0.6, 0.6) });
+    };
 
-    page.drawRectangle({
-      x: 0,
-      y: 787,
-      width: 595,
-      height: 5,
-      color: gold,
-    });
+    let page = pdfDoc.addPage([PAGE_W, PAGE_H]);
+    drawChrome(page);
+    let y = TOP;
 
-    // Vector logo in header - perfect quality, no pixelation
-    const logoSize = 35;
-    const logoY = 792 + 7.5; // Centered in 50px header
-    drawVectorLogo(50, logoY, logoSize);
-    
-    // Brand name next to logo
-    page.drawText('LEMEILLE PATRIMOINE', {
-      x: 50 + logoSize + 15,
-      y: logoY + (logoSize / 2) - 3,
-      size: 18,
-      font: fontSerif,
-      color: gold,
-    });
+    const ensure = (needed: number) => {
+      if (y - needed < BOTTOM_LIMIT) {
+        page = pdfDoc.addPage([PAGE_W, PAGE_H]);
+        drawChrome(page);
+        y = TOP;
+      }
+    };
 
-    // Property title
-    page.drawText(cleanText(p.title || 'Bien'), {
-      x: 50,
-      y: 750,
-      size: 18,
-      font: fontSerif,
-      color: navy,
-    });
+    const heading = (text: string) => {
+      ensure(40);
+      page.drawLine({ start: { x: MARGIN, y: y + 6 }, end: { x: PAGE_W - MARGIN, y: y + 6 }, thickness: 1, color: gold });
+      y -= 14;
+      page.drawText(cleanText(text), { x: MARGIN, y, size: 13, font: fontSerif, color: navy });
+      y -= 22;
+    };
 
-    // Location
-    page.drawText(cleanText(`${p.city || ''} · ${(p.region || '').replaceAll('_', ' ')}`), {
-      x: 50,
-      y: 730,
-      size: 12,
-      font: font,
-      color: lightText,
-    });
+    const keyVal = (label: string, value: string) => {
+      ensure(18);
+      page.drawText(cleanText(label), { x: MARGIN, y, size: 10, font, color: lightText });
+      page.drawText(cleanText(value), { x: MARGIN + 200, y, size: 10, font: fontBold, color: darkText });
+      y -= 18;
+    };
 
-    // Price highlight box
-    if (p.price) {
-      page.drawRectangle({
-        x: 400,
-        y: 735,
-        width: 145,
-        height: 35,
-        color: gold,
-        borderColor: gold,
-        borderWidth: 2,
-      });
-      
-      page.drawText(cleanText(Number(p.price).toLocaleString('fr-FR') + ' €'), {
-        x: 410,
-        y: 745,
-        size: 16,
-        font: fontBold,
-        color: rgb(1, 1, 1),
-      });
-    }
-
-    let y = 700;
-
-    // Property photos section
-    if (Array.isArray(p.images) && p.images.length > 0) {
-      // Fetch and embed the first 3 photos
-      const maxPhotos = Math.min(3, p.images.length);
-      const embeddedImages = [];
-      
-      for (let i = 0; i < maxPhotos; i++) {
-        try {
-          const imageUrl = p.images[i];
-          const response = await fetch(imageUrl);
-          const arrayBuffer = await response.arrayBuffer();
-          const imageBytes = new Uint8Array(arrayBuffer);
-          
-          let embeddedImage;
-          if (imageUrl.toLowerCase().includes('.png')) {
-            embeddedImage = await pdfDoc.embedPng(imageBytes);
-          } else {
-            embeddedImage = await pdfDoc.embedJpg(imageBytes);
-          }
-          
-          embeddedImages.push(embeddedImage);
-        } catch (error) {
-          console.warn(`Failed to load image ${i}:`, error);
+    const paragraph = (text: string, size = 10) => {
+      const words = cleanText(text).split(/\s+/);
+      let line = '';
+      for (const w of words) {
+        const test = line ? line + ' ' + w : w;
+        if (font.widthOfTextAtSize(test, size) > CONTENT_W && line) {
+          ensure(size + 4);
+          page.drawText(line, { x: MARGIN, y, size, font, color: darkText });
+          y -= size + 4;
+          line = w;
+        } else {
+          line = test;
         }
       }
-
-      // Display photos in a row (up to 3 photos)
-      if (embeddedImages.length > 0) {
-        const maxPhotoHeight = 150;
-        const photoSpacing = 10;
-        const totalWidth = 495; // Available width (595 - 100 margins)
-        const maxPhotoWidth = (totalWidth - (photoSpacing * (embeddedImages.length - 1))) / embeddedImages.length;
-        
-        embeddedImages.forEach((img, index) => {
-          // Calculate scale to maintain aspect ratio
-          const scale = Math.min(maxPhotoWidth / img.width, maxPhotoHeight / img.height);
-          const displayWidth = img.width * scale;
-          const displayHeight = img.height * scale;
-          
-          // Calculate slot position (fixed size for uniform borders)
-          const slotX = 50 + (index * (maxPhotoWidth + photoSpacing));
-          const slotY = y - maxPhotoHeight;
-          
-          // Draw white background for entire slot (fixed size)
-          page.drawRectangle({
-            x: slotX,
-            y: slotY,
-            width: maxPhotoWidth,
-            height: maxPhotoHeight,
-            color: rgb(1, 1, 1),
-          });
-          
-          // Center photo horizontally and vertically within the slot
-          const xOffset = (maxPhotoWidth - displayWidth) / 2;
-          const yOffset = (maxPhotoHeight - displayHeight) / 2;
-          
-          // Draw photo with preserved aspect ratio
-          page.drawImage(img, {
-            x: slotX + xOffset,
-            y: slotY + yOffset,
-            width: displayWidth,
-            height: displayHeight,
-          });
-          
-          // Gold border around entire slot (fixed size for uniform framing)
-          page.drawRectangle({
-            x: slotX,
-            y: slotY,
-            width: maxPhotoWidth,
-            height: maxPhotoHeight,
-            borderColor: gold,
-            borderWidth: 1,
-          });
-        });
-        
-        y -= maxPhotoHeight + 20;
+      if (line) {
+        ensure(size + 4);
+        page.drawText(line, { x: MARGIN, y, size, font, color: darkText });
+        y -= size + 4;
       }
-    }
+    };
 
-    y = Math.min(y, 490); // Ensure we have space for content below
-
-    // Divider line
-    page.drawLine({
-      start: { x: 50, y: y },
-      end: { x: 545, y: y },
-      thickness: 1,
-      color: gold,
-    });
-    y -= 30;
-
-    // Characteristics section
-    page.drawText('CARACTÉRISTIQUES', {
-      x: 50,
-      y: y,
-      size: 14,
-      font: fontSerif,
-      color: navy,
-    });
-    y -= 25;
-
-    const characteristics = [
-      { label: 'Type de bien', value: p.propertyType || '—' },
-      { label: 'Surface habitable', value: `${p.surface ?? '—'} m²` },
-      { label: 'Nombre de pièces', value: `${p.rooms ?? '—'}` },
-      ...(p.bedrooms ? [{ label: 'Chambres', value: `${p.bedrooms}` }] : []),
-      ...(p.bathrooms ? [{ label: 'Salles de bain', value: `${p.bathrooms}` }] : []),
-      ...(p.landSize ? [{ label: 'Surface terrain', value: `${p.landSize} m²` }] : []),
-      ...(p.annexSurface ? [{ label: 'Surface hors Carrez', value: `${p.annexSurface} m²` }] : []),
-      ...(p.floor !== undefined && p.floor !== null ? [{ label: 'Étage', value: `${p.floor}` }] : []),
-      ...(p.cadastralRef ? [{ label: 'Référence cadastrale', value: p.cadastralRef }] : []),
-      { label: 'Référence', value: id },
-    ];
-
-    characteristics.forEach(({ label, value }) => {
-      page.drawText(cleanText(label), {
-        x: 50,
-        y: y,
-        size: 10,
-        font: font,
-        color: lightText,
-      });
-      page.drawText(cleanText(String(value)), {
-        x: 250,
-        y: y,
-        size: 10,
-        font: fontBold,
-        color: darkText,
-      });
-      y -= 18;
-    });
-
-    y -= 15;
-
-    // Features/Atouts section
-    if (Array.isArray(p.features) && p.features.length > 0) {
-      page.drawText('ATOUTS DU BIEN', {
-        x: 50,
-        y: y,
-        size: 14,
-        font: fontSerif,
-        color: navy,
-      });
-      y -= 20;
-
-      // Display features as bullet points, 2 columns
-      const featuresPerColumn = Math.ceil(p.features.length / 2);
-      p.features.forEach((feature: string, index: number) => {
-        const column = index < featuresPerColumn ? 0 : 1;
-        const xPos = 50 + (column * 270);
-        const yPos = y - ((index % featuresPerColumn) * 15);
-
-        page.drawText('•', {
-          x: xPos,
-          y: yPos,
-          size: 10,
-          font: font,
-          color: gold,
-        });
-
-        page.drawText(cleanText(feature), {
-          x: xPos + 10,
-          y: yPos,
-          size: 9,
-          font: font,
-          color: darkText,
-        });
-      });
-
-      y -= (featuresPerColumn * 15) + 15;
-    }
-
-    // DPE Section
-    page.drawText('DIAGNOSTIC DE PERFORMANCE ÉNERGÉTIQUE', {
-      x: 50,
-      y: y,
-      size: 14,
-      font: fontSerif,
-      color: navy,
-    });
-    y -= 25;
-
-    if (p.dpe) {
-      const dpeData = [
-        { label: 'Classe énergie', value: p.dpe.classEnergy || '—' },
-        { label: 'Classe GES', value: p.dpe.classGES || '—' },
-        { label: 'Consommation', value: `${p.dpe.consumptionKwh || '—'} kWh/m²/an` },
-        { label: 'Émissions', value: `${p.dpe.emissionsKg || '—'} kgCO2/m²/an` },
-        { label: 'Date du diagnostic', value: p.dpe.date || '—' },
-        { label: 'Référence', value: p.dpe.ref || '—' },
-      ];
-
-      dpeData.forEach(({ label, value }) => {
-        page.drawText(cleanText(label), {
-          x: 50,
-          y: y,
-          size: 10,
-          font: font,
-          color: lightText,
-        });
-        page.drawText(cleanText(value), {
-          x: 250,
-          y: y,
-          size: 10,
-          font: fontBold,
-          color: darkText,
-        });
-        y -= 18;
-      });
-    } else {
-      page.drawText('Non communiqué', {
-        x: 50,
-        y: y,
-        size: 10,
-        font: font,
-        color: lightText,
-      });
-      y -= 18;
-    }
-
-    y -= 15;
-
-    // Description section
-    page.drawText('DESCRIPTION', {
-      x: 50,
-      y: y,
-      size: 14,
-      font: fontSerif,
-      color: navy,
-    });
+    // ---- Titre + localisation + prix ----
+    page.drawText(cleanText(p.title || 'Bien'), { x: MARGIN, y, size: 18, font: fontSerif, color: navy });
     y -= 20;
+    const region = (p.region || '').toString().replaceAll('_', ' ');
+    page.drawText(cleanText(`${p.city || ''}${region ? ' · ' + region : ''}`), { x: MARGIN, y, size: 12, font, color: lightText });
+    y -= 6;
 
-    // Description text with word wrap
-    const description = cleanText(p.description || 'Non renseigné');
-    const maxWidth = 495;
-    const words = description.split(' ');
-    let line = '';
-    
-    for (const word of words) {
-      const testLine = line + word + ' ';
-      const testWidth = font.widthOfTextAtSize(testLine, 10);
-      
-      if (testWidth > maxWidth && line !== '') {
-        page.drawText(line, {
-          x: 50,
-          y: y,
-          size: 10,
-          font: font,
-          color: darkText,
-        });
-        line = word + ' ';
-        y -= 14;
-        
-        if (y < 120) break; // Stop if we're too close to footer (80px footer + 40px margin)
-      } else {
-        line = testLine;
-      }
-    }
-    
-    // Draw remaining line
-    if (line && y > 120) {
-      page.drawText(line, {
-        x: 50,
-        y: y,
-        size: 10,
-        font: font,
-        color: darkText,
+    if (p.price) {
+      page.drawRectangle({ x: PAGE_W - MARGIN - 150, y: y + 6, width: 150, height: 34, color: gold });
+      page.drawText(cleanText(Number(p.price).toLocaleString('fr-FR') + ' €'), {
+        x: PAGE_W - MARGIN - 140, y: y + 17, size: 15, font: fontBold, color: white,
       });
     }
+    y -= 26;
 
-    // Footer with contact info and offices
-    page.drawRectangle({
-      x: 0,
-      y: 0,
-      width: 595,
-      height: 80,
-      color: navy,
-    });
+    // ---- Photos ----
+    if (Array.isArray(p.images) && p.images.length > 0) {
+      const toEmbeddable = async (url: string): Promise<{ img: any } | null> => {
+        try {
+          let bytes: Uint8Array;
+          let src = url;
+          // Cloudinary : forcer un JPG (pdf-lib ne gère que jpg/png)
+          if (/res\.cloudinary\.com\/.+\/upload\//.test(src)) {
+            src = src.replace('/upload/', '/upload/f_jpg,q_auto/');
+          }
+          if (src.startsWith('data:')) {
+            const b64 = src.split(',')[1] || '';
+            bytes = new Uint8Array(Buffer.from(b64, 'base64'));
+          } else {
+            const res = await fetch(src);
+            bytes = new Uint8Array(await res.arrayBuffer());
+          }
+          // détection par magic bytes
+          const isPng = bytes[0] === 0x89 && bytes[1] === 0x50;
+          const isJpg = bytes[0] === 0xff && bytes[1] === 0xd8;
+          if (isPng) return { img: await pdfDoc.embedPng(bytes) };
+          if (isJpg) return { img: await pdfDoc.embedJpg(bytes) };
+          return null;
+        } catch {
+          return null;
+        }
+      };
 
-    // Vector logo in footer (smaller, same quality)
-    const footerLogoSize = 25;
-    drawVectorLogo(50, 45, footerLogoSize);
+      const embedded: any[] = [];
+      for (let i = 0; i < Math.min(6, p.images.length); i++) {
+        const e = await toEmbeddable(p.images[i]);
+        if (e) embedded.push(e.img);
+      }
 
-    // Contact info (right side)
-    page.drawText('06 87 15 72 59', {
-      x: 370,
-      y: 60,
-      size: 9,
-      font: fontBold,
-      color: gold,
-    });
+      // grille 2 colonnes, hauteur de slot fixe
+      const cols = 2;
+      const gap = 12;
+      const slotW = (CONTENT_W - gap * (cols - 1)) / cols;
+      const slotH = 150;
+      for (let i = 0; i < embedded.length; i++) {
+        const col = i % cols;
+        if (col === 0) ensure(slotH + gap);
+        const slotX = MARGIN + col * (slotW + gap);
+        const slotY = y - slotH;
+        page.drawRectangle({ x: slotX, y: slotY, width: slotW, height: slotH, color: white });
+        const img = embedded[i];
+        const scale = Math.min(slotW / img.width, slotH / img.height);
+        const dw = img.width * scale, dh = img.height * scale;
+        page.drawImage(img, { x: slotX + (slotW - dw) / 2, y: slotY + (slotH - dh) / 2, width: dw, height: dh });
+        page.drawRectangle({ x: slotX, y: slotY, width: slotW, height: slotH, borderColor: gold, borderWidth: 1 });
+        if (col === cols - 1 || i === embedded.length - 1) y -= slotH + gap;
+      }
+      y -= 6;
+    }
 
-    page.drawText('arthur.lemeille@lemeillepatrimoine.com', {
-      x: 370,
-      y: 48,
-      size: 8,
-      font: font,
-      color: gold,
-    });
+    // ---- Caractéristiques ----
+    heading('CARACTÉRISTIQUES');
+    const typeLabel = (p.type || 'APPARTEMENT') === 'MAISON' ? 'Maison' : 'Appartement';
+    keyVal('Type de bien', typeLabel);
+    keyVal('Surface habitable', `${p.surface ?? '—'} m²`);
+    keyVal('Nombre de pièces', `${p.rooms ?? '—'}`);
+    if (p.landSize) keyVal('Surface du terrain', `${p.landSize} m²`);
+    if (p.annexSurface) keyVal('Surface hors Carrez', `${p.annexSurface} m²`);
+    if (p.surface && p.price) keyVal('Prix au m²', `${Math.round(Number(p.price) / Number(p.surface)).toLocaleString('fr-FR')} €/m²`);
+    if (p.cadastralReference) keyVal('Référence cadastrale', p.cadastralReference);
+    keyVal('Référence du bien', id);
+    y -= 8;
 
-    page.drawText('www.lemeillepatrimoine.com', {
-      x: 370,
-      y: 36,
-      size: 8,
-      font: font,
-      color: cream,
-    });
+    // ---- Atouts ----
+    if (Array.isArray(p.features) && p.features.length > 0) {
+      heading('ATOUTS DU BIEN');
+      const colW = CONTENT_W / 2;
+      for (let i = 0; i < p.features.length; i += 2) {
+        ensure(15);
+        for (let c = 0; c < 2 && i + c < p.features.length; c++) {
+          const x = MARGIN + c * colW;
+          page.drawText('•', { x, y, size: 10, font, color: gold });
+          page.drawText(cleanText(p.features[i + c]), { x: x + 12, y, size: 9, font, color: darkText });
+        }
+        y -= 15;
+      }
+      y -= 8;
+    }
 
-    // Legal information
-    page.drawText('Novus Capital (SIREN 937 847 937)', {
-      x: 370,
-      y: 20,
-      size: 7,
-      font: font,
-      color: rgb(0.6, 0.6, 0.6),
-    });
+    // ---- DPE ----
+    heading('DIAGNOSTIC DE PERFORMANCE ÉNERGÉTIQUE');
+    if (p.dpe) {
+      keyVal('Classe énergie', p.dpe.classEnergy || '—');
+      keyVal('Classe GES', p.dpe.classGES || '—');
+      if (p.dpe.consumptionKwh) keyVal('Consommation', `${p.dpe.consumptionKwh} kWh/m²/an`);
+      if (p.dpe.emissionsKg) keyVal('Émissions', `${p.dpe.emissionsKg} kgCO2/m²/an`);
+      if (p.dpe.date) keyVal('Date du diagnostic', p.dpe.date);
+      if (p.dpe.ref) keyVal('Référence DPE', p.dpe.ref);
+    } else {
+      keyVal('DPE', 'Non communiqué');
+    }
+    y -= 8;
+
+    // ---- Description ----
+    if (p.description) {
+      heading('DESCRIPTION');
+      paragraph(p.description);
+      y -= 8;
+    }
+
+    // ---- Visite vidéo ----
+    if (p.videoUrl) {
+      heading('VISITE EN VIDÉO');
+      paragraph(p.videoUrl, 9);
+    }
 
     const pdfBytes = await pdfDoc.save();
-    
-    return new NextResponse(pdfBytes, {
+    return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
@@ -477,9 +253,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     });
   } catch (error: any) {
     console.error('PDF generation error:', error);
-    return NextResponse.json({ 
-      error: 'PDF generation failed', 
-      details: error.message 
-    }, { status: 500 });
+    return NextResponse.json({ error: 'PDF generation failed', details: error.message }, { status: 500 });
   }
 }

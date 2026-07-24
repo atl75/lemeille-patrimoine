@@ -19,6 +19,12 @@ const nextConfig = {
         destination: 'https://lemeillepatrimoine.com/:path*',
         permanent: true,
       },
+      // Recentrage sur la défiscalisation : /patrimoine → /programmes
+      {
+        source: '/patrimoine',
+        destination: '/programmes',
+        permanent: true,
+      },
     ];
   },
   async headers() {

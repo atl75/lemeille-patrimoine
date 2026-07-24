@@ -12,15 +12,6 @@ export function Footer(){
           <div className="font-semibold">Nos bureaux</div>
           <div className="flex flex-col gap-1 mt-1">
             <a
-              href="https://www.google.com/maps/search/?api=1&query=50+rue+de+la+Garenne%2C+76130+Mont-Saint-Aignan"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-[#B89C6D]"
-              data-testid="link-map-siege"
-            >
-              Siège — 50 rue de la Garenne, 76130 Mont-Saint-Aignan
-            </a>
-            <a
               href="https://www.google.com/maps/search/?api=1&query=35+rue+Ganterie%2C+76000+Rouen"
               target="_blank"
               rel="noopener noreferrer"
@@ -37,6 +28,15 @@ export function Footer(){
               data-testid="link-map-frejus"
             >
               Fréjus — 722 avenue Alfred de Musset, 83370
+            </a>
+            <a
+              href="https://www.google.com/maps/search/?api=1&query=50+rue+de+la+Garenne%2C+76130+Mont-Saint-Aignan"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[#B89C6D]"
+              data-testid="link-map-siege"
+            >
+              Siège — 50 rue de la Garenne, 76130 Mont-Saint-Aignan
             </a>
           </div>
           <div className="mt-2 flex flex-col gap-1">

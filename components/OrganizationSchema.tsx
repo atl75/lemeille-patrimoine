@@ -14,7 +14,7 @@ export function OrganizationSchema() {
       "height": 200
     },
     "image": `${baseUrl}/og-image.jpg`,
-    "description": "Agence immobilière haut de gamme et gestion de patrimoine. Spécialisée dans la transaction dans l'ancien à Paris, en Normandie et sur la Côte d'Azur. Conseils patrimoniaux sur mesure et dispositifs de défiscalisation (Malraux, Monument Historique).",
+    "description": "Agence immobilière haut de gamme spécialisée dans la transaction dans l'ancien et la défiscalisation à Paris, en Normandie et sur la Côte d'Azur. Dispositifs Malraux, Monument Historique, Déficit Foncier.",
     "priceRange": "€€€€",
     "telephone": "+33687157259",
     "email": "arthur.lemeille@lemeillepatrimoine.com",
@@ -102,7 +102,7 @@ export function OrganizationSchema() {
     ],
     "hasOfferCatalog": {
       "@type": "OfferCatalog",
-      "name": "Services immobiliers et patrimoniaux",
+      "name": "Services immobiliers et défiscalisation",
       "itemListElement": [
         {
           "@type": "Offer",
@@ -110,14 +110,6 @@ export function OrganizationSchema() {
             "@type": "Service",
             "name": "Transaction immobilière haut de gamme",
             "description": "Achat et vente de propriétés d'exception à Paris, Normandie et Côte d'Azur"
-          }
-        },
-        {
-          "@type": "Offer",
-          "itemOffered": {
-            "@type": "Service",
-            "name": "Gestion de patrimoine",
-            "description": "Conseil patrimonial sur mesure et optimisation fiscale"
           }
         },
         {

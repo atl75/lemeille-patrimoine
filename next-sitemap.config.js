@@ -25,10 +25,10 @@ module.exports = {
 
     // Pages rendues dynamiquement (searchParams / no-store) : non détectées
     // automatiquement par next-sitemap, ajoutées manuellement.
+    // /avis désactivé pour l'instant, /patrimoine supprimé (→ /programmes).
     const dynamicPages = [
       '/immobilier',
       '/programmes',
-      '/avis',
       '/actualites',
     ];
 

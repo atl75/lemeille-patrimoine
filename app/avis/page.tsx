@@ -2,10 +2,12 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Avis clients - Témoignages | Lemeille Patrimoine',
-  description: 'Découvrez les avis et témoignages de nos clients sur nos services immobiliers et de gestion de patrimoine.',
+  description: 'Découvrez les avis et témoignages de nos clients.',
   alternates: {
     canonical: '/avis'
-  }
+  },
+  // Page désactivée pour l'instant (retirée de la navigation et du sitemap).
+  robots: { index: false, follow: false }
 };
 
 async function getReviews(){

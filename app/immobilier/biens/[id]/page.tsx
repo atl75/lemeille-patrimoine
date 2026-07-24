@@ -124,12 +124,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
           <div className="card p-6">
             <h3 className="luxe text-xl mb-3">Localisation</h3>
             {p.map?.query
-              ? <MapEmbed query={p.map.query} precision={p.map.precision||"AREA"} zoom={p.map.zoom}/>
+              ? <MapEmbed query={p.map.query} precision="AREA"/>
               : <div className="text-sm opacity-80">Adresse non communiquée.</div>}
             <div className="text-xs opacity-70 mt-2">
-              {p.map?.precision==='EXACT'
-                ? "Adresse exacte affichée."
-                : "Localisation approximative (quartier) pour préserver la confidentialité."}
+              Localisation approximative (secteur) pour préserver la confidentialité du bien.
             </div>
           </div>
           <a className="btn btn-gold text-center" href={`/api/properties/${p.id}/pdf`}>Télécharger la fiche PDF</a>

@@ -24,8 +24,8 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: 'Lemeille Patrimoine — Immobilier & gestion de patrimoine',
-  description: "Immobilier haut de gamme et gestion de patrimoine à Paris, Normandie et Côte d'Azur. Conseils patrimoniaux sur mesure et défiscalisation (Malraux, Monument Historique).",
+  title: 'Lemeille Patrimoine — Immobilier & défiscalisation',
+  description: "Immobilier haut de gamme et défiscalisation à Paris, Normandie et Côte d'Azur. Transaction dans l'ancien et dispositifs Malraux, Monument Historique, Déficit Foncier.",
   alternates: {
     canonical: '/'
   },
@@ -34,19 +34,19 @@ export const metadata: Metadata = {
     locale: 'fr_FR',
     url: process.env.NEXT_PUBLIC_SITE_URL || 'https://lemeillepatrimoine.com',
     siteName: 'Lemeille Patrimoine',
-    title: 'Lemeille Patrimoine - Immobilier haut de gamme & Gestion de patrimoine',
-    description: "Agence immobilière haut de gamme et gestion de patrimoine. Spécialisée dans la transaction dans l'ancien à Paris, en Normandie et sur la Côte d'Azur.",
-    images: [{ 
+    title: 'Lemeille Patrimoine — Immobilier haut de gamme & défiscalisation',
+    description: "Agence immobilière haut de gamme spécialisée dans la transaction dans l'ancien et la défiscalisation à Paris, en Normandie et sur la Côte d'Azur.",
+    images: [{
       url: '/og-image.jpg',
-      width: 1200, 
-      height: 630, 
-      alt: 'Lemeille Patrimoine' 
+      width: 1200,
+      height: 630,
+      alt: 'Lemeille Patrimoine'
     }]
   },
-  twitter: { 
+  twitter: {
     card: 'summary_large_image',
-    title: 'Lemeille Patrimoine - Immobilier & Gestion de patrimoine',
-    description: "Immobilier haut de gamme & gestion de patrimoine - Paris, Normandie, Côte d'Azur",
+    title: 'Lemeille Patrimoine — Immobilier & défiscalisation',
+    description: "Immobilier haut de gamme & défiscalisation - Paris, Normandie, Côte d'Azur",
   },
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://lemeillepatrimoine.com'),
 };
