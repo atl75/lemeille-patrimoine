@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { MessageCircle, X, Send, Loader2 } from "lucide-react";
+import { useModalA11y } from "@/lib/useModalA11y";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
@@ -19,6 +20,7 @@ export default function ChatWidget() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const panelRef = useModalA11y<HTMLDivElement>(() => setOpen(false), open);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -67,6 +69,7 @@ export default function ChatWidget() {
 
       {open && (
         <div
+          ref={panelRef}
           role="dialog"
           aria-label="Assistant Lemeille Patrimoine"
           className="fixed bottom-[168px] right-5 z-50 flex h-[70vh] max-h-[560px] w-[90vw] max-w-sm flex-col overflow-hidden rounded-2xl bg-white shadow-2xl border border-black/10"

@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useRef, useState } from "react";
 import { AlertTriangle } from "lucide-react";
+import { useModalA11y } from "@/lib/useModalA11y";
 
 type ConfirmState = {
   open: boolean;
@@ -66,6 +67,8 @@ function ConfirmDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const dialogRef = useModalA11y<HTMLDivElement>(onCancel, true);
+
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
@@ -75,6 +78,7 @@ function ConfirmDialog({
       onClick={onCancel}
     >
       <div
+        ref={dialogRef}
         className="card max-w-sm w-full p-6"
         onClick={(e) => e.stopPropagation()}
       >

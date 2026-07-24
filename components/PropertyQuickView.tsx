@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { X } from "lucide-react";
 import Img from "@/components/Img";
+import { useModalA11y } from "@/lib/useModalA11y";
 
 type Property = {
   id: string;
@@ -29,6 +30,7 @@ export default function PropertyQuickView({
   onClose: () => void;
 }) {
   const cover = property.images?.[0] || "/logo.png";
+  const dialogRef = useModalA11y<HTMLDivElement>(onClose, true);
 
   return (
     <div
@@ -39,6 +41,7 @@ export default function PropertyQuickView({
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         className="card p-0 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative"
         onClick={(e) => e.stopPropagation()}
       >
