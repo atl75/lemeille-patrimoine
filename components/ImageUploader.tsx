@@ -7,8 +7,12 @@ type ImageUploaderProps = {
   onChange: (images: string[]) => void;
 };
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 Mo
+
 export default function ImageUploader({ images, onChange }: ImageUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imagesRef = useRef<string[]>(images);
 
@@ -54,31 +58,64 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
     }
   };
 
-  const processFiles = async (files: File[]) => {
-    const promises = files.map(file => {
-      return new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const dataUrl = e.target?.result as string;
-          if (dataUrl) {
-            resolve(dataUrl);
-          } else {
-            reject(new Error('Failed to read file'));
-          }
-        };
-        reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
-        reader.readAsDataURL(file);
-      });
+  const readAsDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        if (dataUrl) resolve(dataUrl);
+        else reject(new Error("Failed to read file"));
+      };
+      reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+      reader.readAsDataURL(file);
     });
+  };
 
-    try {
-      const newUrls = await Promise.all(promises);
-      // Use ref to get latest images state to avoid race conditions
-      onChange([...imagesRef.current, ...newUrls]);
-    } catch (error) {
-      console.error('Error processing files:', error);
-      alert(`Erreur lors du chargement de certaines images: ${error}`);
+  const uploadToCloudinary = async (dataUrl: string): Promise<string> => {
+    const res = await fetch("/api/upload-image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: dataUrl }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Échec de l'upload");
     }
+    return data.url;
+  };
+
+  const processFiles = async (files: File[]) => {
+    const validFiles = files.filter(file => {
+      if (file.size > MAX_FILE_SIZE) {
+        alert(`"${file.name}" dépasse 10 Mo et a été ignorée.`);
+        return false;
+      }
+      return true;
+    });
+    if (!validFiles.length) return;
+
+    setUploading(true);
+    setUploadProgress({ done: 0, total: validFiles.length });
+
+    const uploadedUrls: string[] = [];
+    for (const file of validFiles) {
+      try {
+        const dataUrl = await readAsDataUrl(file);
+        const url = await uploadToCloudinary(dataUrl);
+        uploadedUrls.push(url);
+      } catch (error) {
+        console.error("Error uploading file:", error);
+        alert(`Erreur lors de l'upload de "${file.name}" : ${error instanceof Error ? error.message : error}`);
+      }
+      setUploadProgress(prev => (prev ? { ...prev, done: prev.done + 1 } : prev));
+    }
+
+    if (uploadedUrls.length) {
+      // Use ref to get latest images state to avoid race conditions
+      onChange([...imagesRef.current, ...uploadedUrls]);
+    }
+    setUploading(false);
+    setUploadProgress(null);
   };
 
   const handleUrlAdd = () => {
@@ -140,35 +177,45 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
         
         <div className="flex flex-col items-center gap-3">
           <Upload className={`w-12 h-12 ${isDragging ? "text-[#B89C6D]" : "text-gray-400"}`} />
-          <div>
-            <p className="text-lg font-medium mb-1">
-              {isDragging ? "Déposez les images ici" : "Glissez-déposez vos images"}
+          {uploading ? (
+            <p className="text-sm font-medium text-gray-600" data-testid="text-upload-progress">
+              Envoi en cours{uploadProgress ? ` (${uploadProgress.done}/${uploadProgress.total})` : "..."}
             </p>
-            <p className="text-sm text-gray-500 mb-3">
-              ou
-            </p>
-            <div className="flex gap-2 justify-center">
-              <button
-                type="button"
-                onClick={handleBrowse}
-                className="px-4 py-2 bg-[#B89C6D] text-white rounded hover:bg-[#A68B5D] transition"
-                data-testid="button-browse-images"
-              >
-                Parcourir les fichiers
-              </button>
-              <button
-                type="button"
-                onClick={handleUrlAdd}
-                className="px-4 py-2 border border-[#B89C6D] text-[#B89C6D] rounded hover:bg-[#B89C6D] hover:text-white transition"
-                data-testid="button-add-url"
-              >
-                Ajouter par URL
-              </button>
-            </div>
-          </div>
-          <p className="text-xs text-gray-400">
-            Formats supportés : JPG, PNG, WEBP • Sélection multiple possible
-          </p>
+          ) : (
+            <>
+              <div>
+                <p className="text-lg font-medium mb-1">
+                  {isDragging ? "Déposez les images ici" : "Glissez-déposez vos images"}
+                </p>
+                <p className="text-sm text-gray-500 mb-3">
+                  ou
+                </p>
+                <div className="flex gap-2 justify-center">
+                  <button
+                    type="button"
+                    onClick={handleBrowse}
+                    disabled={uploading}
+                    className="px-4 py-2 bg-[#B89C6D] text-white rounded hover:bg-[#A68B5D] transition disabled:opacity-50"
+                    data-testid="button-browse-images"
+                  >
+                    Parcourir les fichiers
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleUrlAdd}
+                    disabled={uploading}
+                    className="px-4 py-2 border border-[#B89C6D] text-[#B89C6D] rounded hover:bg-[#B89C6D] hover:text-white transition disabled:opacity-50"
+                    data-testid="button-add-url"
+                  >
+                    Ajouter par URL
+                  </button>
+                </div>
+              </div>
+              <p className="text-xs text-gray-400">
+                Formats supportés : JPG, PNG, WEBP • Sélection multiple possible • 10 Mo max par image
+              </p>
+            </>
+          )}
         </div>
       </div>
 
