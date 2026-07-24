@@ -4,6 +4,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import Img from "@/components/Img";
 import FilterBar from "@/components/FilterBar";
 import SoldToggle from "@/components/SoldToggle";
+import PropertyCard from "@/components/PropertyCard";
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -287,29 +288,14 @@ export default async function Page({ searchParams }: {
               );
             }
             
-            // Vue "Biens en vente" : affichage normal (cliquable)
+            // Vue "Biens en vente" : affichage normal (cliquable) + aperçu rapide
             return (
-              <Link key={p.id} href={`/immobilier/biens/${p.id}`} className="card p-0 hover:border-[#B89C6D] transition" data-testid={`card-property-${p.id}`}>
-                <Img 
-                  src={(p.images?.[0])||"/logo.png"} 
-                  alt={p.title} 
-                  width={1200} 
-                  height={600}
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  priority={index === 0}
-                  className="w-full h-64 object-cover rounded-t-2xl" 
-                />
-                <div className="p-6">
-                  <h3 className="luxe text-2xl">{p.title}</h3>
-                  <div className="text-sm opacity-70">{formatCityWithDistrict(p.city)}</div>
-                  <div className="mt-2 text-sm">
-                    {(p.type || 'APPARTEMENT') === 'APPARTEMENT' ? 'Appartement' : 'Maison'} · Surface: {p.surface ?? "—"} m² · Pièces: {p.rooms ?? "—"}
-                    {p.landSize && (p.type || 'APPARTEMENT') === 'MAISON' && <span> · Terrain: {p.landSize} m²</span>}
-                  </div>
-                  {p.price && <div className="mt-2 font-semibold">{Number(p.price).toLocaleString('fr-FR')} €</div>}
-                  {p.dpe && <div className="mt-2 text-xs opacity-70">DPE : {p.dpe.classEnergy} · GES : {p.dpe.classGES}</div>}
-                </div>
-              </Link>
+              <PropertyCard
+                key={p.id}
+                property={p}
+                cityLabel={formatCityWithDistrict(p.city)}
+                priority={index === 0}
+              />
             );
           })}
           {!items.length && (
