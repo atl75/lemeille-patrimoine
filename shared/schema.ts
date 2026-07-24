@@ -192,3 +192,25 @@ export const leads = pgTable("leads", {
 export const insertLeadSchema = createInsertSchema(leads);
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type Lead = typeof leads.$inferSelect;
+
+// Article de blog (Actualités)
+export const articles = pgTable("articles", {
+  id: varchar("id").primaryKey(),
+  slug: text("slug").notNull(),
+  title: text("title").notNull(),
+  excerpt: text("excerpt").notNull(),
+  content: text("content").notNull(), // paragraphes séparés par des sauts de ligne
+  coverImage: text("cover_image"),
+  tags: jsonb("tags").$type<string[]>().notNull(),
+  author: text("author").default("Arthur Lemeille"),
+  publishedAt: text("published_at").notNull(), // YYYY-MM-DD
+  published: boolean("published").default(false),
+  seoTitle: text("seo_title"),
+  seoDescription: text("seo_description"),
+});
+
+export const insertArticleSchema = createInsertSchema(articles, {
+  tags: z.array(z.string()).default([]),
+});
+export type InsertArticle = z.infer<typeof insertArticleSchema>;
+export type Article = typeof articles.$inferSelect;

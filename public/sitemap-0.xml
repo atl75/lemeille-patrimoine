@@ -1,10 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
-<url><loc>https://lemeillepatrimoine.com/admin</loc><lastmod>2025-10-24T11:38:51.356Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://lemeillepatrimoine.com/contact</loc><lastmod>2025-10-24T11:38:51.357Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://lemeillepatrimoine.com/mentions-legales</loc><lastmod>2025-10-24T11:38:51.357Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://lemeillepatrimoine.com/patrimoine</loc><lastmod>2025-10-24T11:38:51.357Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://lemeillepatrimoine.com/politique-de-confidentialite</loc><lastmod>2025-10-24T11:38:51.357Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://lemeillepatrimoine.com/cookies</loc><lastmod>2025-10-24T11:38:51.357Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
-<url><loc>https://lemeillepatrimoine.com</loc><lastmod>2025-10-24T11:38:51.357Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://lemeillepatrimoine.com</loc><lastmod>2026-07-24T07:19:41.216Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://lemeillepatrimoine.com/bareme-honoraires</loc><lastmod>2026-07-24T07:19:41.217Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://lemeillepatrimoine.com/immobilier/estimation</loc><lastmod>2026-07-24T07:19:41.217Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://lemeillepatrimoine.com/confidentialite</loc><lastmod>2026-07-24T07:19:41.217Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://lemeillepatrimoine.com/cookies</loc><lastmod>2026-07-24T07:19:41.217Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://lemeillepatrimoine.com/mentions-legales</loc><lastmod>2026-07-24T07:19:41.217Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://lemeillepatrimoine.com/patrimoine</loc><lastmod>2026-07-24T07:19:41.217Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://lemeillepatrimoine.com/politique-de-confidentialite</loc><lastmod>2026-07-24T07:19:41.217Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://lemeillepatrimoine.com/contact</loc><lastmod>2026-07-24T07:19:41.217Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://lemeillepatrimoine.com/secteurs/paris-rive-gauche</loc></url>
+<url><loc>https://lemeillepatrimoine.com/secteurs/paris-ouest</loc></url>
+<url><loc>https://lemeillepatrimoine.com/secteurs/paris-centre-historique</loc></url>
+<url><loc>https://lemeillepatrimoine.com/secteurs/rouen-centre</loc></url>
+<url><loc>https://lemeillepatrimoine.com/secteurs/mont-saint-aignan-bois-guillaume</loc></url>
+<url><loc>https://lemeillepatrimoine.com/secteurs/saint-aygulf-frejus</loc></url>
+<url><loc>https://lemeillepatrimoine.com/secteurs/sainte-maxime-golfe-saint-tropez</loc></url>
+<url><loc>https://lemeillepatrimoine.com/secteurs/esterel-arriere-pays</loc></url>
+<url><loc>https://lemeillepatrimoine.com/immobilier</loc></url>
+<url><loc>https://lemeillepatrimoine.com/programmes</loc></url>
+<url><loc>https://lemeillepatrimoine.com/avis</loc></url>
+<url><loc>https://lemeillepatrimoine.com/actualites</loc></url>
+<url><loc>https://lemeillepatrimoine.com/actualites/loi-malraux-2026-comment-ca-marche</loc></url>
+<url><loc>https://lemeillepatrimoine.com/actualites/marche-immobilier-rouen-2026-tendances-prix</loc></url>
+<url><loc>https://lemeillepatrimoine.com/actualites/cote-azur-ou-investir-frejus-sainte-maxime</loc></url>
 </urlset>
