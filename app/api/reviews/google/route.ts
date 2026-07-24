@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
+import { readJSON } from "@/lib/utils";
 
 export async function GET() {
   const KEY = process.env.GOOGLE_PLACES_API_KEY;
   const PLACE_ID = process.env.GOOGLE_PLACE_ID;
   try {
     if (!KEY || !PLACE_ID) {
-      // fallback JSON local
-      const data = await import("../../../../data/reviews.json").then(m => m.default).catch(()=>[]);
+      // fallback JSON local (lu au runtime depuis data/, comme le reste du site)
+      const data = await readJSON("reviews.json");
       return NextResponse.json({ source:"local", rating: data?.length? (data.reduce((s:any,r:any)=>s+(r.rating||0),0)/data.length).toFixed(1): null, total: data?.length||0, reviews: data||[] });
     }
     const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${PLACE_ID}&fields=rating,user_ratings_total,reviews&key=${KEY}`;
