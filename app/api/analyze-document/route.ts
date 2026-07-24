@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { analyzePropertyDocument } from "@/lib/openai";
+import { analyzePropertyDocument } from "@/lib/documentAnalysis";
+import { isAdmin } from "@/lib/adminGuard";
 
 export async function POST(req: NextRequest) {
+  if (!isAdmin(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { document } = await req.json();
 
