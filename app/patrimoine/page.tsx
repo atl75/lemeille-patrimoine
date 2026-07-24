@@ -6,7 +6,7 @@ import PatrimoineSeoJsonLd from "@/components/PatrimoineSeoJsonLd";
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Gestion de patrimoine - Conseil patrimonial sur mesure | Lemeille Patrimoine',
+  title: 'Gestion de patrimoine sur mesure | Lemeille Patrimoine',
   description: 'Conseil en gestion de patrimoine sur mesure : structuration patrimoniale, transmission, optimisation fiscale (Malraux, Monument Historique, Déficit Foncier). Expertise Paris, Normandie, Côte d\'Azur.',
   alternates: {
     canonical: '/patrimoine'

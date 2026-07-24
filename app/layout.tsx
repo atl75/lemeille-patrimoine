@@ -24,7 +24,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: 'Lemeille Patrimoine - Immobilier haut de gamme & Gestion de patrimoine',
+  title: 'Lemeille Patrimoine — Immobilier & gestion de patrimoine',
   description: "Immobilier haut de gamme et gestion de patrimoine à Paris, Normandie et Côte d'Azur. Conseils patrimoniaux sur mesure et défiscalisation (Malraux, Monument Historique).",
   alternates: {
     canonical: '/'

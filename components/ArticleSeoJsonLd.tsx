@@ -14,7 +14,9 @@ export default function ArticleSeoJsonLd({ article }: { article: Article }) {
     "@type": "BlogPosting",
     headline: article.title,
     description: article.excerpt,
-    image: article.coverImage ? [article.coverImage] : undefined,
+    // image requise par Google pour un Article : couverture de l'article,
+    // sinon repli sur l'image Open Graph du site.
+    image: [article.coverImage || `${base}/og-image.jpg`],
     author: { "@type": "Person", name: article.author || "Arthur Lemeille" },
     publisher: { "@type": "Organization", name: "Lemeille Patrimoine", logo: { "@type": "ImageObject", url: `${base}/logo.png` } },
     datePublished: article.publishedAt,

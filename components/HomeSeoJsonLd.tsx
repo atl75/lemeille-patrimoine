@@ -1,9 +1,12 @@
 export default function HomeSeoJsonLd(){
+  const base = process.env.NEXT_PUBLIC_SITE_URL || "https://lemeillepatrimoine.com";
   const json = {
     "@context":"https://schema.org",
     "@type":"RealEstateAgent",
     "name":"Lemeille Patrimoine",
-    "url":process.env.NEXT_PUBLIC_SITE_URL || "",
+    "url":base,
+    "image":`${base}/og-image.jpg`,
+    "priceRange":"€€€€",
     "brand":{"@type":"Brand","name":"Lemeille Patrimoine"},
     "parentOrganization":{"@type":"Organization","name":"Novus Capital","url":"https://www.pappers.fr/entreprise/novus-capital-937847937"},
     "email":"arthur.lemeille@lemeillepatrimoine.com",

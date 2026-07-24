@@ -54,6 +54,22 @@ export function Footer(){
           </nav>
         </div>
       </div>
+
+      {/* Secteurs d'intervention — maillage interne / SEO local */}
+      <div className="container pb-6 border-t border-black/5 pt-6">
+        <div className="text-xs font-semibold opacity-70 mb-2">Secteurs d&apos;intervention</div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs opacity-80">
+          <Link href="/secteurs/paris-rive-gauche" className="hover:text-[#B89C6D]">Paris Rive gauche</Link>
+          <Link href="/secteurs/paris-ouest" className="hover:text-[#B89C6D]">Paris Ouest</Link>
+          <Link href="/secteurs/paris-centre-historique" className="hover:text-[#B89C6D]">Paris Centre historique</Link>
+          <Link href="/secteurs/rouen-centre" className="hover:text-[#B89C6D]">Rouen centre</Link>
+          <Link href="/secteurs/mont-saint-aignan-bois-guillaume" className="hover:text-[#B89C6D]">Mont-Saint-Aignan &amp; Bois-Guillaume</Link>
+          <Link href="/secteurs/saint-aygulf-frejus" className="hover:text-[#B89C6D]">Saint-Aygulf &amp; Fréjus</Link>
+          <Link href="/secteurs/sainte-maxime-golfe-saint-tropez" className="hover:text-[#B89C6D]">Sainte-Maxime &amp; Golfe de Saint-Tropez</Link>
+          <Link href="/secteurs/esterel-arriere-pays" className="hover:text-[#B89C6D]">Estérel &amp; arrière-pays</Link>
+        </div>
+      </div>
+
       <div className="container pb-8 text-xs opacity-70">&copy; {new Date().getFullYear()} Lemeille Patrimoine — Tous droits réservés.</div>
     </footer>
   );
