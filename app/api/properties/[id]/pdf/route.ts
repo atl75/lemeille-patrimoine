@@ -96,23 +96,34 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     };
 
     const paragraph = (text: string, size = 10) => {
-      const words = cleanText(text).split(/\s+/);
-      let line = '';
-      for (const w of words) {
-        const test = line ? line + ' ' + w : w;
-        if (font.widthOfTextAtSize(test, size) > CONTENT_W && line) {
+      // On préserve les sauts de ligne saisis : chaque ligne du texte est
+      // traitée séparément, puis coupée automatiquement si elle est trop large.
+      const sourceLines = cleanText(text).replace(/\r\n?/g, '\n').split('\n');
+      for (const src of sourceLines) {
+        if (src.trim() === '') {
+          // Ligne vide = espacement entre paragraphes
+          ensure(size + 4);
+          y -= size + 4;
+          continue;
+        }
+        const words = src.split(/\s+/).filter(Boolean);
+        let line = '';
+        for (const w of words) {
+          const test = line ? line + ' ' + w : w;
+          if (font.widthOfTextAtSize(test, size) > CONTENT_W && line) {
+            ensure(size + 4);
+            page.drawText(line, { x: MARGIN, y, size, font, color: darkText });
+            y -= size + 4;
+            line = w;
+          } else {
+            line = test;
+          }
+        }
+        if (line) {
           ensure(size + 4);
           page.drawText(line, { x: MARGIN, y, size, font, color: darkText });
           y -= size + 4;
-          line = w;
-        } else {
-          line = test;
         }
-      }
-      if (line) {
-        ensure(size + 4);
-        page.drawText(line, { x: MARGIN, y, size, font, color: darkText });
-        y -= size + 4;
       }
     };
 

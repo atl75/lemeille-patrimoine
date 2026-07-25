@@ -102,7 +102,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
 
           <div className="card p-6 mt-4">
             <h2 className="luxe text-2xl mb-3">Description</h2>
-            <p>{p.description}</p>
+            <p className="whitespace-pre-line">{p.description}</p>
           </div>
 
           {p.floorPlan && (
