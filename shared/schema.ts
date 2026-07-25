@@ -77,6 +77,9 @@ export const properties = pgTable("properties", {
   rooms: integer("rooms").notNull(),
   landSize: integer("land_size"), // Taille du terrain en m² (optionnel, pour les maisons)
   annexSurface: integer("annex_surface"), // Surface annexe (caves, parkings, terrasses, etc.)
+  // Charges & fiscalité
+  propertyTaxAmount: integer("property_tax_amount"), // Taxe foncière (€/an)
+  coproChargesMonthly: integer("copro_charges_monthly"), // Charges de copropriété (€/mois)
   description: text("description").notNull(),
   images: jsonb("images").$type<string[]>().notNull(),
   features: jsonb("features").$type<string[]>().notNull(),
@@ -119,6 +122,8 @@ export const insertPropertySchema = createInsertSchema(properties, {
   soldDate: z.string().optional(),
   cadastralReference: z.string().optional(),
   annexSurface: z.number().optional(),
+  propertyTaxAmount: z.number().optional(),
+  coproChargesMonthly: z.number().optional(),
   netSellerAmount: z.number().optional(),
   commissionAmount: z.number().optional(),
   commissionPercentage: z.number().optional(),

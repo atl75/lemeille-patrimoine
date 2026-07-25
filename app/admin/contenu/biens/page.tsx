@@ -8,6 +8,7 @@ import ImageUploader from "@/components/ImageUploader";
 import DocumentUploader from "@/components/DocumentUploader";
 import MultiDocumentUploader from "@/components/MultiDocumentUploader";
 import CompanyAutocomplete from "@/components/CompanyAutocomplete";
+import CollapsibleSection from "@/components/CollapsibleSection";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useEffect, useState } from "react";
 
@@ -22,6 +23,8 @@ type Property = {
   rooms: number;
   landSize?: number;
   annexSurface?: number;
+  propertyTaxAmount?: number;
+  coproChargesMonthly?: number;
   netSellerAmount?: number;
   commissionAmount?: number;
   commissionPercentage?: number;
@@ -479,6 +482,18 @@ export default function Page() {
                       <span className="font-medium">{viewing.annexSurface} m²</span>
                     </div>
                   )}
+                  {viewing.propertyTaxAmount ? (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Taxe foncière :</span>
+                      <span className="font-medium">{viewing.propertyTaxAmount.toLocaleString('fr-FR')} €/an</span>
+                    </div>
+                  ) : null}
+                  {viewing.coproChargesMonthly ? (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Charges copropriété :</span>
+                      <span className="font-medium">{viewing.coproChargesMonthly.toLocaleString('fr-FR')} €/mois</span>
+                    </div>
+                  ) : null}
                   <div className="flex justify-between">
                     <span className="text-gray-600">Référence :</span>
                     <span className="font-medium">{viewing.id}</span>
@@ -784,6 +799,33 @@ export default function Page() {
                     data-testid="input-annex-surface"
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-medium mb-1">Taxe foncière (€/an)</label>
+                  <input
+                    type="number"
+                    value={editing.propertyTaxAmount ?? ''}
+                    onChange={e => updateField('propertyTaxAmount', e.target.value ? parseInt(e.target.value) : undefined)}
+                    className="w-full px-2 py-1.5 text-sm border rounded"
+                    data-testid="input-property-tax-amount"
+                    placeholder="ex : 1200"
+                  />
+                </div>
+                {editing.type === 'APPARTEMENT' && (
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Charges copropriété (€/mois)</label>
+                    <input
+                      type="number"
+                      value={editing.coproChargesMonthly ?? ''}
+                      onChange={e => updateField('coproChargesMonthly', e.target.value ? parseInt(e.target.value) : undefined)}
+                      className="w-full px-2 py-1.5 text-sm border rounded"
+                      data-testid="input-copro-charges-monthly"
+                      placeholder="ex : 180"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-3 gap-2">
@@ -1098,8 +1140,9 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Notaires + Finances en 2 colonnes */}
-          <div className="grid md:grid-cols-2 gap-3 mb-3">
+          {/* Notaires + Finances (repliable) */}
+          <CollapsibleSection title="Notaires & informations financières" subtitle="Vendeur, acquéreur, net vendeur, commission, FAI">
+          <div className="grid md:grid-cols-2 gap-3">
             {/* Notaires */}
             <div className="p-2 bg-gray-50 rounded">
               <h3 className="font-semibold text-base mb-2 pb-2 border-b">Notaires</h3>
@@ -1532,6 +1575,7 @@ export default function Page() {
             </div>
             </div>
           </div>
+          </CollapsibleSection>
 
           {/* Description */}
           <div className="mb-3">
@@ -1718,7 +1762,8 @@ export default function Page() {
             />
           </div>
 
-          {/* Section Documents administratifs ultra-compact */}
+          {/* Documents (repliable) */}
+          <CollapsibleSection title="Documents administratifs" subtitle="Titre, DPE, taxe foncière, mandat, estimation, plan, PV d'AG…">
           <div className="mb-2 p-1.5 bg-gray-50 rounded">
             <div className="flex justify-between items-center mb-1.5">
               <h3 className="font-semibold text-xs">Documents</h3>
@@ -1837,7 +1882,10 @@ export default function Page() {
           </div>
 
 
-          {/* Section Informations Acquéreur ultra-compact */}
+          </CollapsibleSection>
+
+          {/* Acquéreur (repliable) */}
+          <CollapsibleSection title="Informations acquéreur" subtitle="Coordonnées de l'acquéreur (après vente)">
           <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded">
             <h3 className="font-semibold text-sm mb-2">Informations Acquéreur</h3>
             <div className="grid grid-cols-3 gap-2 text-xs mb-2">
@@ -1942,6 +1990,8 @@ export default function Page() {
               </div>
             )}
           </div>
+
+          </CollapsibleSection>
 
           <div className="flex gap-2">
             <button

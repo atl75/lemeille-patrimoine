@@ -86,6 +86,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
               <li><strong>Pièces</strong> : {p.rooms ?? '—'}</li>
               {p.landSize && <li><strong>Terrain</strong> : {p.landSize} m²</li>}
               {p.annexSurface && <li><strong>Surface hors Carrez</strong> : {p.annexSurface} m²</li>}
+              {p.propertyTaxAmount ? <li><strong>Taxe foncière</strong> : {Number(p.propertyTaxAmount).toLocaleString('fr-FR')} €/an</li> : null}
+              {p.coproChargesMonthly ? <li><strong>Charges de copropriété</strong> : {Number(p.coproChargesMonthly).toLocaleString('fr-FR')} €/mois</li> : null}
               <li><strong>Référence</strong> : {p.id}</li>
             </ul>
             {Array.isArray(p.features) && p.features.length>0 && (
