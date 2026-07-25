@@ -39,37 +39,7 @@ export default function Page(){
       </section>
 
       <section className="container pb-12 grid md:grid-cols-2 gap-6">
-        {/* Colonne gauche : bureaux */}
-        <div className="card p-6">
-          <h2 className="luxe text-xl mb-4">Nos bureaux</h2>
-          {OFFICES.map((o, idx) => (
-            <div key={o.testid} className={idx < OFFICES.length - 1 ? "mb-6" : ""}>
-              <div className="font-semibold">{o.name}</div>
-              <div>{o.line}</div>
-              <div className="mt-2 rounded-2xl overflow-hidden border relative group">
-                <iframe
-                  title={`${o.name} — ${o.line}`}
-                  src={"https://www.google.com/maps?hl=fr&q="+encodeURIComponent(o.query)+"&z=16&output=embed"}
-                  style={{border:0, width:"100%", height:"240px"}}
-                  loading="lazy"
-                />
-                <a
-                  href={"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(o.query)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/20 transition-colors"
-                  data-testid={o.testid}
-                >
-                  <span className="opacity-0 group-hover:opacity-100 bg-white px-4 py-2 rounded-2xl shadow-lg text-sm font-medium transition-opacity">
-                    Ouvrir dans Google Maps
-                  </span>
-                </a>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Colonne droite : contact direct + RDV + formulaire */}
+        {/* Colonne gauche (et 1re en mobile) : contact direct + RDV + formulaire */}
         <div className="flex flex-col gap-6">
           {/* Contact direct */}
           <div className="card p-6">
@@ -121,6 +91,36 @@ export default function Page(){
               {ok === false && <div className="text-red-700 text-sm">Un problème est survenu. Réessayez.</div>}
             </div>
           </form>
+        </div>
+
+        {/* Colonne droite (et 2e en mobile) : bureaux */}
+        <div className="card p-6">
+          <h2 className="luxe text-xl mb-4">Nos bureaux</h2>
+          {OFFICES.map((o, idx) => (
+            <div key={o.testid} className={idx < OFFICES.length - 1 ? "mb-6" : ""}>
+              <div className="font-semibold">{o.name}</div>
+              <div>{o.line}</div>
+              <div className="mt-2 rounded-2xl overflow-hidden border relative group">
+                <iframe
+                  title={`${o.name} — ${o.line}`}
+                  src={"https://www.google.com/maps?hl=fr&q="+encodeURIComponent(o.query)+"&z=16&output=embed"}
+                  style={{border:0, width:"100%", height:"240px"}}
+                  loading="lazy"
+                />
+                <a
+                  href={"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(o.query)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/20 transition-colors"
+                  data-testid={o.testid}
+                >
+                  <span className="opacity-0 group-hover:opacity-100 bg-white px-4 py-2 rounded-2xl shadow-lg text-sm font-medium transition-opacity">
+                    Ouvrir dans Google Maps
+                  </span>
+                </a>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     </main>
