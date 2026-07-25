@@ -26,6 +26,10 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/next.config.js ./next.config.js
+# lib/ contient le loader d'images personnalisé (cloudinaryLoader.js) que
+# next.config.js référence via images.loaderFile ; Next.js le lit au
+# démarrage du serveur (build non-standalone), il doit donc être présent.
+COPY --from=builder /app/lib ./lib
 
 # data/ est destiné à être un volume monté (Cloud Storage FUSE en
 # production) pour survivre aux redéploiements et au scaling ; ce
