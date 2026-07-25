@@ -67,48 +67,11 @@ export default function Page(){
           </div>
         </div>
 
-        <h2 className="luxe text-2xl mt-8">Exemples de calcul et gains acquéreur</h2>
-        
+        <h2 className="luxe text-2xl mt-8">Exemple de calcul et gain acquéreur</h2>
+
         <div className="not-prose my-6 space-y-4">
           <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="font-semibold text-[#1F3B2C] mb-3">Exemple 1 : Bien à 120 000€</div>
-            <div className="grid gap-2 text-sm mb-4">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Prix net vendeur</span>
-                <span className="font-semibold">120 000€</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Honoraires agence (fixe)</span>
-                <span className="font-semibold">7 500€</span>
-              </div>
-              <div className="flex justify-between border-t pt-2">
-                <span className="font-bold">Prix FAI (acquéreur)</span>
-                <span className="font-bold text-[#B89C6D]">127 500€</span>
-              </div>
-            </div>
-            <div className="bg-green-50 border border-green-200 rounded p-3 mt-3">
-              <div className="font-semibold text-green-900 mb-2 flex items-center gap-2">
-                <span>💰</span> Gain pour l&apos;acquéreur
-              </div>
-              <div className="text-xs text-green-800 space-y-1">
-                <div className="flex justify-between">
-                  <span>Frais de notaire (8% sur 127 500€)</span>
-                  <span className="line-through">10 200€</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Frais de notaire (8% sur 120 000€)</span>
-                  <span className="font-semibold">9 600€</span>
-                </div>
-                <div className="flex justify-between border-t border-green-300 pt-1 mt-1">
-                  <span className="font-bold">Économie réalisée</span>
-                  <span className="font-bold text-green-700">600€</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="font-semibold text-[#1F3B2C] mb-3">Exemple 2 : Bien à 500 000€</div>
+            <div className="font-semibold text-[#1F3B2C] mb-3">Bien à 500 000€</div>
             <div className="grid gap-2 text-sm mb-4">
               <div className="flex justify-between">
                 <span className="text-gray-600">Prix net vendeur</span>
@@ -146,15 +109,23 @@ export default function Page(){
         </div>
 
         <h2 className="luxe text-2xl mt-8">Services inclus</h2>
-        <ul>
-          <li>Estimation précise de votre bien</li>
-          <li>Photographies professionnelles et visite virtuelle</li>
-          <li>Diffusion sur les principales plateformes immobilières</li>
-          <li>Organisation et accompagnement des visites</li>
-          <li>Négociation avec les acquéreurs</li>
-          <li>Accompagnement jusqu&apos;à la signature chez le notaire</li>
-          <li>Conseils en optimisation fiscale et patrimoniale</li>
-        </ul>
+        <p className="text-gray-600">Tous nos services sont compris dans nos honoraires, sans frais additionnels.</p>
+        <div className="not-prose grid sm:grid-cols-2 gap-3 my-6">
+          {[
+            "Estimation précise de votre bien",
+            "Photographies professionnelles, plan et vidéo",
+            "Diffusion sur les principales plateformes immobilières",
+            "Organisation et accompagnement des visites",
+            "Négociation avec les acquéreurs",
+            "Accompagnement jusqu'à la signature chez le notaire",
+            "Conseils en optimisation fiscale et patrimoniale",
+          ].map((service) => (
+            <div key={service} className="flex items-start gap-3 bg-white border border-gray-200 rounded-lg p-4">
+              <span className="shrink-0 mt-0.5 flex items-center justify-center w-6 h-6 rounded-full bg-[#1F3B2C] text-white text-sm" aria-hidden="true">✓</span>
+              <span className="text-sm text-gray-800">{service}</span>
+            </div>
+          ))}
+        </div>
 
         <h2 className="luxe text-2xl mt-8">Questions fréquentes</h2>
         
