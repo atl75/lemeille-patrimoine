@@ -9,8 +9,7 @@
     "lint": "next lint",
     "seed": "node scripts/seed.js",
     "doctor": "node scripts/doctor.js",
-    "postinstall": "node scripts/postinstall.js",
-    "sitemap": "next-sitemap"
+    "postinstall": "node scripts/postinstall.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.114.0",

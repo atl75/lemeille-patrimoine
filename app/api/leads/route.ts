@@ -156,8 +156,8 @@ export async function POST(req: Request){
       try {
         const resend = new Resend(process.env.RESEND_API_KEY);
         await resend.emails.send({
-          from: 'Lemeille Patrimoine <onboarding@resend.dev>',
-          to: 'arthur.lemeille@lemeillepatrimoine.com',
+          from: process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>',
+          to: process.env.LEADS_TO_EMAIL || 'arthur.lemeille@lemeillepatrimoine.com',
           subject: `📋 Nouvelle estimation — ${payload.firstName} ${payload.lastName}`,
           html: formatEstimationEmail(payload)
         });
@@ -193,8 +193,8 @@ export async function POST(req: Request){
       try {
         const resend = new Resend(process.env.RESEND_API_KEY);
         await resend.emails.send({
-          from: 'Lemeille Patrimoine <onboarding@resend.dev>',
-          to: 'arthur.lemeille@lemeillepatrimoine.com',
+          from: process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>',
+          to: process.env.LEADS_TO_EMAIL || 'arthur.lemeille@lemeillepatrimoine.com',
           subject: `📧 Nouveau contact — ${payload.firstName} ${payload.lastName}${payload.topic ? ` — ${payload.topic}` : ''}`,
           html: formatContactEmail(payload)
         });

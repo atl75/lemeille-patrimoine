@@ -36,7 +36,7 @@ export default function Page(){
         <p>Accès, rectification, opposition, effacement, limitation, portabilité. Exercez vos droits via <Link href="/contact" className="underline">le formulaire</Link>.</p>
 
         <h2 className="luxe text-2xl mt-8">Sous-traitants</h2>
-        <p>Hébergement Replit, DNS/Squarespace. Les données sont stockées au sein de l&apos;UE ou avec garanties adéquates.</p>
+        <p>Hébergement Google Cloud Platform (Google Cloud Run, région europe-west1, UE) ; nom de domaine géré par Squarespace Domains II LLC. Les données sont stockées au sein de l&apos;UE ou avec garanties adéquates.</p>
         </div>
       </section>
     </main>
