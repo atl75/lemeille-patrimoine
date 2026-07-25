@@ -18,9 +18,12 @@ export default function Page(){
         title="Barème d&apos;honoraires immobiliers" 
         subtitle="Une tarification claire et transparente pour vous accompagner dans vos projets immobiliers." 
       />
-      <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Barème d&apos;honoraires"}]} />
-      
-      <section className="container pb-14 prose max-w-none">
+      <section className="container py-6">
+        <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Barème d&apos;honoraires"}]} />
+      </section>
+
+      <section className="container pb-14">
+        <div className="prose max-w-none">
         <h2 className="luxe text-2xl">Notre engagement tarifaire</h2>
         <p>
           Chez Lemeille Patrimoine, nous croyons en la transparence. Notre barème d&apos;honoraires pour les 
@@ -220,6 +223,7 @@ export default function Page(){
             <Link href="/contact" className="text-[#B89C6D] hover:underline">Formulaire de contact</Link>
           </li>
         </ul>
+        </div>
       </section>
     </main>
   );

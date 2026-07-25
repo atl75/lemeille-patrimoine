@@ -15,8 +15,11 @@ export default function Page(){
   return (
     <main>
       <Hero title="Mentions légales" subtitle="Informations relatives à l'éditeur et à l'hébergement du site." />
-      <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Mentions légales"}]} />
-      <section className="container pb-14 prose max-w-none">
+      <section className="container py-6">
+        <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Mentions légales"}]} />
+      </section>
+      <section className="container pb-14">
+        <div className="prose max-w-none">
         <h2 className="luxe text-2xl">Éditeur</h2>
         <p><strong>Lemeille Patrimoine</strong>, marque du groupe <strong>Novus Capital</strong> (SIREN 937 847 937).<br/>
         Siège social : 50 rue de la Garenne, 76130 Mont-Saint-Aignan.<br/>
@@ -33,6 +36,7 @@ export default function Page(){
 
         <h2 className="luxe text-2xl mt-8">Contact</h2>
         <p>Pour toute question, utilisez le formulaire de <Link href="/contact" className="underline">contact</Link>.</p>
+        </div>
       </section>
     </main>
   );

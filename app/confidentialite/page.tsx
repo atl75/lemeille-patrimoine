@@ -15,8 +15,11 @@ export default function Page(){
   return (
     <main>
       <Hero title="Politique de confidentialité" subtitle="Transparence sur l'utilisation de vos données." />
-      <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Confidentialité"}]} />
-      <section className="container pb-14 prose max-w-none">
+      <section className="container py-6">
+        <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Confidentialité"}]} />
+      </section>
+      <section className="container pb-14">
+        <div className="prose max-w-none">
         <h2 className="luxe text-2xl">Responsable de traitement</h2>
         <p>Novus Capital (SIREN 937 847 937) — Lemeille Patrimoine.</p>
 
@@ -34,6 +37,7 @@ export default function Page(){
 
         <h2 className="luxe text-2xl mt-8">Sous-traitants</h2>
         <p>Hébergement Replit, DNS/Squarespace. Les données sont stockées au sein de l&apos;UE ou avec garanties adéquates.</p>
+        </div>
       </section>
     </main>
   );
