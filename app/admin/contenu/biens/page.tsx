@@ -1583,8 +1583,8 @@ export default function Page() {
             <textarea
               value={editing.description || ''}
               onChange={e => updateField('description', e.target.value)}
-              className="w-full px-2 py-1.5 text-xs border rounded"
-              rows={3}
+              className="w-full px-2 py-1.5 text-xs border rounded resize-y min-h-[10rem]"
+              rows={10}
               data-testid="input-description"
             />
           </div>
