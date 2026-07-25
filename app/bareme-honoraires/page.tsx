@@ -36,7 +36,7 @@ export default function Page(){
           <div className="grid md:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-lg border-2 border-[#B89C6D]">
               <div className="text-[#B89C6D] font-semibold mb-2">Prix de vente jusqu&apos;à 150 000€</div>
-              <div className="text-3xl font-bold text-[#1F3B2C] luxe">7 000€</div>
+              <div className="text-3xl font-bold text-[#1F3B2C] luxe">7 500€</div>
               <div className="text-sm text-gray-600 mt-2">Honoraires fixes</div>
             </div>
             <div className="bg-white p-6 rounded-lg border-2 border-[#B89C6D]">
@@ -79,11 +79,11 @@ export default function Page(){
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Honoraires agence (fixe)</span>
-                <span className="font-semibold">7 000€</span>
+                <span className="font-semibold">7 500€</span>
               </div>
               <div className="flex justify-between border-t pt-2">
                 <span className="font-bold">Prix FAI (acquéreur)</span>
-                <span className="font-bold text-[#B89C6D]">127 000€</span>
+                <span className="font-bold text-[#B89C6D]">127 500€</span>
               </div>
             </div>
             <div className="bg-green-50 border border-green-200 rounded p-3 mt-3">
@@ -92,8 +92,8 @@ export default function Page(){
               </div>
               <div className="text-xs text-green-800 space-y-1">
                 <div className="flex justify-between">
-                  <span>Frais de notaire (8% sur 127 000€)</span>
-                  <span className="line-through">10 160€</span>
+                  <span>Frais de notaire (8% sur 127 500€)</span>
+                  <span className="line-through">10 200€</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Frais de notaire (8% sur 120 000€)</span>
@@ -101,7 +101,7 @@ export default function Page(){
                 </div>
                 <div className="flex justify-between border-t border-green-300 pt-1 mt-1">
                   <span className="font-bold">Économie réalisée</span>
-                  <span className="font-bold text-green-700">560€</span>
+                  <span className="font-bold text-green-700">600€</span>
                 </div>
               </div>
             </div>
