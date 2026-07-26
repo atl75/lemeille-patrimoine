@@ -203,12 +203,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     keyVal('Type de bien', typeLabel);
     keyVal('Surface habitable', `${p.surface ?? '—'} m²`);
     keyVal('Nombre de pièces', `${p.rooms ?? '—'}`);
-    if (p.landSize) keyVal('Surface du terrain', `${p.landSize} m²`);
+    if (p.type === 'MAISON' && p.landSize) keyVal('Surface du terrain', `${p.landSize} m²`);
     if (p.annexSurface) keyVal('Surface hors Carrez', `${p.annexSurface} m²`);
     if (p.surface && p.price) keyVal('Prix au m²', `${Math.round(Number(p.price) / Number(p.surface)).toLocaleString('fr-FR')} €/m²`);
     if (p.propertyTaxAmount) keyVal('Taxe foncière', `${Number(p.propertyTaxAmount).toLocaleString('fr-FR')} €/an`);
     if (p.coproChargesMonthly) keyVal('Charges de copropriété', `${Number(p.coproChargesMonthly).toLocaleString('fr-FR')} €/mois`);
-    if (p.cadastralReference) keyVal('Référence cadastrale', p.cadastralReference);
     keyVal('Référence du bien', id);
     y -= 8;
 

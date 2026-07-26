@@ -27,7 +27,8 @@ export function toPublicProperty(p: any) {
     price: p.price,
     surface: p.surface,
     rooms: p.rooms,
-    landSize: p.landSize,
+    // Superficie du terrain : pertinente uniquement pour une maison
+    landSize: p.type === 'MAISON' ? p.landSize : undefined,
     annexSurface: p.annexSurface,
     propertyTaxAmount: p.propertyTaxAmount,
     coproChargesMonthly: p.coproChargesMonthly,
