@@ -17,19 +17,19 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
     const gold = rgb(0.541, 0.427, 0.247);   // #8A6D3F
     const navy = rgb(0.122, 0.231, 0.173);   // #1F3B2C
-    const cream = rgb(0.957, 0.945, 0.922);   // #F4F1EB
-    const darkText = rgb(0.1, 0.1, 0.1);
-    const lightText = rgb(0.4, 0.4, 0.4);
+    const darkText = rgb(0.15, 0.15, 0.15);
+    const lightText = rgb(0.45, 0.45, 0.45);
+    const rule = rgb(0.86, 0.83, 0.77);       // filet clair
     const white = rgb(1, 1, 1);
 
     const PAGE_W = 595, PAGE_H = 842;
     const MARGIN = 50;
     const CONTENT_W = PAGE_W - MARGIN * 2;
-    const TOP = 770;          // début du contenu sous l'en-tête
-    const BOTTOM_LIMIT = 100; // au-dessus du pied de page
+    const TOP = 758;         // début du contenu sous l'en-tête
+    const BOTTOM_LIMIT = 72; // au-dessus du pied de page
 
     const cleanText = (t: string) => (t ?? '').toString()
-      .replace(/[   ]/g, ' ')
+      .replace(/[\u00A0\u2007\u2009\u2000-\u200A\u202F\u205F\u3000\uFEFF\u2060\u200B]/g, ' ')
       .replace(/[‘’]/g, "'")
       .replace(/[“”]/g, '"')
       .replace(/[–—]/g, '-')
@@ -53,19 +53,19 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     };
 
     const drawChrome = (page: any) => {
-      page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: cream });
-      // en-tête
-      page.drawRectangle({ x: 0, y: 792, width: PAGE_W, height: 50, color: navy });
-      page.drawRectangle({ x: 0, y: 787, width: PAGE_W, height: 5, color: gold });
-      drawVectorLogo(page, MARGIN, 799.5, 35, gold);
-      page.drawText('LEMEILLE PATRIMOINE', { x: MARGIN + 50, y: 811, size: 16, font: fontSerif, color: gold });
-      // pied de page
-      page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: 80, color: navy });
-      drawVectorLogo(page, MARGIN, 45, 25, gold);
-      page.drawText('06 87 15 72 59', { x: 360, y: 60, size: 9, font: fontBold, color: gold });
-      page.drawText('arthur.lemeille@lemeillepatrimoine.com', { x: 360, y: 48, size: 8, font, color: gold });
-      page.drawText('www.lemeillepatrimoine.com', { x: 360, y: 36, size: 8, font, color: cream });
-      page.drawText('Novus Capital (SIREN 937 847 937)', { x: 360, y: 20, size: 7, font, color: rgb(0.6, 0.6, 0.6) });
+      // Fond blanc, en-tête et pied minimalistes (filets dorés discrets).
+      // En-tête : monogramme + nom
+      drawVectorLogo(page, MARGIN, 788, 22, gold);
+      page.drawText('LEMEILLE PATRIMOINE', { x: MARGIN + 32, y: 795, size: 13, font: fontSerif, color: navy });
+      page.drawLine({ start: { x: MARGIN, y: 780 }, end: { x: PAGE_W - MARGIN, y: 780 }, thickness: 0.8, color: gold });
+      // Pied : filet + coordonnées sur une ligne
+      page.drawLine({ start: { x: MARGIN, y: 54 }, end: { x: PAGE_W - MARGIN, y: 54 }, thickness: 0.8, color: gold });
+      const contact = '06 87 15 72 59    ·    arthur.lemeille@lemeillepatrimoine.com    ·    www.lemeillepatrimoine.com';
+      const cw = font.widthOfTextAtSize(contact, 8);
+      page.drawText(contact, { x: (PAGE_W - cw) / 2, y: 40, size: 8, font, color: lightText });
+      const siren = 'Lemeille Patrimoine — Novus Capital · SIREN 937 847 937';
+      const sw = font.widthOfTextAtSize(siren, 7);
+      page.drawText(siren, { x: (PAGE_W - sw) / 2, y: 29, size: 7, font, color: rule });
     };
 
     let page = pdfDoc.addPage([PAGE_W, PAGE_H]);
@@ -81,18 +81,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     };
 
     const heading = (text: string) => {
-      ensure(40);
-      page.drawLine({ start: { x: MARGIN, y: y + 6 }, end: { x: PAGE_W - MARGIN, y: y + 6 }, thickness: 1, color: gold });
-      y -= 14;
-      page.drawText(cleanText(text), { x: MARGIN, y, size: 13, font: fontSerif, color: navy });
-      y -= 22;
+      ensure(34);
+      page.drawText(cleanText(text), { x: MARGIN, y, size: 10, font: fontBold, color: gold });
+      y -= 7;
+      page.drawLine({ start: { x: MARGIN, y }, end: { x: PAGE_W - MARGIN, y }, thickness: 0.8, color: rule });
+      y -= 16;
     };
 
     const keyVal = (label: string, value: string) => {
-      ensure(18);
-      page.drawText(cleanText(label), { x: MARGIN, y, size: 10, font, color: lightText });
-      page.drawText(cleanText(value), { x: MARGIN + 200, y, size: 10, font: fontBold, color: darkText });
-      y -= 18;
+      ensure(16);
+      page.drawText(cleanText(label), { x: MARGIN, y, size: 9.5, font, color: lightText });
+      page.drawText(cleanText(value), { x: MARGIN + 180, y, size: 10, font: fontBold, color: darkText });
+      y -= 16;
     };
 
     const paragraph = (text: string, size = 10) => {
@@ -127,20 +127,47 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       }
     };
 
-    // ---- Titre + localisation + prix ----
-    page.drawText(cleanText(p.title || 'Bien'), { x: MARGIN, y, size: 18, font: fontSerif, color: navy });
-    y -= 20;
+    // ---- Titre (multi-lignes) + localisation + prix ----
+    {
+      const titleSize = 21;
+      const words = cleanText(p.title || 'Bien').split(/\s+/).filter(Boolean);
+      let line = '';
+      const flush = () => {
+        if (!line) return;
+        ensure(titleSize + 6);
+        page.drawText(line, { x: MARGIN, y, size: titleSize, font: fontSerif, color: navy });
+        y -= titleSize + 6;
+        line = '';
+      };
+      for (const w of words) {
+        const test = line ? line + ' ' + w : w;
+        if (fontSerif.widthOfTextAtSize(test, titleSize) > CONTENT_W && line) { flush(); line = w; }
+        else line = test;
+      }
+      flush();
+    }
+
     const region = (p.region || '').toString().replaceAll('_', ' ');
-    page.drawText(cleanText(`${p.city || ''}${region ? ' · ' + region : ''}`), { x: MARGIN, y, size: 12, font, color: lightText });
-    y -= 6;
+    const loc = cleanText(`${p.city || ''}${region ? ' · ' + region : ''}`);
+    if (loc.trim()) {
+      y -= 2;
+      page.drawText(loc, { x: MARGIN, y, size: 11, font, color: lightText });
+      y -= 22;
+    } else {
+      y -= 8;
+    }
 
     if (p.price) {
-      page.drawRectangle({ x: PAGE_W - MARGIN - 150, y: y + 6, width: 150, height: 34, color: gold });
       page.drawText(cleanText(Number(p.price).toLocaleString('fr-FR') + ' €'), {
-        x: PAGE_W - MARGIN - 140, y: y + 17, size: 15, font: fontBold, color: white,
+        x: MARGIN, y, size: 19, font: fontBold, color: gold,
       });
+      const priceStr = cleanText(Number(p.price).toLocaleString('fr-FR') + ' €');
+      page.drawText('FAI', { x: MARGIN + fontBold.widthOfTextAtSize(priceStr, 19) + 8, y: y + 3, size: 8, font, color: lightText });
+      y -= 16;
     }
-    y -= 26;
+    y -= 6;
+    page.drawLine({ start: { x: MARGIN, y: y + 4 }, end: { x: PAGE_W - MARGIN, y: y + 4 }, thickness: 0.8, color: rule });
+    y -= 14;
 
     // ---- Photos ----
     if (Array.isArray(p.images) && p.images.length > 0) {
@@ -191,7 +218,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         const scale = Math.min(slotW / img.width, slotH / img.height);
         const dw = img.width * scale, dh = img.height * scale;
         page.drawImage(img, { x: slotX + (slotW - dw) / 2, y: slotY + (slotH - dh) / 2, width: dw, height: dh });
-        page.drawRectangle({ x: slotX, y: slotY, width: slotW, height: slotH, borderColor: gold, borderWidth: 1 });
+        page.drawRectangle({ x: slotX, y: slotY, width: slotW, height: slotH, borderColor: rule, borderWidth: 0.8 });
         if (col === cols - 1 || i === embedded.length - 1) y -= slotH + gap;
       }
       y -= 6;
