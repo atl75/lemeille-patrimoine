@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { readJSON, writeJSON, uid } from '@/lib/utils';
 import type { NextRequest } from 'next/server';
 import { isAdmin } from '@/lib/adminGuard';
+import { toPublicProperty } from '@/lib/publicProperty';
 import { insertPropertySchema } from '@/shared/schema';
 
 const FILE = 'properties.json';
@@ -10,7 +11,9 @@ export async function GET(req: NextRequest) {
   if (isAdmin(req)) {
     return NextResponse.json(data);
   }
-  return NextResponse.json(data.filter((p: any) => p.visible !== false));
+  return NextResponse.json(
+    data.filter((p: any) => p.visible !== false).map(toPublicProperty)
+  );
 }
 export async function POST(req: NextRequest) {
   if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

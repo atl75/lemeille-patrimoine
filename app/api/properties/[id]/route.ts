@@ -1,16 +1,22 @@
 import { NextResponse } from 'next/server';
 import { readJSON, writeJSON } from '@/lib/utils';
 import { isAdmin } from '@/lib/adminGuard';
+import { toPublicProperty } from '@/lib/publicProperty';
 import type { NextRequest } from 'next/server';
 import { insertPropertySchema } from '@/shared/schema';
 
 const FILE = 'properties.json';
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const data = await readJSON(FILE);
   const item = data.find((p: any) => p.id === id);
   if (!item) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  return NextResponse.json(item);
+  // Admin authentifié : objet complet. Public : projection sûre (sans
+  // données sensibles ; adresse réduite à la ville en mode zone) et biens
+  // non visibles masqués.
+  if (isAdmin(req)) return NextResponse.json(item);
+  if (item.visible === false) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  return NextResponse.json(toPublicProperty(item));
 }
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

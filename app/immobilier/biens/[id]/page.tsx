@@ -47,6 +47,12 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
   const videoEmbedUrl = getVideoEmbedUrl(p.videoUrl);
   const floorPlanIsImage = isImageDocument(p.floorPlan);
 
+  // Localisation : en mode EXACT, on affiche l'adresse précise (carte + lien
+  // Google Maps). En mode AREA (zone), on n'expose que la ville pour préserver
+  // la confidentialité — le clic vers Google Maps ne révèle pas l'adresse.
+  const mapPrecision: 'EXACT' | 'AREA' = p.map?.precision === 'EXACT' ? 'EXACT' : 'AREA';
+  const mapQuery = mapPrecision === 'EXACT' ? p.map?.query : (p.city || p.map?.query);
+
   return (
     <main>
       <PropertySeoJsonLd property={p} />
@@ -127,8 +133,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
           <DPECard dpe={p.dpe} />
           <div className="card p-6">
             <h3 className="luxe text-xl mb-3">Localisation</h3>
-            {p.map?.query
-              ? <MapEmbed query={p.map.query} precision="AREA"/>
+            {mapQuery
+              ? <MapEmbed query={mapQuery} precision={mapPrecision}/>
               : <div className="text-sm opacity-80">Adresse non communiquée.</div>}
           </div>
           <a className="btn btn-gold text-center" href={`/api/properties/${p.id}/pdf`}>Télécharger la fiche PDF</a>
