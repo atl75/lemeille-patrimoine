@@ -1,9 +1,29 @@
 import Image from "next/image";
 import Link from "next/link";
 import Section from "@/components/Section";
+import PropertyCard from "@/components/PropertyCard";
 import HomeSeoJsonLd from "@/components/HomeSeoJsonLd";
 
-export default function Home() {
+async function getFeatured() {
+  const base = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT || '3000'}`;
+  try {
+    const r = await fetch(`${base}/api/properties`, { cache: 'no-store' });
+    if (!r.ok) return [];
+    const all = await r.json();
+    if (!Array.isArray(all)) return [];
+    const available = all.filter(
+      (p: any) => p && p.visible !== false && !p.sold && p.status !== 'UNDER_OFFER' && p.status !== 'SOLD'
+    );
+    const featured = available.filter((p: any) => p.featured);
+    const list = featured.length ? featured : [...available].sort((a: any, b: any) => (b.price || 0) - (a.price || 0));
+    return list.slice(0, 3);
+  } catch {
+    return [];
+  }
+}
+
+export default async function Home() {
+  const featured = await getFeatured();
   return (
     <main>
       {/* HERO vert */}
@@ -24,6 +44,30 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Biens à la une */}
+      {featured.length > 0 && (
+        <Section title="Nos biens à la une" subtitle="Une sélection de nos plus belles opportunités du moment.">
+          <div className="grid md:grid-cols-3 gap-6">
+            {featured.map((p: any, i: number) => (
+              <PropertyCard
+                key={p.id}
+                property={p}
+                cityLabel={[p.city, String(p.region || '').replaceAll('_', ' ')].filter(Boolean).join(' · ')}
+                priority={i === 0}
+              />
+            ))}
+          </div>
+          <div className="mt-8 text-center">
+            <Link href="/immobilier" className="btn btn-gold inline-flex items-center gap-2" data-testid="button-featured-all">
+              Voir tous nos biens
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+              </svg>
+            </Link>
+          </div>
+        </Section>
+      )}
 
       {/* Engagements Immobilier */}
       <Section title="Nos engagements immobiliers" subtitle="Sélection rigoureuse, accompagnement sur-mesure, confidentialité.">
