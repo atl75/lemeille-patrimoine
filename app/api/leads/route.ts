@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { readJSON, writeJSON, uid } from '@/lib/utils';
 import { Resend } from 'resend';
+import { isAdmin } from '@/lib/adminGuard';
 
-export async function GET(){
+export async function GET(req: Request){
+  if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const data = await readJSON('leads.json');
   return NextResponse.json(data);
 }

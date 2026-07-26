@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { readJSON, writeJSON } from '@/lib/utils';
+import { isAdmin } from '@/lib/adminGuard';
 
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const { id } = await params;
     const action = await req.json();
