@@ -22,8 +22,12 @@ RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/package-lock.json ./package-lock.json
+# node_modules de PRODUCTION uniquement : exclut les outils de dev/audit
+# (eslint, lighthouse, puppeteer, drizzle-kit…) → image plus légère et
+# débarrassée des dépendances de dev signalées par npm audit.
+RUN npm ci --omit=dev --ignore-scripts
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/next.config.js ./next.config.js
 # lib/ contient le loader d'images personnalisé (cloudinaryLoader.js) que
