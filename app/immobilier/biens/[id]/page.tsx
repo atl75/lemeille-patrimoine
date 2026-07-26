@@ -3,6 +3,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import DPECard from "@/components/DPECard";
 import MapEmbed from "@/components/MapEmbed";
 import PropertyGallery from "@/components/PropertyGallery";
+import PropertySeoJsonLd from "@/components/PropertySeoJsonLd";
 import { getVideoEmbedUrl, isImageDocument } from "@/lib/utils";
 import type { Metadata } from 'next';
 
@@ -48,6 +49,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
 
   return (
     <main>
+      <PropertySeoJsonLd property={p} />
       <Hero
         title={p.title}
         subtitle={<span>{p.city}{p.region?` · ${String(p.region).replaceAll('_',' ')}`:''}</span>}
