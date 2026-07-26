@@ -49,7 +49,7 @@ export function Footer(){
             <Link href="/actualites" className="hover:text-[#B89C6D]">Actualités</Link>
             <Link href="/bareme-honoraires" className="hover:text-[#B89C6D]">Barème d&apos;honoraires</Link>
             <Link href="/mentions-legales" className="hover:text-[#B89C6D]">Mentions légales</Link>
-            <Link href="/politique-de-confidentialite" className="hover:text-[#B89C6D]">Confidentialité</Link>
+            <Link href="/confidentialite" className="hover:text-[#B89C6D]">Confidentialité</Link>
             <Link href="/cookies" className="hover:text-[#B89C6D]">Cookies</Link>
           </nav>
         </div>

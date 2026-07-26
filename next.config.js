@@ -25,6 +25,12 @@ const nextConfig = {
         destination: '/programmes',
         permanent: true,
       },
+      // Dédoublonnage : la page détaillée est /confidentialite
+      {
+        source: '/politique-de-confidentialite',
+        destination: '/confidentialite',
+        permanent: true,
+      },
     ];
   },
   async headers() {
