@@ -5,6 +5,7 @@ import Img from "@/components/Img";
 import FilterBar from "@/components/FilterBar";
 import SoldToggle from "@/components/SoldToggle";
 import PropertyCard from "@/components/PropertyCard";
+import { allFeatures } from "@/lib/features";
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -108,12 +109,7 @@ export default async function Page({ searchParams }: {
     all.flatMap(p => Array.isArray(p.features) ? p.features : [])
   ));
   if (!featureOptions.length) {
-    featureOptions.push(
-      "Cheminée","Garage","Jardin","Lingerie","Moulures","Parquet",
-      "Portail électrique","Sous-sol","Terrasse","Balcon","Ascenseur",
-      "Vue dégagée","Calme","Traversant","Parking","Cave","Dressing",
-      "Climatisation","Double vitrage","Alarme","Fibre","Piscine"
-    );
+    featureOptions.push(...allFeatures());
   }
 
   // Filtrage

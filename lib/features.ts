@@ -1,76 +1,32 @@
 export const FEATURE_CATEGORIES: Record<string, string[]> = {
-  'Architecture & Charme': [
+  'Intérieur & Confort': [
     'Cheminée',
-    'Moulures',
-    'Parquet ancien',
-    'Plafond cathédrale',
-    'Verrière d’atelier',
-    'Boiseries murales',
-    'Rosaces & corniches',
-    'Ferronneries d’époque'
-  ],
-  'Extérieurs & Dépendances': [
-    'Jardin',
-    'Terrasse',
-    'Balcon filant',
-    'Cour intérieure',
-    'Véranda',
-    'Pool house',
-    'Cuisine d’été',
-    'Sous-sol',
-    'Cave voûtée',
-    'Garage',
-    'Parking',
-    'Portail électrique'
-  ],
-  'Confort & Aménagement': [
-    'Lingerie / Buanderie',
+    'Parquet',
     'Dressing',
-    'Bureau indépendant',
     'Suite parentale',
-    'Salle de sport',
-    'Home cinéma',
-    'Bibliothèque sur mesure',
-    'Climatisation réversible',
-    'Chauffage au sol',
-    'Domotique',
-    'Alarme & vidéophone',
-    'Aspiration centralisée',
+    'Cuisine équipée',
+    'Climatisation',
     'Ascenseur'
   ],
-  'Vue & Environnement': [
+  'Extérieur & Annexes': [
+    'Jardin',
+    'Terrasse',
+    'Balcon',
+    'Garage',
+    'Parking',
+    'Cave',
+    'Piscine'
+  ],
+  'Vue & Exposition': [
     'Vue mer',
-    'Vue Seine',
-    'Vue cathédrale',
     'Vue dégagée',
     'Exposition sud',
     'Sans vis-à-vis',
-    'Calme absolu',
-    'Environnement paysager',
-    'Accès plage à pied'
+    'Calme'
   ],
-  'Techniques & Matériaux': [
-    'Double vitrage',
-    'Isolation récente',
-    'Toiture refaite',
-    'Électricité rénovée',
-    'Cuisine haut de gamme équipée',
-    'Salle de bain en marbre',
-    'Pierres apparentes',
-    'Menuiseries sur mesure'
-  ],
-  'Prestige': [
-    'Piscine chauffée',
-    'Spa / Jacuzzi',
-    'Sauna',
-    'Hammam',
-    'Cave à vin',
-    'Orangerie',
-    'Serre ancienne',
-    'Dépendance aménagée',
-    'Appartement de service',
-    'Sécurité 24h/24',
-    'Gardien résident'
+  'État & Technique': [
+    'Rénové récemment',
+    'Double vitrage'
   ]
 };
 
