@@ -856,7 +856,7 @@ export default function Page() {
                   <div className="flex flex-col gap-1 text-xs">
                     <button
                       type="button"
-                      onClick={() => updateField('status', 'AVAILABLE')}
+                      onClick={() => setEditing(prev => prev ? { ...prev, status: 'AVAILABLE', sold: false } : null)}
                       className={`px-2 py-1.5 rounded text-left transition-colors ${
                         editing.status === 'AVAILABLE'
                           ? 'bg-green-600 text-white font-medium'
@@ -868,7 +868,7 @@ export default function Page() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => updateField('status', 'UNDER_OFFER')}
+                      onClick={() => setEditing(prev => prev ? { ...prev, status: 'UNDER_OFFER', sold: false } : null)}
                       className={`px-2 py-1.5 rounded text-left transition-colors ${
                         editing.status === 'UNDER_OFFER'
                           ? 'bg-orange-500 text-white font-medium'
@@ -2020,10 +2020,18 @@ export default function Page() {
       )}
 
       {!loading && properties.length > 0 && (() => {
-        // Filtrer selon la vue active
-        const filteredProperties = showSoldView 
-          ? properties.filter(p => p.sold)
-          : properties.filter(p => !p.sold);
+        // Un bien n'est plus « en vente » s'il est vendu OU sous promesse.
+        const isUnavailable = (p: Property) =>
+          !!p.sold || p.status === 'UNDER_OFFER' || p.status === 'SOLD';
+        let filteredProperties = showSoldView
+          ? properties.filter(isUnavailable)
+          : properties.filter(p => !isUnavailable(p));
+        // Vue « vendus » : toujours les biens sous promesse avant les vendus.
+        if (showSoldView) {
+          filteredProperties = [...filteredProperties].sort(
+            (a, b) => (a.status === 'UNDER_OFFER' ? 0 : 1) - (b.status === 'UNDER_OFFER' ? 0 : 1)
+          );
+        }
 
         return (
           <>

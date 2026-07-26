@@ -43,6 +43,7 @@ export function toPublicProperty(p: any) {
     sold: p.sold,
     status: p.status,
     soldDate: p.soldDate,
+    sortOrder: p.sortOrder,
     map,
   };
 }

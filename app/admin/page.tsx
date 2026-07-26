@@ -7,10 +7,13 @@ import { Plus, TrendingUp, Euro } from "lucide-react";
 export const metadata = { title: "Administration — Lemeille Patrimoine" };
 
 export default async function Page(){
-  const properties = await readJSON('data/properties.json');
+  const properties = await readJSON('properties.json');
   
-  // Calculate statistics for active properties (not sold)
-  const activeProperties = properties.filter((p: any) => !p.sold);
+  // Biens réellement en vente : ni vendus, ni sous promesse (cohérent avec
+  // la vue « Biens en vente »)
+  const activeProperties = properties.filter(
+    (p: any) => !p.sold && p.status !== 'UNDER_OFFER' && p.status !== 'SOLD'
+  );
   const totalProperties = activeProperties.length;
   
   // Calculate total portfolio value (CA potentiel)

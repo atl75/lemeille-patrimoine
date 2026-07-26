@@ -168,31 +168,36 @@ export default async function Page({ searchParams }: {
 
   // Tri
   if (isSoldView) {
-    // Pour les biens vendus : tri par date de vente (du plus récent au plus ancien)
+    // Biens vendus : toujours les biens sous promesse d'abord, puis par date
+    // de vente (du plus récent au plus ancien).
     items.sort((a, b) => {
+      const rank = (p: any) => (p.status === 'UNDER_OFFER' ? 0 : 1);
+      const r = rank(a) - rank(b);
+      if (r !== 0) return r;
       const dateA = a.soldDate || '0000-00-00';
       const dateB = b.soldDate || '0000-00-00';
-      return dateB.localeCompare(dateA); // Plus récent en premier
+      return dateB.localeCompare(dateA);
     });
   } else {
-    // Pour les biens en vente : tri par prix ET/OU surface
     items.sort((a, b) => {
-      // Tri par prix si demandé
+      // 1) Ordre manuel prioritaire (biens réordonnés dans l'admin)
+      const ao = typeof a.sortOrder === 'number' ? a.sortOrder : null;
+      const bo = typeof b.sortOrder === 'number' ? b.sortOrder : null;
+      if (ao !== null && bo !== null && ao !== bo) return ao - bo;
+      if (ao !== null && bo === null) return -1;
+      if (bo !== null && ao === null) return 1;
+
+      // 2) Tri explicite choisi par le visiteur
       if (sortPrice) {
-        const priceA = a.price || 0;
-        const priceB = b.price || 0;
-        const priceDiff = sortPrice === "asc" ? priceA - priceB : priceB - priceA;
-        if (priceDiff !== 0) return priceDiff;
+        const d = sortPrice === "asc" ? (a.price || 0) - (b.price || 0) : (b.price || 0) - (a.price || 0);
+        if (d !== 0) return d;
       }
-      
-      // Tri par surface si demandé (secondaire si prix égaux, principal si pas de tri prix)
       if (sortSurface) {
-        const surfA = a.surface || 0;
-        const surfB = b.surface || 0;
-        return sortSurface === "asc" ? surfA - surfB : surfB - surfA;
+        return sortSurface === "asc" ? (a.surface || 0) - (b.surface || 0) : (b.surface || 0) - (a.surface || 0);
       }
-      
-      return 0;
+
+      // 3) Par défaut : du plus cher au moins cher
+      return (b.price || 0) - (a.price || 0);
     });
   }
 
