@@ -6,6 +6,10 @@ import { Plus, TrendingUp, Euro } from "lucide-react";
 
 export const metadata = { title: "Administration — Lemeille Patrimoine" };
 
+// Lit les données du bucket à chaque requête (sinon la page est prérendue
+// au build avec des données vides et affiche toujours 0).
+export const dynamic = 'force-dynamic';
+
 export default async function Page(){
   const properties = await readJSON('properties.json');
   
