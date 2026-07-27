@@ -40,6 +40,7 @@ export default function Page(){
         <ul>
           <li>N° d&apos;immatriculation ORIAS : <strong>23&nbsp;003&nbsp;614</strong></li>
           <li>Inscrit en tant que CIF depuis le 28/06/2024.</li>
+          <li>Membre de l&apos;<strong>ANACOFI-CIF</strong> (Association Nationale des Conseils Financiers), association professionnelle agréée par l&apos;Autorité des marchés financiers (AMF).</li>
           <li>Immatriculation vérifiable sur <a href="https://www.orias.fr" target="_blank" rel="noopener noreferrer" className="underline">www.orias.fr</a> — <a href="https://www.orias.fr/home/showIntermediaire/890230337" target="_blank" rel="noopener noreferrer" className="underline">consulter la fiche</a>.</li>
         </ul>
         <p>L&apos;activité de conseil en investissements financiers est soumise au contrôle de l&apos;Autorité des marchés financiers (AMF).</p>
