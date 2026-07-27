@@ -7,6 +7,8 @@ export function Footer(){
         <div>
           <div className="font-semibold luxe">Lemeille Patrimoine</div>
           <div className="opacity-70 mt-1">Marque du groupe Novus Capital (SIREN 937 847 937)</div>
+          <div className="opacity-70 mt-1 text-xs">Carte professionnelle CPI 7606 2024 000 000 038 — CCI de Rouen Métropole</div>
+          <div className="opacity-70 text-xs">CIF — ORIAS n° 23 003 614 (<a href="/mentions-legales" className="hover:text-[#B89C6D] underline">mentions légales</a>)</div>
         </div>
         <div>
           <div className="font-semibold">Nos bureaux</div>
