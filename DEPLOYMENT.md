@@ -1,18 +1,24 @@
 # Lemeille Patrimoine — Guide de déploiement (Google Cloud Run)
 
-## Pourquoi Cloud Run et pas Vercel
+## Stockage des données : PostgreSQL partagé (recommandé)
 
-Le site stocke ses données (biens, leads, programmes, avis, articles) dans de simples
-fichiers JSON sur disque (`data/*.json`, via `lib/utils.ts`). Ça fonctionne très bien
-sur un serveur qui tourne en continu, mais **pas** sur une plateforme serverless comme
-Vercel (disque en lecture seule en production). Cloud Run exécute un conteneur Node
-persistant, donc aucune réécriture du code n'est nécessaire.
+Le site enregistre ses données (biens, leads, programmes, avis, articles) via
+`lib/utils.ts`. Deux modes de stockage existent :
 
-**Point d'attention réel** : par défaut, le disque d'un conteneur Cloud Run n'est
-durable que le temps de vie de l'instance — un redéploiement ou un scale-to-zero
-efface tout. Pour éviter de perdre des leads, ce guide monte le dossier `data/` sur
-un bucket **Cloud Storage** via un volume Cloud Run (FUSE) : le code ne change pas,
-les données survivent aux redéploiements.
+- **Avec `DATABASE_URL` (recommandé)** : les données sont stockées dans une base
+  **PostgreSQL** partagée (table `data_store`, voir `lib/db.ts`). Toutes les
+  instances Cloud Run — et donc tous les appareils/ordinateurs de l'admin — lisent
+  et écrivent la **même** source. Rien n'est perdu au redéploiement ni au
+  scale-to-zero. C'est ce mode qui corrige le problème « je n'ai pas les mêmes
+  données d'un ordinateur à l'autre ».
+- **Sans `DATABASE_URL`** : repli sur des fichiers JSON locaux (`data/*.json`).
+  Pratique en développement, mais sur une plateforme multi-instances comme Cloud
+  Run, **chaque instance a son propre disque** : les saisies faites depuis un
+  appareil ne sont pas visibles depuis un autre, et un redéploiement efface tout.
+  À n'utiliser qu'en local.
+
+Le reste de ce guide déploie sur **Cloud Run** (conteneur Node) avec une base
+**Cloud SQL for PostgreSQL**.
 
 ## 1. Pousser le code sur GitHub
 
@@ -35,24 +41,49 @@ git push -u origin main
    que si le trafic devient important).
 4. Activer les API nécessaires :
    ```bash
-   gcloud services enable run.googleapis.com cloudbuild.googleapis.com storage.googleapis.com
+   gcloud services enable run.googleapis.com cloudbuild.googleapis.com sqladmin.googleapis.com
    ```
 
-## 3. Créer le stockage persistant pour `data/`
+## 3. Créer la base PostgreSQL (Cloud SQL)
 
 ```bash
-# Nom de bucket unique dans tout GCS
-gcloud storage buckets create gs://lemeille-patrimoine-data --location=europe-west1
+# Instance PostgreSQL (db-f1-micro suffit largement pour ce site)
+gcloud sql instances create lemeille-pg \
+  --database-version=POSTGRES_16 \
+  --tier=db-f1-micro \
+  --region=europe-west1
 
-# Envoyer les fichiers de données actuels (contenu réel : programmes, avis, articles)
-gcloud storage cp data/programs.json data/reviews.json data/articles.json \
-  gs://lemeille-patrimoine-data/
+# Base et utilisateur applicatifs
+gcloud sql databases create lemeille --instance=lemeille-pg
+gcloud sql users create lemeille --instance=lemeille-pg --password='<mot-de-passe-db>'
 
-# Fichiers vides pour les leads/biens (générés au fil de l'eau par le site)
-echo '[]' > /tmp/empty.json
-gcloud storage cp /tmp/empty.json gs://lemeille-patrimoine-data/leads.json
-gcloud storage cp /tmp/empty.json gs://lemeille-patrimoine-data/properties.json
+# Récupérer le « connection name » (format PROJET:REGION:INSTANCE)
+gcloud sql instances describe lemeille-pg --format='value(connectionName)'
 ```
+
+La table `data_store` est créée automatiquement au premier démarrage de
+l'application (`lib/db.ts`) ; aucune migration SQL manuelle n'est nécessaire.
+
+La chaîne de connexion à utiliser depuis Cloud Run (via socket Cloud SQL) :
+
+```
+postgres://lemeille:<mot-de-passe-db>@/lemeille?host=/cloudsql/<CONNECTION_NAME>
+```
+
+## 3 bis. (Optionnel) Importer les données existantes
+
+Les données de seed livrées dans le dépôt (programmes, avis, articles) se chargent
+toutes seules au premier démarrage. Si tu as déjà des **biens/leads réels** saisis
+sur l'ancien stockage, importe-les une fois dans la base :
+
+```bash
+# Depuis ta machine, avec le proxy Cloud SQL en marche (ou une IP publique
+# autorisée), et le dossier data/ contenant les données réelles à importer :
+DATABASE_URL="postgres://lemeille:<mdp>@localhost:5432/lemeille" \
+  npm run db:import          # ajoute --force pour écraser une clé déjà en base
+```
+
+Voir `scripts/migrate-json-to-db.mjs` pour les options (`--dir=`, `--force`).
 
 ## 4. Déployer sur Cloud Run
 
@@ -60,12 +91,10 @@ gcloud storage cp /tmp/empty.json gs://lemeille-patrimoine-data/properties.json
 gcloud run deploy lemeille-patrimoine \
   --source . \
   --region=europe-west1 \
-  --execution-environment=gen2 \
   --allow-unauthenticated \
   --concurrency=80 \
-  --max-instances=1 \
-  --add-volume=name=data-volume,type=cloud-storage,bucket=lemeille-patrimoine-data \
-  --add-volume-mount=volume=data-volume,mount-path=/app/data \
+  --add-cloudsql-instances=<CONNECTION_NAME> \
+  --set-env-vars="DATABASE_URL=postgres://lemeille:<mot-de-passe-db>@/lemeille?host=/cloudsql/<CONNECTION_NAME>" \
   --set-env-vars="NEXT_PUBLIC_SITE_URL=https://lemeillepatrimoine.com" \
   --set-env-vars="ADMIN_PASSWORD=<mot-de-passe-admin>" \
   --set-env-vars="ANTHROPIC_API_KEY=<clé>" \
@@ -80,14 +109,18 @@ gcloud run deploy lemeille-patrimoine \
 ```
 
 Notes :
-- `--max-instances=1` évite que deux instances écrivent `data/*.json` en même temps
-  (le site actuel n'a pas besoin de plus d'une instance pour son volume de trafic).
-- `--execution-environment=gen2` est requis pour les volumes Cloud Storage.
+- La base PostgreSQL étant partagée, plusieurs instances peuvent tourner sans risque :
+  plus besoin de limiter à `--max-instances=1` ni de monter un volume Cloud Storage.
+- `--add-cloudsql-instances` rend la base accessible via le socket
+  `/cloudsql/<CONNECTION_NAME>` référencé dans `DATABASE_URL` (pas de SSL requis
+  sur ce socket — `lib/db.ts` le détecte automatiquement).
 - Remplace les `<...>` par tes vraies valeurs, ou omets les variables optionnelles
   (Google Maps, Places, Resend, GA) si tu ne les utilises pas encore — voir
   `.env.example` pour le détail de chaque clé.
 - Cette première commande construit l'image via Cloud Build depuis le Dockerfile du
   dépôt (`--source .`) : pas besoin de builder/pousser l'image toi-même.
+- **Attention** : sans `DATABASE_URL`, le site retombe sur les fichiers JSON locaux
+  et le problème de désynchronisation entre appareils réapparaît.
 
 Cloud Run renvoie une URL du type `https://lemeille-patrimoine-xxxxx.a.run.app` —
 vérifie que le site fonctionne dessus avant de brancher le domaine.

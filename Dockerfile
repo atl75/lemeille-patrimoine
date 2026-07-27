@@ -35,9 +35,10 @@ COPY --from=builder /app/next.config.js ./next.config.js
 # démarrage du serveur (build non-standalone), il doit donc être présent.
 COPY --from=builder /app/lib ./lib
 
-# data/ est destiné à être un volume monté (Cloud Storage FUSE en
-# production) pour survivre aux redéploiements et au scaling ; ce
-# dossier local sert de repli si aucun volume n'est monté.
+# En production, les données sont stockées dans PostgreSQL (voir lib/db.ts,
+# variable DATABASE_URL) : partagées entre toutes les instances, durables aux
+# redéploiements. Le dossier data/ local ne sert plus que de repli (dev ou
+# absence de DATABASE_URL) et de source de seed au premier démarrage.
 RUN mkdir -p data public/uploads && chown -R nextjs:nodejs data public/uploads
 
 USER nextjs
