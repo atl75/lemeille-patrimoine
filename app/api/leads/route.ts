@@ -86,6 +86,26 @@ function formatEstimationEmail(payload: any): string {
   `;
 }
 
+function formatDefiscEmail(payload: any): string {
+  const m = payload.meta || {};
+  const eur = (n: any) => (Number(n) || 0).toLocaleString('fr-FR') + ' €';
+  return `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1F3B2C">
+      <h2 style="color:#8A6D3F">💶 Nouvelle simulation de défiscalisation</h2>
+      <p><strong>${payload.firstName || ''} ${payload.lastName || ''}</strong></p>
+      <p>Email : <a href="mailto:${payload.email || ''}">${payload.email || '—'}</a><br/>
+         Téléphone : ${payload.phone || '—'}</p>
+      <table style="border-collapse:collapse;width:100%;margin-top:12px">
+        <tr><td style="padding:6px;border-bottom:1px solid #eee">Dispositif</td><td style="padding:6px;border-bottom:1px solid #eee"><strong>${m.dispositif || '—'}</strong></td></tr>
+        <tr><td style="padding:6px;border-bottom:1px solid #eee">Montant des travaux</td><td style="padding:6px;border-bottom:1px solid #eee">${eur(m.travaux)}</td></tr>
+        <tr><td style="padding:6px;border-bottom:1px solid #eee">TMI</td><td style="padding:6px;border-bottom:1px solid #eee">${m.tmi != null ? Math.round(m.tmi * 100) + ' %' : '—'}</td></tr>
+        <tr><td style="padding:6px;border-bottom:1px solid #eee">Gain fiscal estimé</td><td style="padding:6px;border-bottom:1px solid #eee"><strong>${eur(m.estimation)}</strong></td></tr>
+      </table>
+      <p style="font-size:12px;color:#888;margin-top:16px">Lead généré par le simulateur de défiscalisation du site.</p>
+    </div>
+  `;
+}
+
 function formatContactEmail(payload: any): string {
   return `
     <!DOCTYPE html>
@@ -153,15 +173,18 @@ export async function POST(req: Request){
     data.push(payload);
     await writeJSON('leads.json', data);
     
-    // Envoyer l'email si c'est une demande d'estimation
-    if (body.source === 'estimation-immobilier' && process.env.RESEND_API_KEY) {
+    // Envoyer l'email pour une estimation immobilière ou une simulation de défiscalisation
+    if ((body.source === 'estimation-immobilier' || body.source === 'simulateur-defiscalisation') && process.env.RESEND_API_KEY) {
       try {
+        const isDefisc = body.source === 'simulateur-defiscalisation';
         const resend = new Resend(process.env.RESEND_API_KEY);
         await resend.emails.send({
           from: process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>',
           to: process.env.LEADS_TO_EMAIL || 'arthur.lemeille@lemeillepatrimoine.com',
-          subject: `📋 Nouvelle estimation — ${payload.firstName} ${payload.lastName}`,
-          html: formatEstimationEmail(payload)
+          subject: isDefisc
+            ? `💶 Simulation défiscalisation — ${payload.firstName} ${payload.lastName}`
+            : `📋 Nouvelle estimation — ${payload.firstName} ${payload.lastName}`,
+          html: isDefisc ? formatDefiscEmail(payload) : formatEstimationEmail(payload)
         });
       } catch (error) {
         console.error('Erreur envoi email:', error);

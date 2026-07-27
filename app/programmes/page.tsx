@@ -2,6 +2,7 @@ import Link from "next/link";
 import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import Section from "@/components/Section";
+import DefiscalisationSimulator from "@/components/DefiscalisationSimulator";
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -71,6 +72,13 @@ export default async function Page(){
             </div>
           ))}
         </div>
+      </Section>
+
+      <Section
+        title="Simulateur de défiscalisation"
+        subtitle="Estimez en quelques secondes votre gain fiscal selon le dispositif. Estimation indicative — un conseiller affine ensuite selon votre situation."
+      >
+        <DefiscalisationSimulator />
       </Section>
 
       <Section title="Notre accompagnement">
