@@ -3,6 +3,7 @@ import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import Section from "@/components/Section";
 import DefiscalisationSimulator from "@/components/DefiscalisationSimulator";
+import GuideDownload from "@/components/GuideDownload";
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -79,6 +80,13 @@ export default async function Page(){
         subtitle="Estimez en quelques secondes votre gain fiscal selon le dispositif. Estimation indicative — un conseiller affine ensuite selon votre situation."
       >
         <DefiscalisationSimulator />
+      </Section>
+
+      <Section
+        title="Nos guides gratuits"
+        subtitle="Téléchargez nos guides pour comprendre chaque dispositif : principe, conditions, avantage fiscal et points de vigilance."
+      >
+        <GuideDownload />
       </Section>
 
       <Section title="Notre accompagnement">

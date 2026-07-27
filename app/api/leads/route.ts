@@ -173,18 +173,27 @@ export async function POST(req: Request){
     data.push(payload);
     await writeJSON('leads.json', data);
     
-    // Envoyer l'email pour une estimation immobilière ou une simulation de défiscalisation
-    if ((body.source === 'estimation-immobilier' || body.source === 'simulateur-defiscalisation') && process.env.RESEND_API_KEY) {
+    // Notifier par email selon la source du lead
+    const notifySources = ['estimation-immobilier', 'simulateur-defiscalisation', 'guide-defiscalisation'];
+    if (notifySources.includes(body.source) && process.env.RESEND_API_KEY) {
       try {
-        const isDefisc = body.source === 'simulateur-defiscalisation';
         const resend = new Resend(process.env.RESEND_API_KEY);
+        let subject: string, html: string;
+        if (body.source === 'simulateur-defiscalisation') {
+          subject = `💶 Simulation défiscalisation — ${payload.firstName} ${payload.lastName}`;
+          html = formatDefiscEmail(payload);
+        } else if (body.source === 'guide-defiscalisation') {
+          subject = `📥 Téléchargement guide — ${payload.firstName} ${payload.lastName}`;
+          html = formatContactEmail(payload);
+        } else {
+          subject = `📋 Nouvelle estimation — ${payload.firstName} ${payload.lastName}`;
+          html = formatEstimationEmail(payload);
+        }
         await resend.emails.send({
           from: process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>',
           to: process.env.LEADS_TO_EMAIL || 'arthur.lemeille@lemeillepatrimoine.com',
-          subject: isDefisc
-            ? `💶 Simulation défiscalisation — ${payload.firstName} ${payload.lastName}`
-            : `📋 Nouvelle estimation — ${payload.firstName} ${payload.lastName}`,
-          html: isDefisc ? formatDefiscEmail(payload) : formatEstimationEmail(payload)
+          subject,
+          html,
         });
       } catch (error) {
         console.error('Erreur envoi email:', error);
