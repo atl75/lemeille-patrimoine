@@ -11,6 +11,7 @@ type Program = {
   dispositif: string;
   summary: string;
   externalUrl?: string;
+  coverImage?: string;
   visible?: boolean;
 };
 
@@ -28,7 +29,33 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Program> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const { confirm, dialog } = useConfirm();
+
+  const handlePhoto = async (file: File | undefined) => {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { alert('Image trop volumineuse (10 Mo max)'); return; }
+    setUploadingPhoto(true);
+    try {
+      const dataUri: string = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result));
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+      const res = await fetch('/api/upload-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: dataUri }),
+      });
+      const data = await res.json();
+      if (res.ok && data.url) updateField('coverImage', data.url);
+      else alert(data.error || "Échec de l'envoi de la photo");
+    } catch {
+      alert("Échec de l'envoi de la photo");
+    }
+    setUploadingPhoto(false);
+  };
 
   const fetchPrograms = async () => {
     try {
@@ -168,6 +195,34 @@ export default function Page() {
           </div>
 
           <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Photo du programme (optionnel)</label>
+            {editing.coverImage ? (
+              <div className="flex items-start gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={editing.coverImage} alt="Aperçu du programme" className="w-40 h-28 object-cover rounded border" />
+                <button
+                  type="button"
+                  onClick={() => updateField('coverImage', '')}
+                  className="px-3 py-1 border border-red-500 text-red-500 rounded hover:bg-red-500 hover:text-white text-sm"
+                  data-testid="button-remove-photo"
+                >
+                  Retirer
+                </button>
+              </div>
+            ) : (
+              <input
+                type="file"
+                accept="image/*"
+                onChange={e => handlePhoto(e.target.files?.[0])}
+                disabled={uploadingPhoto}
+                className="text-sm"
+                data-testid="input-program-photo"
+              />
+            )}
+            {uploadingPhoto && <div className="text-xs opacity-60 mt-1">Envoi en cours…</div>}
+          </div>
+
+          <div className="mb-4">
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -210,6 +265,10 @@ export default function Page() {
           {programs.map(program => (
             <div key={program.id} className="card p-6" data-testid={`program-${program.id}`}>
               <div className="flex gap-4 justify-between items-start">
+                {program.coverImage && (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={program.coverImage} alt="" className="w-24 h-20 object-cover rounded border shrink-0" />
+                )}
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="font-semibold text-lg">{program.title}</h3>

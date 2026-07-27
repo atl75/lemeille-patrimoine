@@ -38,6 +38,7 @@ export function toPublicProperty(p: any) {
     dpe: p.dpe,
     videoUrl: p.videoUrl,
     floorPlan: p.floorPlan,
+    floorPlans: p.floorPlans,
     featured: p.featured,
     visible: p.visible,
     sold: p.sold,

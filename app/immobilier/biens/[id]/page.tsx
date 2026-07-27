@@ -45,7 +45,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
   if (!p) return <main className="container py-12">Bien introuvable.</main>;
   const imgs: string[] = Array.isArray(p.images) && p.images.length ? p.images : ['/logo.svg'];
   const videoEmbedUrl = getVideoEmbedUrl(p.videoUrl);
-  const floorPlanIsImage = isImageDocument(p.floorPlan);
+  // Plans : plusieurs documents possibles (repli sur le plan unique hérité)
+  const plans: string[] = Array.isArray(p.floorPlans) && p.floorPlans.length
+    ? p.floorPlans
+    : (p.floorPlan ? [p.floorPlan] : []);
 
   // Localisation : en mode EXACT, on affiche l'adresse précise (carte + lien
   // Google Maps). En mode AREA (zone), on n'expose que la ville pour préserver
@@ -113,17 +116,21 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
             <p className="whitespace-pre-line">{p.description}</p>
           </div>
 
-          {p.floorPlan && (
+          {plans.length > 0 && (
             <div className="card p-6 mt-4">
-              <h2 className="luxe text-2xl mb-3">Plan du bien</h2>
-              {floorPlanIsImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.floorPlan} alt={`Plan — ${p.title}`} className="w-full h-auto rounded-xl border" />
-              ) : (
-                <a href={p.floorPlan} target="_blank" rel="noopener noreferrer" className="btn btn-gold inline-flex">
-                  Consulter le plan (PDF)
-                </a>
-              )}
+              <h2 className="luxe text-2xl mb-3">{plans.length > 1 ? 'Plans du bien' : 'Plan du bien'}</h2>
+              <div className="grid gap-4">
+                {plans.map((plan, i) => (
+                  isImageDocument(plan) ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={i} src={plan} alt={`Plan ${i + 1} — ${p.title}`} className="w-full h-auto rounded-xl border" />
+                  ) : (
+                    <a key={i} href={plan} target="_blank" rel="noopener noreferrer" className="btn btn-gold inline-flex w-fit">
+                      Consulter le plan {plans.length > 1 ? i + 1 : ''} (PDF)
+                    </a>
+                  )
+                ))}
+              </div>
             </div>
           )}
         </div>

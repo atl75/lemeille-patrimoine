@@ -74,6 +74,7 @@ type Property = {
   sold?: boolean;
   status?: 'AVAILABLE' | 'UNDER_OFFER' | 'SOLD';
   soldDate?: string;
+  sortOrder?: number;
   // Informations cadastrales
   cadastralReference?: string;
   // Propriétaires
@@ -89,6 +90,7 @@ type Property = {
   chargesStatement?: string;
   // Plan et vidéo
   floorPlan?: string;
+  floorPlans?: string[];
   videoUrl?: string;
 };
 
@@ -301,6 +303,50 @@ export default function Page() {
   useEffect(() => {
     fetchProperties();
   }, []);
+
+  const [reordering, setReordering] = useState(false);
+
+  // Ordre d'affichage public des biens « en vente » : sortOrder puis prix décroissant
+  const enVenteOrdered = () =>
+    properties
+      .filter(p => !(p.sold || p.status === 'UNDER_OFFER' || p.status === 'SOLD'))
+      .sort((a, b) => {
+        const ao = typeof a.sortOrder === 'number' ? a.sortOrder : null;
+        const bo = typeof b.sortOrder === 'number' ? b.sortOrder : null;
+        if (ao !== null && bo !== null && ao !== bo) return ao - bo;
+        if (ao !== null && bo === null) return -1;
+        if (bo !== null && ao === null) return 1;
+        return (b.price || 0) - (a.price || 0);
+      });
+
+  // Monter/descendre un bien : réordonne la liste en vente et persiste sortOrder
+  const moveProperty = async (id: string, dir: 'up' | 'down') => {
+    const ordered = enVenteOrdered();
+    const idx = ordered.findIndex(p => p.id === id);
+    const swap = dir === 'up' ? idx - 1 : idx + 1;
+    if (idx < 0 || swap < 0 || swap >= ordered.length) return;
+    [ordered[idx], ordered[swap]] = [ordered[swap], ordered[idx]];
+    setReordering(true);
+    try {
+      // Réassigner un sortOrder séquentiel et n'enregistrer que ce qui change
+      const changed = ordered
+        .map((p, i) => ({ ...p, sortOrder: i }))
+        .filter(p => p.sortOrder !== properties.find(q => q.id === p.id)?.sortOrder);
+      await Promise.all(
+        changed.map(p =>
+          fetch(`/api/properties/${p.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...p, type: p.type || 'APPARTEMENT' }),
+          })
+        )
+      );
+      await fetchProperties();
+    } catch {
+      alert('Erreur lors du réordonnancement');
+    }
+    setReordering(false);
+  };
 
   const handleSave = async () => {
     if (!editing) return;
@@ -610,7 +656,14 @@ export default function Page() {
                   if (viewing.propertyTax) docs.push({ name: "Taxe foncière", url: viewing.propertyTax });
                   if (viewing.mandate) docs.push({ name: "Mandat", url: viewing.mandate });
                   if (viewing.estimation) docs.push({ name: "Estimation", url: viewing.estimation });
-                  if (viewing.floorPlan) docs.push({ name: "Plan du bien", url: viewing.floorPlan });
+                  {
+                    const vplans = (Array.isArray(viewing.floorPlans) && viewing.floorPlans.length)
+                      ? viewing.floorPlans
+                      : (viewing.floorPlan ? [viewing.floorPlan] : []);
+                    vplans.forEach((plan: string, idx: number) => {
+                      docs.push({ name: vplans.length > 1 ? `Plan ${idx + 1}` : "Plan du bien", url: plan });
+                    });
+                  }
 
                   if (viewing.type === 'APPARTEMENT') {
                     if (viewing.propertyRules) docs.push({ name: "Règlement de propriété", url: viewing.propertyRules });
@@ -1842,11 +1895,14 @@ export default function Page() {
                 />
               </div>
               <div>
-                <label className="block mb-0.5 text-[10px] font-medium">Plan du bien</label>
-                <DocumentUploader
-                  document={editing.floorPlan}
-                  onChange={doc => updateField('floorPlan', doc)}
+                <label className="block mb-0.5 text-[10px] font-medium">Plans du bien (plusieurs possibles)</label>
+                <MultiDocumentUploader
+                  documents={editing.floorPlans && editing.floorPlans.length
+                    ? editing.floorPlans
+                    : (editing.floorPlan ? [editing.floorPlan] : [])}
+                  onChange={docs => setEditing(prev => prev ? { ...prev, floorPlans: docs, floorPlan: undefined } : null)}
                   label=""
+                  maxDocuments={6}
                   accept=".pdf,.jpg,.jpeg,.png,.webp"
                 />
               </div>
@@ -2031,6 +2087,9 @@ export default function Page() {
           filteredProperties = [...filteredProperties].sort(
             (a, b) => (a.status === 'UNDER_OFFER' ? 0 : 1) - (b.status === 'UNDER_OFFER' ? 0 : 1)
           );
+        } else {
+          // Vue « en vente » : afficher dans l'ordre public (réordonnable)
+          filteredProperties = enVenteOrdered();
         }
 
         return (
@@ -2046,7 +2105,7 @@ export default function Page() {
               </div>
             ) : (
               <div className="grid gap-4">
-                {filteredProperties.map(property => (
+                {filteredProperties.map((property, idx) => (
                   <div key={property.id} className="card p-6" data-testid={`property-${property.id}`}>
                     <div className="flex gap-4 justify-between items-start">
                       <div className="flex-1">
@@ -2087,6 +2146,7 @@ export default function Page() {
                             property.floorPlan,
                             property.propertyRules,
                             property.chargesStatement,
+                            ...(Array.isArray(property.floorPlans) ? property.floorPlans : []),
                             ...(Array.isArray(property.agMinutes) ? property.agMinutes : [])
                           ].filter(Boolean).length;
                           
@@ -2100,7 +2160,31 @@ export default function Page() {
                           return null;
                         })()}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 items-start">
+                        {!showSoldView && (
+                          <div className="flex flex-col gap-1 mr-1">
+                            <button
+                              onClick={() => moveProperty(property.id, 'up')}
+                              disabled={idx === 0 || reordering}
+                              title="Monter"
+                              aria-label="Monter le bien"
+                              className="px-2 py-0.5 border rounded text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                              data-testid={`button-move-up-${property.id}`}
+                            >
+                              ↑
+                            </button>
+                            <button
+                              onClick={() => moveProperty(property.id, 'down')}
+                              disabled={idx === filteredProperties.length - 1 || reordering}
+                              title="Descendre"
+                              aria-label="Descendre le bien"
+                              className="px-2 py-0.5 border rounded text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                              data-testid={`button-move-down-${property.id}`}
+                            >
+                              ↓
+                            </button>
+                          </div>
+                        )}
                         <button
                           onClick={() => setViewing(property)}
                           className="px-3 py-1 border border-gray-400 text-gray-700 rounded hover:bg-gray-100"

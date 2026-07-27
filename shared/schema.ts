@@ -80,6 +80,8 @@ export const properties = pgTable("properties", {
   // Charges & fiscalité
   propertyTaxAmount: integer("property_tax_amount"), // Taxe foncière (€/an)
   coproChargesMonthly: integer("copro_charges_monthly"), // Charges de copropriété (€/mois)
+  // Ordre d'affichage manuel (prioritaire sur le tri par prix)
+  sortOrder: integer("sort_order"),
   description: text("description").notNull(),
   images: jsonb("images").$type<string[]>().notNull(),
   features: jsonb("features").$type<string[]>().notNull(),
@@ -104,7 +106,8 @@ export const properties = pgTable("properties", {
   mandate: text("mandate"), // Mandat
   estimation: text("estimation"), // Estimation
   // Plan et vidéo
-  floorPlan: text("floor_plan"), // Plan du bien (image ou PDF, base64)
+  floorPlan: text("floor_plan"), // Plan du bien (héritage : document unique)
+  floorPlans: jsonb("floor_plans").$type<string[]>(), // Plans du bien (plusieurs documents)
   videoUrl: text("video_url"), // Lien vidéo (YouTube / Vimeo)
   // Documents spécifiques aux appartements
   propertyRules: text("property_rules"), // Règlement de propriété
@@ -124,6 +127,7 @@ export const insertPropertySchema = createInsertSchema(properties, {
   annexSurface: z.number().optional(),
   propertyTaxAmount: z.number().optional(),
   coproChargesMonthly: z.number().optional(),
+  sortOrder: z.number().optional(),
   netSellerAmount: z.number().optional(),
   commissionAmount: z.number().optional(),
   commissionPercentage: z.number().optional(),
@@ -143,6 +147,7 @@ export const insertPropertySchema = createInsertSchema(properties, {
   mandate: z.string().optional(),
   estimation: z.string().optional(),
   floorPlan: z.string().optional(),
+  floorPlans: z.array(z.string()).optional(),
   videoUrl: z.string().url().optional().or(z.literal('')),
   propertyRules: z.string().optional(),
   agMinutes: z.array(z.string()).optional(),
@@ -160,10 +165,14 @@ export const programs = pgTable("programs", {
   dispositif: text("dispositif").notNull(), // MALRAUX, MONUMENT_HISTORIQUE, DEFICIT_FONCIER
   summary: text("summary").notNull(),
   externalUrl: text("external_url"),
+  coverImage: text("cover_image"), // Photo du programme (URL Cloudinary)
   visible: boolean("visible").default(true),
 });
 
-export const insertProgramSchema = createInsertSchema(programs);
+export const insertProgramSchema = createInsertSchema(programs, {
+  externalUrl: z.string().optional(),
+  coverImage: z.string().optional(),
+});
 export type InsertProgram = z.infer<typeof insertProgramSchema>;
 export type Program = typeof programs.$inferSelect;
 

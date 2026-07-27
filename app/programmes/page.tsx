@@ -96,6 +96,10 @@ export default async function Page(){
               const hasUrl = typeof p.externalUrl === "string" && /^https?:\/\//.test(p.externalUrl);
               const Card = (
                 <>
+                  {p.coverImage && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.coverImage} alt={`Programme — ${p.title}`} className="w-full h-48 object-cover rounded-xl mb-4" />
+                  )}
                   <h3 className="luxe text-2xl">{p.title}</h3>
                   <div className="opacity-70">{p.city} · {p.dispositif}</div>
                   {p.summary && <p className="mt-2">{p.summary}</p>}
