@@ -37,16 +37,17 @@ export const metadata: Metadata = {
     title: 'Lemeille Patrimoine — Immobilier haut de gamme & défiscalisation',
     description: "Agence immobilière haut de gamme spécialisée dans la transaction dans l'ancien et la défiscalisation à Paris, en Normandie et sur la Côte d'Azur.",
     images: [{
-      url: '/og-image.jpg',
+      url: '/og-image.jpg?v=2',
       width: 1200,
       height: 630,
-      alt: 'Lemeille Patrimoine'
+      alt: 'Lemeille Patrimoine — Immobilier haut de gamme & défiscalisation'
     }]
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Lemeille Patrimoine — Immobilier & défiscalisation',
     description: "Immobilier haut de gamme & défiscalisation - Paris, Normandie, Côte d'Azur",
+    images: ['/og-image.jpg?v=2'],
   },
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://lemeillepatrimoine.com'),
 };
