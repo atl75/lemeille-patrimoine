@@ -35,8 +35,10 @@ export default function PropertyGallery({ images, title }: PropertyGalleryProps)
         <Img
           src={images[0]}
           alt={title}
-          width={1600}
-          height={900}
+          width={1280}
+          height={720}
+          sizes="(max-width: 768px) 100vw, 640px"
+          priority
           className="w-full h-[420px] object-cover cursor-pointer hover:opacity-90 transition"
           onClick={() => openLightbox(0)}
           data-testid="image-main"
@@ -51,8 +53,9 @@ export default function PropertyGallery({ images, title }: PropertyGalleryProps)
               key={i}
               src={src}
               alt={`${title} ${i + 2}`}
-              width={400}
-              height={400}
+              width={260}
+              height={260}
+              sizes="(max-width: 768px) 20vw, 130px"
               className="w-full h-24 object-cover rounded-2xl border cursor-pointer hover:opacity-80 transition"
               onClick={() => openLightbox(i + 1)}
               data-testid={`image-thumbnail-${i + 1}`}

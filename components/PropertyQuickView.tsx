@@ -57,8 +57,9 @@ export default function PropertyQuickView({
         <Img
           src={cover}
           alt={property.title}
-          width={1200}
-          height={600}
+          width={900}
+          height={480}
+          sizes="(max-width: 768px) 90vw, 600px"
           className="w-full h-64 object-cover rounded-t-2xl"
         />
 
