@@ -28,6 +28,8 @@ const STATIC_PATHS = [
   '/programmes',
   '/actualites',
   '/contact',
+  '/references',
+  '/faq',
   '/bareme-honoraires',
   '/mentions-legales',
   '/confidentialite',
