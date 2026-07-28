@@ -5,6 +5,7 @@ import Img from "@/components/Img";
 import FilterBar from "@/components/FilterBar";
 import SoldToggle from "@/components/SoldToggle";
 import PropertyCard from "@/components/PropertyCard";
+import AlerteBiens from "@/components/AlerteBiens";
 import { allFeatures } from "@/lib/features";
 import type { Metadata } from 'next';
 
@@ -305,6 +306,10 @@ export default async function Page({ searchParams }: {
             </div>
           )}
         </div>
+      </section>
+
+      <section className="container pb-14">
+        <AlerteBiens />
       </section>
     </main>
   );
