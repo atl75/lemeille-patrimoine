@@ -3,6 +3,11 @@ import Link from "next/link";
 import Section from "@/components/Section";
 import PropertyCard from "@/components/PropertyCard";
 import HomeSeoJsonLd from "@/components/HomeSeoJsonLd";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 async function getFeatured() {
   const base = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT || '3000'}`;

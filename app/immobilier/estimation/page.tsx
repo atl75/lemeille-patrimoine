@@ -5,7 +5,8 @@ import EstimationForm from "@/components/EstimationFormLoader";
 
 export const metadata = {
   title: "Estimation gratuite — Lemeille Patrimoine",
-  description: "Obtenez une première estimation indicative de votre bien et un avis de valeur par un conseiller."
+  description: "Obtenez une première estimation indicative de votre bien et un avis de valeur par un conseiller.",
+  alternates: { canonical: "/immobilier/estimation" }
 };
 
 export default function Page(){

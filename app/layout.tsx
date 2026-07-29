@@ -26,9 +26,8 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: 'Lemeille Patrimoine — Immobilier & défiscalisation',
   description: "Immobilier haut de gamme et défiscalisation à Paris, Normandie et Côte d'Azur. Transaction dans l'ancien et dispositifs Malraux, Monument Historique, Déficit Foncier.",
-  alternates: {
-    canonical: '/'
-  },
+  // Pas de canonical global ici : il serait hérité par toutes les pages
+  // (chaque page définit son propre canonical ; l'accueil le fait ci-dessous).
   openGraph: {
     type: 'website',
     locale: 'fr_FR',
