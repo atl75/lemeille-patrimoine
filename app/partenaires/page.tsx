@@ -37,6 +37,7 @@ const PARTNERS: Partner[] = [
     role: "Courtier",
     description:
       "Optimise le financement de votre acquisition : analyse de votre capacité d'emprunt et négociation des meilleures conditions de prêt et d'assurance auprès de son réseau bancaire.",
+    url: "https://fr.linkedin.com/in/joachim-boimard",
   },
 ];
 

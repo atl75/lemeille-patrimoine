@@ -53,7 +53,8 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+  // ID Google Analytics (public). Surchargeable par NEXT_PUBLIC_GA_MEASUREMENT_ID.
+  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-W152DJDQWE';
   
   return (
     <html lang="fr" className={`${inter.variable} ${playfair.variable}`}>
