@@ -49,6 +49,7 @@ export function Footer(){
         <div className="justify-self-end">
           <nav className="flex flex-col gap-2 text-right">
             <Link href="/references" className="hover:text-[#B89C6D]">Références</Link>
+            <Link href="/partenaires" className="hover:text-[#B89C6D]">Partenaires</Link>
             <Link href="/faq" className="hover:text-[#B89C6D]">FAQ</Link>
             <Link href="/actualites" className="hover:text-[#B89C6D]">Actualités</Link>
             <Link href="/bareme-honoraires" className="hover:text-[#B89C6D]">Barème d&apos;honoraires</Link>
