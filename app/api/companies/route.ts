@@ -27,20 +27,52 @@ export async function GET(req: NextRequest) {
 
     const data = await response.json();
 
+    // Libellés de forme juridique (codes INSEE fréquents)
+    const FORMS: Record<string, string> = {
+      '5710': 'SAS', '5720': 'SASU', '5499': 'SA', '5498': 'SA',
+      '5307': 'SNC', '5202': 'SNC',
+      '5410': 'SARL', '5415': 'SARL', '5426': 'EURL',
+      '6540': 'SCI', '6560': 'SC', '6599': 'SC',
+      '1000': 'Entrepreneur individuel',
+    };
+
+    // Sélectionne le représentant légal : une personne physique dont la
+    // qualité correspond à un mandataire social (hors commissaire aux comptes).
+    const pickManager = (dirigeants: any[]) => {
+      const list = Array.isArray(dirigeants) ? dirigeants : [];
+      const isRep = (q: string) => /président|president|gérant|gerant|directeur général|directeur general|associé|associe/i.test(q) && !/commissaire/i.test(q);
+      return (
+        list.find((d) => d?.type_dirigeant === 'personne physique' && isRep(d?.qualite || '')) ||
+        list.find((d) => d?.type_dirigeant === 'personne physique' && !/commissaire/i.test(d?.qualite || '')) ||
+        null
+      );
+    };
+
     // Formater les résultats
-    const results = (data.results || []).map((company: any) => ({
-      siren: company.siren,
-      name: company.nom_complet || company.nom_raison_sociale,
-      address: [
-        company.siege?.numero_voie,
-        company.siege?.type_voie,
-        company.siege?.libelle_voie,
-        company.siege?.code_postal,
-        company.siege?.libelle_commune
-      ].filter(Boolean).join(' '),
-      activity: company.activite_principale,
-      isActive: company.etat_administratif === 'A'
-    }));
+    const results = (data.results || []).map((company: any) => {
+      const dir = pickManager(company.dirigeants);
+      const managerLastName = dir?.nom || '';
+      const managerFirstName = dir?.prenoms || dir?.prenom || '';
+      const managerRole = dir?.qualite || '';
+      const legalForm = FORMS[company.nature_juridique] || company.nature_juridique || '';
+      return {
+        siren: company.siren,
+        name: company.nom_complet || company.nom_raison_sociale,
+        legalForm,
+        managerFirstName,
+        managerLastName,
+        managerRole,
+        address: [
+          company.siege?.numero_voie,
+          company.siege?.type_voie,
+          company.siege?.libelle_voie,
+          company.siege?.code_postal,
+          company.siege?.libelle_commune
+        ].filter(Boolean).join(' '),
+        activity: company.activite_principale,
+        isActive: company.etat_administratif === 'A'
+      };
+    });
 
     return NextResponse.json({ results });
 

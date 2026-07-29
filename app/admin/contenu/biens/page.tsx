@@ -78,7 +78,12 @@ type Property = {
   // Informations cadastrales
   cadastralReference?: string;
   // Propriétaires
-  owners?: Array<{type: string, firstName?: string, lastName?: string, name?: string, siren?: string, managerFirstName?: string, managerLastName?: string, email?: string, phone?: string, address?: string}>;
+  owners?: Array<{type: string, firstName?: string, lastName?: string, name?: string, siren?: string, legalForm?: string, managerFirstName?: string, managerLastName?: string, managerRole?: string, email?: string, phone?: string, address?: string}>;
+  mandateType?: 'SIMPLE' | 'EXCLUSIF' | 'SUCCES';
+  mandateNumber?: string;
+  mandateHonorairesCharge?: 'VENDEUR' | 'ACQUEREUR';
+  occupancy?: 'LIBRE' | 'OCCUPE';
+  mandatePlace?: string;
   // Documents
   titleDeed?: string;
   dpeDocument?: string;
@@ -1060,11 +1065,15 @@ export default function Page() {
                               ...owner,
                               name: company.name,
                               siren: company.siren,
-                              address: company.address
+                              address: company.address,
+                              legalForm: company.legalForm || owner.legalForm,
+                              managerFirstName: company.managerFirstName || owner.managerFirstName,
+                              managerLastName: company.managerLastName || owner.managerLastName,
+                              managerRole: company.managerRole || owner.managerRole,
                             };
                             updateField('owners', newOwners);
                           }}
-                          label="Raison sociale"
+                          label="Raison sociale (recherche par nom ou SIREN)"
                         />
                         {owner.siren && (
                           <div>
@@ -1094,7 +1103,7 @@ export default function Page() {
                             />
                           </div>
                           <div>
-                            <label className="block text-xs mb-1">Nom gérant</label>
+                            <label className="block text-xs mb-1">Nom représentant</label>
                             <input
                               type="text"
                               value={owner.managerLastName || ''}
@@ -1105,6 +1114,38 @@ export default function Page() {
                               }}
                               className="w-full px-2 py-1 text-xs border rounded"
                               data-testid={`input-owner-manager-lastname-${index}`}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-xs mb-1">Qualité</label>
+                            <input
+                              type="text"
+                              value={owner.managerRole || ''}
+                              onChange={(e) => {
+                                const newOwners = [...(editing.owners || [])];
+                                newOwners[index] = { ...owner, managerRole: e.target.value };
+                                updateField('owners', newOwners);
+                              }}
+                              placeholder="Président, Gérant…"
+                              className="w-full px-2 py-1 text-xs border rounded"
+                              data-testid={`input-owner-manager-role-${index}`}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs mb-1">Forme juridique</label>
+                            <input
+                              type="text"
+                              value={owner.legalForm || ''}
+                              onChange={(e) => {
+                                const newOwners = [...(editing.owners || [])];
+                                newOwners[index] = { ...owner, legalForm: e.target.value };
+                                updateField('owners', newOwners);
+                              }}
+                              placeholder="SAS, SCI…"
+                              className="w-full px-2 py-1 text-xs border rounded"
+                              data-testid={`input-owner-legalform-${index}`}
                             />
                           </div>
                         </div>
@@ -2049,6 +2090,52 @@ export default function Page() {
 
           </CollapsibleSection>
 
+          <CollapsibleSection title="Mandat de vente" subtitle="Type, numéro, honoraires, occupation — pour générer le mandat">
+            <div className="grid md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium mb-1">Type de mandat</label>
+                <select className="w-full px-2 py-1.5 text-sm border rounded" value={editing.mandateType || ''}
+                  onChange={e => updateField('mandateType', e.target.value || undefined)} data-testid="select-mandate-type">
+                  <option value="">—</option>
+                  <option value="SIMPLE">Simple</option>
+                  <option value="EXCLUSIF">Exclusif</option>
+                  <option value="SUCCES">Succès</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">Numéro de mandat</label>
+                <input className="w-full px-2 py-1.5 text-sm border rounded" value={editing.mandateNumber || ''}
+                  onChange={e => updateField('mandateNumber', e.target.value)} placeholder="ex : 202602-02" data-testid="input-mandate-number" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">Honoraires à la charge du</label>
+                <select className="w-full px-2 py-1.5 text-sm border rounded" value={editing.mandateHonorairesCharge || ''}
+                  onChange={e => updateField('mandateHonorairesCharge', e.target.value || undefined)} data-testid="select-mandate-charge">
+                  <option value="">—</option>
+                  <option value="VENDEUR">Vendeur</option>
+                  <option value="ACQUEREUR">Acquéreur</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">État du bien</label>
+                <select className="w-full px-2 py-1.5 text-sm border rounded" value={editing.occupancy || ''}
+                  onChange={e => updateField('occupancy', e.target.value || undefined)} data-testid="select-occupancy">
+                  <option value="">—</option>
+                  <option value="LIBRE">Libre</option>
+                  <option value="OCCUPE">Occupé / loué</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">Fait à (lieu de signature)</label>
+                <input className="w-full px-2 py-1.5 text-sm border rounded" value={editing.mandatePlace || ''}
+                  onChange={e => updateField('mandatePlace', e.target.value)} placeholder="ex : Nice" data-testid="input-mandate-place" />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-3">
+              Le mandat reprend automatiquement le propriétaire, le bien, les prix (net vendeur, honoraires, FAI) et le représentant société. Enregistrez le bien puis générez le mandat depuis la liste des biens.
+            </p>
+          </CollapsibleSection>
+
           <div className="flex gap-2">
             <button
               onClick={handleSave}
@@ -2192,6 +2279,15 @@ export default function Page() {
                         >
                           Lecture
                         </button>
+                        <a
+                          href={`/api/properties/${property.id}/mandat/pdf`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1 border border-[#1F3B2C] text-[#1F3B2C] rounded hover:bg-[#1F3B2C] hover:text-white"
+                          data-testid={`button-mandat-${property.id}`}
+                        >
+                          Mandat
+                        </a>
                         <button
                           onClick={() => setEditing(property)}
                           className="px-3 py-1 border border-[#B89C6D] text-[#B89C6D] rounded hover:bg-[#B89C6D] hover:text-white"

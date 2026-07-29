@@ -8,11 +8,15 @@ interface Company {
   address: string;
   activity: string;
   isActive: boolean;
+  legalForm?: string;
+  managerFirstName?: string;
+  managerLastName?: string;
+  managerRole?: string;
 }
 
 interface CompanyAutocompleteProps {
   value: string;
-  onSelect: (company: { name: string; siren: string; address: string }) => void;
+  onSelect: (company: Company) => void;
   label?: string;
 }
 
@@ -98,11 +102,7 @@ export default function CompanyAutocomplete({ value, onSelect, label = "Raison s
     setQuery(company.name);
     setShowDropdown(false);
     setResults([]);
-    onSelect({
-      name: company.name,
-      siren: company.siren,
-      address: company.address
-    });
+    onSelect(company);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

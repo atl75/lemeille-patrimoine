@@ -28,8 +28,10 @@ export const ownerSchema = z.object({
   // Pour les sociétés
   name: z.string().optional(), // Raison sociale
   siren: z.string().optional(),
-  managerFirstName: z.string().optional(), // Prénom du gérant
-  managerLastName: z.string().optional(), // Nom du gérant
+  legalForm: z.string().optional(), // Forme juridique (SAS, SCI...)
+  managerFirstName: z.string().optional(), // Prénom du représentant légal
+  managerLastName: z.string().optional(), // Nom du représentant légal
+  managerRole: z.string().optional(), // Qualité (Président, Gérant...)
   // Commun
   email: z.string().email().optional().or(z.literal('')),
   phone: z.string().optional(),
@@ -82,6 +84,12 @@ export const properties = pgTable("properties", {
   coproChargesMonthly: integer("copro_charges_monthly"), // Charges de copropriété (€/mois)
   // Ordre d'affichage manuel (prioritaire sur le tri par prix)
   sortOrder: integer("sort_order"),
+  // Mandat de vente
+  mandateType: text("mandate_type"),       // SIMPLE | EXCLUSIF | SUCCES
+  mandateNumber: text("mandate_number"),   // ex : 202602-02
+  mandateHonorairesCharge: text("mandate_honoraires_charge"), // VENDEUR | ACQUEREUR
+  occupancy: text("occupancy"),            // LIBRE | OCCUPE
+  mandatePlace: text("mandate_place"),     // « Fait à … »
   description: text("description").notNull(),
   images: jsonb("images").$type<string[]>().notNull(),
   features: jsonb("features").$type<string[]>().notNull(),
@@ -128,6 +136,11 @@ export const insertPropertySchema = createInsertSchema(properties, {
   propertyTaxAmount: z.number().optional(),
   coproChargesMonthly: z.number().optional(),
   sortOrder: z.number().optional(),
+  mandateType: z.enum(['SIMPLE', 'EXCLUSIF', 'SUCCES']).optional(),
+  mandateNumber: z.string().optional(),
+  mandateHonorairesCharge: z.enum(['VENDEUR', 'ACQUEREUR']).optional(),
+  occupancy: z.enum(['LIBRE', 'OCCUPE']).optional(),
+  mandatePlace: z.string().optional(),
   netSellerAmount: z.number().optional(),
   commissionAmount: z.number().optional(),
   commissionPercentage: z.number().optional(),
