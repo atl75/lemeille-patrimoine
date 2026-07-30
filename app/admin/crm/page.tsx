@@ -27,6 +27,7 @@ type Lead = {
   createdAt: string;
   status?: string;
   category?: 'immobilier' | 'patrimoine';
+  role?: 'ACHETEUR' | 'VENDEUR';
   firstName?: string;
   lastName?: string;
   email: string;
@@ -64,6 +65,7 @@ export default function Page(){
     phone: '',
     address: '',
     category: 'immobilier' as 'immobilier' | 'patrimoine',
+    role: 'ACHETEUR' as 'ACHETEUR' | 'VENDEUR',
     topic: 'Demande de renseignements',
     source: 'manual',
     status: 'new',
@@ -77,11 +79,25 @@ export default function Page(){
   });
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
-  const [properties, setProperties] = useState<{ id: string; title?: string; reference?: string; city?: string }[]>([]);
+  const [properties, setProperties] = useState<any[]>([]);
   const [mandatLeadId, setMandatLeadId] = useState<string | null>(null);
-  const [mandatPropertyId, setMandatPropertyId] = useState<string>('');
   const [creatingMandat, setCreatingMandat] = useState<string | null>(null);
+  // Filtres de recherche
+  const [search, setSearch] = useState('');
+  const [filterCategory, setFilterCategory] = useState<'all' | 'immobilier' | 'patrimoine'>('all');
+  const [filterRole, setFilterRole] = useState<'all' | 'ACHETEUR' | 'VENDEUR'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'new' | 'contacted' | 'qualified' | 'closed'>('all');
+  // Éléments du mandat saisis pour un vendeur (avant création du bien)
+  const [mandatForm, setMandatForm] = useState({
+    type: 'APPARTEMENT', rooms: '', surface: '', address: '',
+    netSellerAmount: '', commissionPercentage: '', mandateType: 'EXCLUSIF',
+    mandateNumber: '', mandateHonorairesCharge: 'VENDEUR', occupancy: 'LIBRE',
+  });
+  const [linkPropertyId, setLinkPropertyId] = useState<string>('');
   const { confirm, dialog } = useConfirm();
+
+  const refreshProperties = () =>
+    fetch('/api/properties').then(r => r.json()).then(d => setProperties(Array.isArray(d) ? d : [])).catch(() => {});
 
   const fetchLeads = () => {
     fetch('/api/leads')
@@ -98,55 +114,60 @@ export default function Page(){
 
   useEffect(() => {
     fetchLeads();
-    fetch('/api/properties')
-      .then(r => r.json())
-      .then(data => setProperties(Array.isArray(data) ? data : []))
-      .catch(() => setProperties([]));
+    refreshProperties();
   }, []);
 
-  const handleGenerateMandat = () => {
-    if (!mandatPropertyId) {
-      alert('Veuillez sélectionner un bien à associer au mandat.');
-      return;
-    }
-    window.open(`/api/properties/${mandatPropertyId}/mandat/pdf`, '_blank');
-  };
 
   // Crée une fiche bien masquée (non publiée) pré-remplie avec le mandant issu
   // du lead, puis ouvre l'éditeur de biens pour compléter et générer le mandat.
   const handleCreatePropertyFromLead = async (lead: Lead) => {
     setCreatingMandat(lead.id);
     try {
-      // Adresse du bien saisie en amont sur le lead : on la remonte dans la
-      // fiche (map.query) et on extrait au mieux la ville (après le code postal).
-      const address = (lead.address || '').trim();
+      // Adresse du bien : depuis le formulaire mandat, sinon le lead. On extrait
+      // la ville après le code postal.
+      const address = (mandatForm.address || lead.address || '').trim();
       const cityMatch = address.match(/\b\d{5}\s+([A-Za-zÀ-ÿ'’\-\s]+)$/);
       const city = cityMatch ? cityMatch[1].trim() : '';
+      const net = Number(mandatForm.netSellerAmount) || 0;
+      const pct = Number(mandatForm.commissionPercentage) || 0;
+      const honoraires = Math.round(net * pct / 100);
+      const prixFAI = mandatForm.mandateHonorairesCharge === 'VENDEUR' ? net : net + honoraires;
+      const body: any = {
+        title: `Mandat — ${[lead.firstName, lead.lastName].filter(Boolean).join(' ')}`.trim() || 'Nouveau bien (mandat)',
+        type: mandatForm.type || 'APPARTEMENT',
+        city,
+        region: '',
+        price: prixFAI,
+        surface: Number(mandatForm.surface) || 0,
+        rooms: Number(mandatForm.rooms) || 0,
+        description: '',
+        images: [],
+        features: [],
+        map: { precision: 'AREA', query: address, zoom: 12 },
+        dpe: { classEnergy: 'D', classGES: 'D', consumptionKwh: 0, emissionsKg: 0, date: '', ref: '' },
+        visible: false,
+        netSellerAmount: net || undefined,
+        commissionPercentage: pct || undefined,
+        commissionAmount: honoraires || undefined,
+        mandateType: mandatForm.mandateType || undefined,
+        mandateNumber: mandatForm.mandateNumber || undefined,
+        mandateHonorairesCharge: mandatForm.mandateHonorairesCharge || undefined,
+        occupancy: mandatForm.occupancy || undefined,
+        mandatePlace: city || undefined,
+        sellerLeadIds: [lead.id],
+        owners: [{
+          type: 'INDIVIDUAL',
+          firstName: lead.firstName || '',
+          lastName: lead.lastName || '',
+          email: lead.email || '',
+          phone: lead.phone || '',
+          address: lead.address || '',
+        }],
+      };
       const res = await fetch('/api/properties', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: `Mandat — ${[lead.firstName, lead.lastName].filter(Boolean).join(' ')}`.trim() || 'Nouveau bien (mandat)',
-          type: 'APPARTEMENT',
-          city,
-          region: '',
-          price: 0,
-          surface: 0,
-          rooms: 0,
-          description: '',
-          images: [],
-          features: [],
-          map: { precision: 'AREA', query: address, zoom: 12 },
-          dpe: { classEnergy: 'D', classGES: 'D', consumptionKwh: 0, emissionsKg: 0, date: '', ref: '' },
-          visible: false,
-          owners: [{
-            type: 'INDIVIDUAL',
-            firstName: lead.firstName || '',
-            lastName: lead.lastName || '',
-            email: lead.email || '',
-            phone: lead.phone || '',
-          }],
-        }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         alert('Erreur lors de la création de la fiche bien.');
@@ -154,12 +175,48 @@ export default function Page(){
         return;
       }
       const created = await res.json();
-      // Redirige vers l'éditeur de biens ouvert sur la nouvelle fiche.
       window.location.href = `/admin/contenu/biens?edit=${created.id}`;
     } catch {
       alert('Erreur lors de la création de la fiche bien.');
       setCreatingMandat(null);
     }
+  };
+
+  // Ouvre le panneau vendeur en préremplissant les éléments du mandat.
+  const openMandatPanel = (lead: Lead) => {
+    if (mandatLeadId === lead.id) { setMandatLeadId(null); return; }
+    setMandatLeadId(lead.id);
+    setLinkPropertyId('');
+    setMandatForm({
+      type: 'APPARTEMENT', rooms: '', surface: '', address: lead.address || '',
+      netSellerAmount: '', commissionPercentage: '', mandateType: 'EXCLUSIF',
+      mandateNumber: '', mandateHonorairesCharge: 'VENDEUR', occupancy: 'LIBRE',
+    });
+  };
+
+  // Biens reliés à un vendeur (lead).
+  const biensOfSeller = (leadId: string) => properties.filter((p: any) => Array.isArray(p.sellerLeadIds) && p.sellerLeadIds.includes(leadId));
+
+  const linkExistingBien = async (lead: Lead) => {
+    if (!linkPropertyId) return;
+    try {
+      const res = await fetch(`/api/properties/${linkPropertyId}/link-seller`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId: lead.id }),
+      });
+      if (res.ok) { await refreshProperties(); setLinkPropertyId(''); }
+      else alert('Erreur lors de la liaison du bien.');
+    } catch { alert('Erreur réseau.'); }
+  };
+
+  const unlinkBien = async (propertyId: string, leadId: string) => {
+    try {
+      const res = await fetch(`/api/properties/${propertyId}/link-seller`, {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId }),
+      });
+      if (res.ok) await refreshProperties();
+    } catch { /* silencieux */ }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -185,6 +242,7 @@ export default function Page(){
           phone: '',
           address: '',
           category: 'immobilier',
+          role: 'ACHETEUR',
           topic: 'Demande de renseignements',
           source: 'manual',
           status: 'new',
@@ -259,6 +317,7 @@ export default function Page(){
       phone: lead.phone || '',
       address: lead.address || '',
       category: lead.category || 'immobilier',
+      role: lead.role || 'ACHETEUR',
       topic: lead.topic || 'Demande de renseignements',
       source: lead.source || 'manual',
       status: lead.status || 'new',
@@ -292,6 +351,7 @@ export default function Page(){
           phone: '',
           address: '',
           category: 'immobilier',
+          role: 'ACHETEUR',
           topic: 'Demande de renseignements',
           source: 'manual',
           status: 'new',
@@ -339,6 +399,7 @@ export default function Page(){
       phone: '',
       address: '',
       category: 'immobilier',
+      role: 'ACHETEUR',
       topic: 'Demande de renseignements',
       source: 'manual',
       status: 'new',
@@ -400,14 +461,23 @@ export default function Page(){
     link.click();
   };
 
-  const sortedLeads = [...leads].sort((a, b) => 
+  const sortedLeads = [...leads].sort((a, b) =>
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
-  const sources = Array.from(new Set(leads.map(l => l.source || 'contact-form')));
-  const bySource = leads.reduce((acc, l) => {
-    const src = l.source || 'contact-form';
-    acc[src] = (acc[src] || 0) + 1;
+  const q = search.trim().toLowerCase();
+  const filteredLeads = sortedLeads.filter(l => {
+    if (filterCategory !== 'all' && (l.category || 'immobilier') !== filterCategory) return false;
+    if (filterRole !== 'all' && (l.role || 'ACHETEUR') !== filterRole) return false;
+    if (filterStatus !== 'all' && (l.status || 'new') !== filterStatus) return false;
+    if (q) {
+      const hay = [l.firstName, l.lastName, l.email, l.phone, l.address, l.topic, l.message].filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  const byRole = leads.reduce((acc, l) => {
+    if ((l.category || 'immobilier') === 'immobilier') { const r = l.role || 'ACHETEUR'; acc[r] = (acc[r] || 0) + 1; }
     return acc;
   }, {} as Record<string, number>);
 
@@ -429,33 +499,33 @@ export default function Page(){
       
       <div className="card p-6 mb-4">
         <div className="flex flex-wrap gap-4 items-center justify-between mb-4">
-          <div className="grid md:grid-cols-5 gap-3 flex-1">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 flex-1">
             <div className="p-3 bg-black/5 rounded">
-              <div className="text-sm opacity-70">Total leads</div>
+              <div className="text-sm opacity-70">Total</div>
               <div className="text-2xl font-semibold">{leads.length}</div>
             </div>
-            
             <div className="p-3 bg-blue-50 rounded border border-blue-200">
               <div className="text-sm text-blue-700">🏠 Immobilier</div>
               <div className="text-2xl font-semibold text-blue-700">{byCategory.immobilier || 0}</div>
             </div>
-
             <div className="p-3 bg-purple-50 rounded border border-purple-200">
               <div className="text-sm text-purple-700">💼 Patrimoine</div>
               <div className="text-2xl font-semibold text-purple-700">{byCategory.patrimoine || 0}</div>
             </div>
-
+            <div className="p-3 bg-teal-50 rounded border border-teal-200">
+              <div className="text-sm text-teal-700">🔑 Acheteurs</div>
+              <div className="text-2xl font-semibold text-teal-700">{byRole.ACHETEUR || 0}</div>
+            </div>
+            <div className="p-3 bg-amber-50 rounded border border-amber-200">
+              <div className="text-sm text-amber-700">🏷️ Vendeurs</div>
+              <div className="text-2xl font-semibold text-amber-700">{byRole.VENDEUR || 0}</div>
+            </div>
             <div className="p-3 bg-green-50 rounded border border-green-200">
               <div className="text-sm text-green-700">Nouveaux</div>
               <div className="text-2xl font-semibold text-green-700">{byStatus.new || 0}</div>
             </div>
-
-            <div className="p-3 bg-black/5 rounded">
-              <div className="text-sm opacity-70">Sources</div>
-              <div className="text-2xl font-semibold">{sources.length}</div>
-            </div>
           </div>
-          
+
           <button
             onClick={() => setShowForm(!showForm)}
             className="btn-gold flex items-center gap-2"
@@ -464,6 +534,35 @@ export default function Page(){
             {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
             {showForm ? 'Annuler' : 'Ajouter un lead'}
           </button>
+        </div>
+
+        {/* Filtres de recherche */}
+        <div className="grid md:grid-cols-4 gap-3 border-t pt-4">
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="🔍 Rechercher (nom, email, téléphone, adresse…)"
+            className="input md:col-span-1"
+            data-testid="input-search"
+          />
+          <select value={filterCategory} onChange={e => setFilterCategory(e.target.value as any)} className="input" data-testid="filter-category">
+            <option value="all">Toutes catégories</option>
+            <option value="immobilier">🏠 Immobilier</option>
+            <option value="patrimoine">💼 Patrimoine</option>
+          </select>
+          <select value={filterRole} onChange={e => setFilterRole(e.target.value as any)} className="input" data-testid="filter-role">
+            <option value="all">Acheteurs & Vendeurs</option>
+            <option value="ACHETEUR">🔑 Acheteurs</option>
+            <option value="VENDEUR">🏷️ Vendeurs</option>
+          </select>
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)} className="input" data-testid="filter-status">
+            <option value="all">Tous statuts</option>
+            <option value="new">Nouveau</option>
+            <option value="contacted">Contacté</option>
+            <option value="qualified">Qualifié</option>
+            <option value="closed">Fermé</option>
+          </select>
         </div>
 
         {showForm && (
@@ -494,7 +593,7 @@ export default function Page(){
                 />
               </div>
 
-              <div className="md:col-span-2">
+              <div>
                 <label className="block text-sm font-medium mb-1">Catégorie de deal *</label>
                 <select
                   required
@@ -505,6 +604,20 @@ export default function Page(){
                 >
                   <option value="immobilier">🏠 Immobilier</option>
                   <option value="patrimoine">💼 Gestion de Patrimoine</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Rôle {formData.category === 'immobilier' ? '*' : ''}</label>
+                <select
+                  value={formData.role}
+                  onChange={e => setFormData({...formData, role: e.target.value as 'ACHETEUR' | 'VENDEUR'})}
+                  className="input disabled:opacity-50"
+                  disabled={formData.category !== 'immobilier'}
+                  data-testid="select-role"
+                >
+                  <option value="ACHETEUR">🔑 Acheteur</option>
+                  <option value="VENDEUR">🏷️ Vendeur</option>
                 </select>
               </div>
 
@@ -658,13 +771,16 @@ export default function Page(){
 
       {loading && <div className="card p-6">Chargement...</div>}
 
-      {!loading && sortedLeads.length === 0 && (
-        <div className="card p-6 opacity-70">Aucun lead enregistré.</div>
+      {!loading && filteredLeads.length === 0 && (
+        <div className="card p-6 opacity-70">
+          {leads.length === 0 ? 'Aucun lead enregistré.' : 'Aucun lead ne correspond aux filtres.'}
+          {leads.length > 0 && <span className="ml-2 opacity-70">({leads.length} au total)</span>}
+        </div>
       )}
 
-      {!loading && sortedLeads.length > 0 && (
+      {!loading && filteredLeads.length > 0 && (
         <div className="grid gap-4">
-          {sortedLeads.map(lead => (
+          {filteredLeads.map(lead => (
             <div key={lead.id} className="card p-6" data-testid={`lead-${lead.id}`}>
               <div className="flex flex-wrap gap-4 justify-between items-start">
                 <div className="flex-1">
@@ -679,24 +795,35 @@ export default function Page(){
                     }`}>
                       {lead.category === 'patrimoine' ? '💼 Patrimoine' : '🏠 Immobilier'}
                     </span>
+                    {(lead.category || 'immobilier') === 'immobilier' && (
+                      <span className={`pill text-xs font-semibold ${
+                        (lead.role || 'ACHETEUR') === 'VENDEUR'
+                          ? 'bg-amber-100 border-amber-300 text-amber-800'
+                          : 'bg-teal-100 border-teal-300 text-teal-800'
+                      }`}>
+                        {(lead.role || 'ACHETEUR') === 'VENDEUR' ? '🏷️ Vendeur' : '🔑 Acheteur'}
+                      </span>
+                    )}
                     <span className={`pill text-xs ${lead.status === 'new' ? 'border-green-600 text-green-700' : ''}`}>
                       {lead.status === 'new' ? 'Nouveau' : lead.status === 'contacted' ? 'Contacté' : lead.status === 'qualified' ? 'Qualifié' : lead.status || 'new'}
                     </span>
                     <span className="pill text-xs opacity-60">
                       {lead.source || 'contact-form'}
                     </span>
-                    
+
                     {/* Boutons Mandat, Modifier et Supprimer */}
                     <div className="flex gap-2 ml-auto">
-                      <button
-                        onClick={() => { setMandatLeadId(mandatLeadId === lead.id ? null : lead.id); setMandatPropertyId(''); }}
-                        className="btn text-xs flex items-center gap-1 px-2 py-1 hover:bg-amber-50 text-[#8A6D3F]"
-                        data-testid={`button-mandat-${lead.id}`}
-                        title="Générer un mandat de vente"
-                      >
-                        <FileText className="w-3 h-3" />
-                        Mandat
-                      </button>
+                      {(lead.category || 'immobilier') === 'immobilier' && (lead.role || 'ACHETEUR') === 'VENDEUR' && (
+                        <button
+                          onClick={() => openMandatPanel(lead)}
+                          className="btn text-xs flex items-center gap-1 px-2 py-1 hover:bg-amber-50 text-[#8A6D3F]"
+                          data-testid={`button-mandat-${lead.id}`}
+                          title="Mandat & bien du vendeur"
+                        >
+                          <FileText className="w-3 h-3" />
+                          Mandat & bien
+                        </button>
+                      )}
                       <button
                         onClick={() => handleEditLead(lead)}
                         className="btn text-xs flex items-center gap-1 px-2 py-1 hover:bg-blue-50"
@@ -726,55 +853,96 @@ export default function Page(){
                     <div className="opacity-60">📅 {formatDate(lead.createdAt)}</div>
                   </div>
 
-                  {/* Générateur de mandat de vente */}
+                  {/* Biens reliés au vendeur (résumé permanent) */}
+                  {(lead.category || 'immobilier') === 'immobilier' && (lead.role || 'ACHETEUR') === 'VENDEUR' && biensOfSeller(lead.id).length > 0 && (
+                    <div className="mb-3 text-sm">
+                      <span className="font-medium text-[#8A6D3F]">🏠 Biens en vente ({biensOfSeller(lead.id).length}) :</span>{' '}
+                      {biensOfSeller(lead.id).map((b: any, i: number) => (
+                        <span key={b.id}>
+                          {i > 0 && ', '}
+                          <a href={`/admin/contenu/biens?edit=${b.id}`} className="underline hover:opacity-70">{b.title || b.id}</a>
+                          {b.mandateSignStatus === 'SIGNED' ? ' ✔' : ''}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Panneau vendeur : éléments du mandat + création du bien + liaison */}
                   {mandatLeadId === lead.id && (
                     <div className="mb-3 p-3 rounded border border-amber-200 bg-amber-50" data-testid={`mandat-picker-${lead.id}`}>
-                      <label className="block text-xs font-semibold mb-1 flex items-center gap-1 text-[#8A6D3F]">
+                      <label className="block text-xs font-semibold mb-2 flex items-center gap-1 text-[#8A6D3F]">
                         <FileText className="w-3 h-3" />
-                        Mandat de vente
+                        Éléments du mandat — création du bien
                       </label>
 
-                      {/* Action principale : créer la fiche bien depuis le lead */}
+                      <div className="grid md:grid-cols-3 gap-2">
+                        <select className="input text-sm" value={mandatForm.type} onChange={e => setMandatForm({ ...mandatForm, type: e.target.value })}>
+                          <option value="APPARTEMENT">Appartement</option>
+                          <option value="MAISON">Maison</option>
+                        </select>
+                        <input className="input text-sm" type="number" min="0" placeholder="Pièces" value={mandatForm.rooms} onChange={e => setMandatForm({ ...mandatForm, rooms: e.target.value })} />
+                        <input className="input text-sm" type="number" min="0" placeholder="Surface (m²)" value={mandatForm.surface} onChange={e => setMandatForm({ ...mandatForm, surface: e.target.value })} />
+                        <input className="input text-sm md:col-span-3" placeholder="Adresse du bien" value={mandatForm.address} onChange={e => setMandatForm({ ...mandatForm, address: e.target.value })} />
+                        <input className="input text-sm" type="number" min="0" placeholder="Prix net vendeur (€)" value={mandatForm.netSellerAmount} onChange={e => setMandatForm({ ...mandatForm, netSellerAmount: e.target.value })} />
+                        <input className="input text-sm" type="number" min="0" step="0.1" placeholder="Honoraires (%)" value={mandatForm.commissionPercentage} onChange={e => setMandatForm({ ...mandatForm, commissionPercentage: e.target.value })} />
+                        <input className="input text-sm" placeholder="N° de mandat" value={mandatForm.mandateNumber} onChange={e => setMandatForm({ ...mandatForm, mandateNumber: e.target.value })} />
+                        <select className="input text-sm" value={mandatForm.mandateType} onChange={e => setMandatForm({ ...mandatForm, mandateType: e.target.value })}>
+                          <option value="SIMPLE">Mandat simple</option>
+                          <option value="EXCLUSIF">Mandat exclusif</option>
+                          <option value="SUCCES">Mandat succès</option>
+                        </select>
+                        <select className="input text-sm" value={mandatForm.mandateHonorairesCharge} onChange={e => setMandatForm({ ...mandatForm, mandateHonorairesCharge: e.target.value })}>
+                          <option value="VENDEUR">Honoraires charge vendeur</option>
+                          <option value="ACQUEREUR">Honoraires charge acquéreur</option>
+                        </select>
+                        <select className="input text-sm" value={mandatForm.occupancy} onChange={e => setMandatForm({ ...mandatForm, occupancy: e.target.value })}>
+                          <option value="LIBRE">Bien libre</option>
+                          <option value="OCCUPE">Bien occupé / loué</option>
+                        </select>
+                      </div>
+
                       <button
                         onClick={() => handleCreatePropertyFromLead(lead)}
                         disabled={creatingMandat === lead.id}
-                        className="btn-luxe text-sm px-3 py-1.5 flex items-center gap-1 disabled:opacity-60"
+                        className="btn-luxe text-sm px-3 py-1.5 flex items-center gap-1 disabled:opacity-60 mt-3"
                         data-testid={`button-create-property-${lead.id}`}
                       >
                         <FileText className="w-3 h-3" />
-                        {creatingMandat === lead.id ? 'Création…' : 'Créer la fiche bien depuis ce lead'}
+                        {creatingMandat === lead.id ? 'Création…' : 'Créer le bien + mandat'}
                       </button>
                       <p className="text-xs opacity-60 mt-1">
-                        Crée une fiche bien <strong>masquée</strong> (non publiée), pré-remplie avec le mandant (nom, coordonnées du lead). Vous complétez le bien et le mandat, générez le PDF, puis publiez plus tard. Pour une société, saisissez la raison sociale dans la fiche : les infos sont récupérées automatiquement.
+                        Crée une fiche bien <strong>masquée</strong> pré-remplie avec ces éléments et le vendeur comme mandant, puis ouvre l&apos;éditeur. Le mandat signé est automatiquement archivé dans les documents du bien.
                       </p>
 
-                      {/* Option secondaire : générer depuis un bien déjà créé */}
+                      {/* Relier un bien existant à ce vendeur (indivision, biens multiples) */}
                       <div className="mt-3 pt-3 border-t border-amber-200">
-                        <label className="block text-xs opacity-70 mb-1">…ou générer depuis un bien déjà créé</label>
+                        <label className="block text-xs opacity-70 mb-1">Relier un bien existant à ce vendeur</label>
                         <div className="flex flex-wrap gap-2 items-center">
-                          <select
-                            value={mandatPropertyId}
-                            onChange={e => setMandatPropertyId(e.target.value)}
-                            className="input text-sm flex-1 min-w-[220px]"
-                            data-testid={`select-mandat-property-${lead.id}`}
-                          >
+                          <select value={linkPropertyId} onChange={e => setLinkPropertyId(e.target.value)} className="input text-sm flex-1 min-w-[220px]">
                             <option value="">— Sélectionner un bien —</option>
-                            {properties.map(prop => (
-                              <option key={prop.id} value={prop.id}>
-                                {prop.title || prop.reference || prop.id}{prop.city ? ` — ${prop.city}` : ''}
-                              </option>
+                            {properties.filter((prop: any) => !(prop.sellerLeadIds || []).includes(lead.id)).map((prop: any) => (
+                              <option key={prop.id} value={prop.id}>{prop.title || prop.id}{prop.city ? ` — ${prop.city}` : ''}</option>
                             ))}
                           </select>
-                          <button
-                            onClick={handleGenerateMandat}
-                            className="btn text-sm px-3 py-1 flex items-center gap-1"
-                            data-testid={`button-generate-mandat-${lead.id}`}
-                          >
-                            <Download className="w-3 h-3" />
-                            Générer le PDF
-                          </button>
+                          <button onClick={() => linkExistingBien(lead)} className="btn text-sm px-3 py-1">Relier</button>
                         </div>
                       </div>
+
+                      {/* Biens déjà reliés (avec délier) */}
+                      {biensOfSeller(lead.id).length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-amber-200">
+                          <label className="block text-xs opacity-70 mb-1">Biens de ce vendeur</label>
+                          <div className="space-y-1">
+                            {biensOfSeller(lead.id).map((b: any) => (
+                              <div key={b.id} className="flex items-center gap-2 text-sm">
+                                <a href={`/admin/contenu/biens?edit=${b.id}`} className="underline flex-1">{b.title || b.id}{b.city ? ` — ${b.city}` : ''}</a>
+                                <a href={`/api/properties/${b.id}/mandat/pdf`} target="_blank" rel="noopener noreferrer" className="text-[#8A6D3F]" title="Mandat PDF"><Download className="w-4 h-4" /></a>
+                                <button onClick={() => unlinkBien(b.id, lead.id)} className="text-red-600" title="Délier"><X className="w-4 h-4" /></button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 

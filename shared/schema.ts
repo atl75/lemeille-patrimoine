@@ -110,6 +110,7 @@ export const properties = pgTable("properties", {
   cadastralReference: text("cadastral_reference"), // Référence cadastrale (ex: AB 0123)
   // Propriétaires
   owners: jsonb("owners").$type<Array<{type: string, firstName?: string, lastName?: string, name?: string, siren?: string, managerFirstName?: string, managerLastName?: string, email?: string, phone?: string, address?: string}>>(),
+  sellerLeadIds: jsonb("seller_lead_ids").$type<string[]>(), // leads « vendeur » (CRM) reliés à ce bien (indivision, mariage…)
   // Notaires
   sellerNotary: jsonb("seller_notary").$type<{officeName?: string, notaryName?: string, address?: string, city?: string, postalCode?: string, phone?: string, email?: string}>(),
   buyerNotary: jsonb("buyer_notary").$type<{officeName?: string, notaryName?: string, address?: string, city?: string, postalCode?: string, phone?: string, email?: string}>(),
@@ -169,6 +170,7 @@ export const insertPropertySchema = createInsertSchema(properties, {
   buyerPhone: z.string().optional(),
   buyerAddress: z.string().optional(),
   owners: z.array(ownerSchema).optional(),
+  sellerLeadIds: z.array(z.string()).optional(),
   sellerNotary: notarySchema.optional(),
   buyerNotary: notarySchema.optional(),
   titleDeed: z.string().optional(),

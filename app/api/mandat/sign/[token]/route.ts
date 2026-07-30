@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { readJSON, writeJSON } from '@/lib/utils';
+import { buildMandatePdf } from '@/lib/mandatPdf';
 
 // Route PUBLIQUE (non admin) : le mandant accède au mandat via un jeton unique
 // et y appose sa signature électronique simple. Preuve capturée : horodatage,
@@ -61,6 +62,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       userAgent,
     },
   };
+
+  // Archive automatiquement le mandat signé dans les documents du bien.
+  try {
+    const bytes = await buildMandatePdf(data[idx]);
+    data[idx].mandate = 'data:application/pdf;base64,' + Buffer.from(bytes).toString('base64');
+  } catch (e) {
+    console.error('Archivage mandat signé échoué:', e);
+  }
+
   await writeJSON('properties.json', data);
   return NextResponse.json({ ok: true });
 }
