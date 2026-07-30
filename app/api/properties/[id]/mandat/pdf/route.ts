@@ -19,29 +19,47 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const navy = rgb(0.122, 0.231, 0.173);
     const gold = rgb(0.541, 0.427, 0.247);
-    const dark = rgb(0.12, 0.12, 0.12);
-    const grey = rgb(0.45, 0.45, 0.45);
-    const rule = rgb(0.8, 0.8, 0.8);
+    const dark = rgb(0.13, 0.13, 0.13);
+    const grey = rgb(0.42, 0.42, 0.42);
+    const rule = rgb(0.82, 0.82, 0.82);
+    const lightbg = rgb(0.966, 0.958, 0.945);
+    const white = rgb(1, 1, 1);
 
-    const PW = 595, PH = 842, M = 45;
+    const PW = 595, PH = 842, M = 48;
     const CW = PW - M * 2;
 
     const clean = (t: any) => String(t ?? '')
-      .replace(/[    ⁠​]/g, ' ')
+      .replace(/[    ⁠​]/g, ' ')
       .replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-')
       .replace(/[€]/g, 'EUR').replace(/²/g, '2');
 
     let page: any, y = 0;
 
+    // Word-wrap helper -> array of lines fitting maxW
+    const wrap = (text: string, size: number, maxW: number, f: any = font): string[] => {
+      const out: string[] = [];
+      for (const src of clean(text).split('\n')) {
+        const words = src.split(/\s+/).filter(Boolean);
+        let line = '';
+        for (const w of words) {
+          const test = line ? line + ' ' + w : w;
+          if (f.widthOfTextAtSize(test, size) > maxW && line) { out.push(line); line = w; }
+          else line = test;
+        }
+        out.push(line);
+      }
+      return out.length ? out : [''];
+    };
+
     const header = (particulieres = false) => {
-      page.drawText(particulieres ? 'CONDITIONS PARTICULIERES' : 'CONDITIONS GENERALES', { x: M, y: PH - 34, size: 11, font: fontBold, color: navy });
-      const lines = [
-        'NOVUS CAPITAL - 50 rue de la Garenne - 76130 Mont-Saint-Aignan',
-        'Representee par Arthur LEMEILLE - CPI 7606 2024 000 000 038',
-      ];
-      let hy = PH - 48;
-      for (const l of lines) { page.drawText(l, { x: M, y: hy, size: 7.5, font, color: grey }); hy -= 10; }
-      page.drawLine({ start: { x: M, y: hy - 2 }, end: { x: PW - M, y: hy - 2 }, thickness: 0.6, color: rule });
+      page.drawRectangle({ x: 0, y: PH - 4, width: PW, height: 4, color: gold });
+      page.drawText('NOVUS CAPITAL', { x: M, y: PH - 28, size: 13, font: fontBold, color: navy });
+      page.drawText('Transactions immobilieres  -  CPI 7606 2024 000 000 038  -  Mont-Saint-Aignan',
+        { x: M, y: PH - 40, size: 7.5, font, color: grey });
+      const label = particulieres ? 'CONDITIONS PARTICULIERES' : 'MANDAT DE VENTE';
+      const lw = fontBold.widthOfTextAtSize(label, 8);
+      page.drawText(label, { x: PW - M - lw, y: PH - 28, size: 8, font: fontBold, color: gold });
+      page.drawLine({ start: { x: M, y: PH - 50 }, end: { x: PW - M, y: PH - 50 }, thickness: 0.9, color: navy });
     };
 
     const footer = () => {
@@ -51,70 +69,100 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         'Notre Cabinet ne detient aucun fonds pour le compte de ses clients',
       ];
       let fy = 40;
-      page.drawLine({ start: { x: M, y: fy + 8 }, end: { x: PW - M, y: fy + 8 }, thickness: 0.6, color: rule });
+      page.drawLine({ start: { x: M, y: fy + 10 }, end: { x: PW - M, y: fy + 10 }, thickness: 0.6, color: rule });
       for (const l of f) { const w = font.widthOfTextAtSize(l, 6); page.drawText(l, { x: (PW - w) / 2, y: fy, size: 6, font, color: grey }); fy -= 8; }
     };
 
+    let rowI = 0;
     const newPage = (particulieres = false) => {
       page = pdfDoc.addPage([PW, PH]);
       header(particulieres);
       footer();
-      y = PH - 80;
+      y = PH - 72;
+      rowI = 0;
     };
-    const ensure = (need: number, particulieres = false) => { if (y - need < 60) newPage(particulieres); };
+    const ensure = (need: number, particulieres = false) => { if (y - need < 62) newPage(particulieres); };
+
+    // Cover title band (page 1)
+    const titleBand = () => {
+      const h = 52;
+      const top = y;
+      page.drawRectangle({ x: M, y: top - h, width: CW, height: h, color: navy });
+      page.drawRectangle({ x: M, y: top - h, width: CW, height: 2.5, color: gold });
+      const t1 = 'MANDAT DE VENTE' + (p.mandateNumber ? '   N° ' + clean(p.mandateNumber) : '');
+      const w1 = fontBold.widthOfTextAtSize(t1, 15);
+      page.drawText(t1, { x: (PW - w1) / 2, y: top - 27, size: 15, font: fontBold, color: white });
+      const typeTxt = mtype === 'SIMPLE' ? 'Mandat simple' : mtype === 'EXCLUSIF' ? 'Mandat exclusif' : mtype === 'SUCCES' ? 'Mandat succes' : 'Mandat de vente';
+      const t2 = [typeTxt, typeLabel, clean(p.city || '')].filter(Boolean).join('   -   ');
+      const w2 = font.widthOfTextAtSize(t2, 9);
+      page.drawText(t2, { x: (PW - w2) / 2, y: top - 42, size: 9, font, color: gold });
+      y = top - h - 20;
+    };
 
     const sectionTitle = (t: string) => {
-      ensure(26);
-      page.drawText(clean(t).toUpperCase(), { x: M, y, size: 10, font: fontBold, color: gold });
-      y -= 5;
+      ensure(30);
+      y -= 4;
+      page.drawRectangle({ x: M, y: y - 1, width: 3.5, height: 11, color: gold });
+      page.drawText(clean(t).toUpperCase(), { x: M + 11, y, size: 10, font: fontBold, color: navy });
+      y -= 7;
       page.drawLine({ start: { x: M, y }, end: { x: PW - M, y }, thickness: 0.6, color: rule });
-      y -= 14;
+      y -= 15;
+      rowI = 0;
     };
 
     const para = (t: string, size = 9, color = dark) => {
-      for (const src of clean(t).split('\n')) {
-        const words = src.split(/\s+/).filter(Boolean);
-        let line = '';
-        for (const w of words) {
-          const test = line ? line + ' ' + w : w;
-          if (font.widthOfTextAtSize(test, size) > CW && line) { ensure(size + 3); page.drawText(line, { x: M, y, size, font, color }); y -= size + 3; line = w; }
-          else line = test;
-        }
-        if (line) { ensure(size + 3); page.drawText(line, { x: M, y, size, font, color }); y -= size + 3; }
-        else { y -= size; }
+      for (const line of wrap(t, size, CW)) {
+        ensure(size + 3);
+        page.drawText(line, { x: M, y, size, font, color });
+        y -= size + 3.5;
       }
     };
 
+    // Zebra table-style label/value row
     const field = (label: string, value: string) => {
-      ensure(15);
-      page.drawText(clean(label), { x: M, y, size: 9, font: fontBold, color: dark });
-      const lw = fontBold.widthOfTextAtSize(clean(label), 9);
-      page.drawText(clean(value || '—'), { x: M + lw + 6, y, size: 9, font, color: dark });
-      y -= 15;
+      const labelColW = 182;
+      const valW = CW - labelColW - 8;
+      const valLines = wrap(value || '—', 9, valW);
+      const nl = valLines.length;
+      const rowH = 8 + nl * 13;
+      ensure(rowH);
+      page.drawRectangle({ x: M, y: y - rowH, width: CW, height: rowH, color: rowI % 2 === 0 ? lightbg : white });
+      const base = y - 15;
+      page.drawText(clean(label).toUpperCase(), { x: M + 8, y: base, size: 8, font: fontBold, color: grey });
+      let vy = base;
+      for (const l of valLines) { page.drawText(l, { x: M + labelColW, y: vy, size: 9, font, color: dark }); vy -= 13; }
+      y -= rowH;
+      rowI++;
     };
 
     const checkboxes = (opts: { label: string; checked: boolean }[]) => {
-      ensure(15);
-      let x = M;
+      ensure(22);
+      let x = M + 4;
+      const b = 9.5;
       for (const o of opts) {
-        page.drawText(o.checked ? '[X]' : '[ ]', { x, y, size: 9, font: fontBold, color: o.checked ? gold : grey });
-        page.drawText(clean(o.label), { x: x + 20, y, size: 9, font, color: dark });
-        x += 22 + font.widthOfTextAtSize(clean(o.label), 9) + 22;
+        const by = y - b + 1;
+        page.drawRectangle({ x, y: by, width: b, height: b, borderColor: o.checked ? gold : grey, borderWidth: 1, color: o.checked ? gold : white });
+        if (o.checked) {
+          page.drawLine({ start: { x: x + 2, y: by + 4.2 }, end: { x: x + 4, y: by + 2.2 }, thickness: 1.2, color: white });
+          page.drawLine({ start: { x: x + 4, y: by + 2.2 }, end: { x: x + 7.5, y: by + 7.2 }, thickness: 1.2, color: white });
+        }
+        page.drawText(clean(o.label), { x: x + b + 6, y: y - 6, size: 9, font, color: dark });
+        x += b + 10 + font.widthOfTextAtSize(clean(o.label), 9) + 22;
       }
-      y -= 16;
+      y -= 22;
+      rowI = 0;
     };
 
     const bullets = (items: string[], size = 9) => {
       for (const it of items) {
-        ensure(size + 3);
-        page.drawText('-', { x: M, y, size, font, color: gold });
-        const words = clean(it).split(/\s+/); let line = '';
-        for (const w of words) {
-          const test = line ? line + ' ' + w : w;
-          if (font.widthOfTextAtSize(test, size) > CW - 12 && line) { page.drawText(line, { x: M + 12, y, size, font, color: dark }); y -= size + 3; ensure(size + 3); line = w; }
-          else line = test;
-        }
-        if (line) { page.drawText(line, { x: M + 12, y, size, font, color: dark }); y -= size + 3; }
+        const lines = wrap(it, size, CW - 14);
+        lines.forEach((line, i) => {
+          ensure(size + 3);
+          if (i === 0) page.drawText('-', { x: M + 2, y, size, font: fontBold, color: gold });
+          page.drawText(line, { x: M + 14, y, size, font, color: dark });
+          y -= size + 3.5;
+        });
+        y -= 2;
       }
     };
 
@@ -131,60 +179,61 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // ======================= PAGE 1 =======================
     newPage();
-    field('Numero de mandat :', p.mandateNumber || '');
-    y -= 4;
+    titleBand();
     sectionTitle('Type de mandat');
     checkboxes([
       { label: 'Mandat Simple', checked: mtype === 'SIMPLE' },
       { label: 'Mandat Exclusif', checked: mtype === 'EXCLUSIF' },
       { label: 'Mandat Succes', checked: mtype === 'SUCCES' },
     ]);
-    y -= 4;
     sectionTitle('Le Mandant');
     if (owner && owner.type === 'COMPANY') {
       checkboxes([{ label: "Representant d'une Societe", checked: true }]);
-      field('Denomination :', [owner.name, owner.legalForm].filter(Boolean).join(' — '));
-      field('Representant legal :', [owner.managerFirstName, owner.managerLastName].filter(Boolean).join(' ') + (owner.managerRole ? ` (${owner.managerRole})` : ''));
-      field('Siege social :', owner.address || '');
-      field('N° RCS :', owner.siren || '');
-      field('Coordonnees :', [owner.phone, owner.email].filter(Boolean).join(' — '));
+      field('Denomination', [owner.name, owner.legalForm].filter(Boolean).join(' - '));
+      field('Representant legal', [owner.managerFirstName, owner.managerLastName].filter(Boolean).join(' ') + (owner.managerRole ? ` (${owner.managerRole})` : ''));
+      field('Siege social', owner.address || '');
+      field('N° RCS', owner.siren || '');
+      field('Coordonnees', [owner.phone, owner.email].filter(Boolean).join(' - '));
     } else {
       checkboxes([{ label: 'Proprietaire(s) en nom propre', checked: true }]);
       const own = owner || {};
-      field('Nom & prenom :', [own.firstName, own.lastName].filter(Boolean).join(' '));
-      field('Adresse :', own.address || '');
-      field('Tel :', own.phone || '');
-      field('Email :', own.email || '');
+      field('Nom & prenom', [own.firstName, own.lastName].filter(Boolean).join(' '));
+      field('Adresse', own.address || '');
+      field('Telephone', own.phone || '');
+      field('Email', own.email || '');
     }
 
     // ======================= PAGE 2 =======================
     newPage();
     sectionTitle('Le Mandataire');
-    para('NOVUS CAPITAL SAS, 50 rue de la Garenne, 76130 Mont-Saint-Aignan');
-    para('SIRET : 937 847 937 00011 - CPI 7606 2024 000 000 038 - Representee par : Arthur LEMEILLE');
-    y -= 6;
+    field('Denomination', 'NOVUS CAPITAL SAS');
+    field('Siege social', '50 rue de la Garenne, 76130 Mont-Saint-Aignan');
+    field('SIRET / CPI', '937 847 937 00011 - CPI 7606 2024 000 000 038');
+    field('Represente par', 'Arthur LEMEILLE');
+    y -= 4;
     para('Le Mandant donne mandat au Mandataire de vendre le bien designe ci-apres, selon les conditions stipulees ci-dessous.', 9, grey);
-    y -= 6;
     sectionTitle('Designation du bien');
-    field('Type de bien :', typeLabel);
-    field('Adresse :', address);
-    field('Reference cadastrale :', p.cadastralReference || '');
-    field('Superficie du bien :', p.surface ? `${p.surface} m2` : '');
-    if ((p.type || '') === 'MAISON') field('Superficie de la parcelle :', p.landSize ? `${p.landSize} m2` : '');
-    ensure(20);
-    page.drawText('Descriptif :', { x: M, y, size: 9, font: fontBold, color: dark }); y -= 13;
-    para(p.description || '', 9);
-    y -= 8;
+    field('Type de bien', typeLabel);
+    field('Adresse', address);
+    field('Reference cadastrale', p.cadastralReference || '');
+    field('Superficie du bien', p.surface ? `${p.surface} m2` : '');
+    if ((p.type || '') === 'MAISON') field('Superficie de la parcelle', p.landSize ? `${p.landSize} m2` : '');
+    if (p.description) {
+      y -= 6;
+      ensure(20);
+      page.drawText('DESCRIPTIF', { x: M + 8, y, size: 8, font: fontBold, color: grey }); y -= 13;
+      para(p.description, 9);
+    }
     sectionTitle('Prix et conditions de vente');
-    field('Prix net vendeur :', eur(netVendeur));
-    field('(en lettres) :', eurosEnLettres(netVendeur));
-    field('Honoraires du mandataire (TTC) :', `${eur(honoraires)}${honorairesPct ? ` ou ${honorairesPct} du prix net` : ''}`);
+    field('Prix net vendeur', eur(netVendeur));
+    field('Prix net vendeur (en lettres)', eurosEnLettres(netVendeur));
+    field('Honoraires du mandataire TTC', `${eur(honoraires)}${honorairesPct ? ` (${honorairesPct} du prix net)` : ''}`);
     checkboxes([
       { label: 'Honoraires a la charge du Vendeur', checked: p.mandateHonorairesCharge === 'VENDEUR' },
       { label: 'Acquereur', checked: p.mandateHonorairesCharge === 'ACQUEREUR' },
     ]);
-    field('Prix de vente honoraires inclus :', eur(prixFAI));
-    field('(en lettres) :', eurosEnLettres(prixFAI));
+    field('Prix honoraires inclus', eur(prixFAI));
+    field('Prix honoraires inclus (en lettres)', eurosEnLettres(prixFAI));
     checkboxes([
       { label: 'Bien Libre', checked: p.occupancy === 'LIBRE' },
       { label: 'Occupe / loue', checked: p.occupancy === 'OCCUPE' },
@@ -194,7 +243,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     newPage();
     sectionTitle('Duree du mandat');
     para('Mandat valable pour 3 mois a compter de la signature, renouvelable par tacite reconduction par periode de 3 mois, dans la limite d\'un an. Revocable a tout moment par l\'une des parties, avec 15 jours de preavis par lettre recommandee avec accuse de reception.');
-    y -= 6;
     sectionTitle('Obligations du mandant');
     bullets([
       'Fournir tous documents utiles (titre de propriete, diagnostics...).',
@@ -202,9 +250,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       'Autoriser visites, photos, affichage, publications.',
       'Ratifier toute vente aux conditions du mandat.',
     ]);
-    y -= 4;
     para('Clause penale : indemnite due en cas de non-respect du mandat exclusif ou vente directe a un acquereur presente par le Mandataire.', 8.5, grey);
-    y -= 6;
     sectionTitle('Faculte de retractation');
     para('Le Mandant dispose d\'un delai de 14 jours pour exercer son droit de retractation par LRAR.');
 
@@ -212,29 +258,36 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     newPage();
     sectionTitle('Signatures');
     const place = p.mandatePlace || p.city || '';
-    field('Fait a :', place);
+    field('Fait a', place);
     const d = new Date();
-    field('Le :', `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}, en 2 exemplaires`);
-    y -= 20;
-    para('Le Mandataire :', 9, dark);
-    para('(Signature precedee de la mention manuscrite "Bon pour acceptation de mandat")', 8, grey);
-    y -= 50;
-    para('Le(s) Mandant(s) :', 9, dark);
-    para('(Signature(s) precedee(s) de la mention manuscrite "Bon pour mandat")', 8, grey);
+    field('Le', `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}, en 2 exemplaires`);
+    y -= 14;
+    const boxH = 82, gap = 22, boxW = (CW - gap) / 2;
+    ensure(boxH + 6);
+    const topB = y;
+    page.drawRectangle({ x: M, y: topB - boxH, width: boxW, height: boxH, borderColor: rule, borderWidth: 0.8, color: white });
+    page.drawText('Le Mandataire', { x: M + 10, y: topB - 16, size: 9.5, font: fontBold, color: navy });
+    page.drawText('Precede de "Bon pour acceptation de mandat"', { x: M + 10, y: topB - 28, size: 7, font, color: grey });
+    const x2 = M + boxW + gap;
+    page.drawRectangle({ x: x2, y: topB - boxH, width: boxW, height: boxH, borderColor: rule, borderWidth: 0.8, color: white });
+    page.drawText('Le(s) Mandant(s)', { x: x2 + 10, y: topB - 16, size: 9.5, font: fontBold, color: navy });
+    page.drawText('Precede(s) de "Bon pour mandat"', { x: x2 + 10, y: topB - 28, size: 7, font, color: grey });
+    y = topB - boxH - 12;
+    para('Signatures precedees de la mention manuscrite correspondante, ecrite de la main de chaque partie.', 8, grey);
 
     // ======================= PAGE 5 : Formulaire de retractation =======================
     newPage();
     sectionTitle('Formulaire de retractation');
     para('(Veuillez completer et renvoyer le present formulaire uniquement si vous souhaitez vous retracter du mandat.)', 8, grey);
-    y -= 6;
+    y -= 2;
     para('A l\'attention de : NOVUS CAPITAL - 50 rue de la Garenne, 76130 Mont-Saint-Aignan');
-    y -= 4;
     para('Je/nous vous notifie/notifions par la presente ma/notre retractation du mandat de vente portant sur le bien suivant :');
-    y -= 4;
-    field('Adresse du bien :', address);
-    field('Nom du (des) mandant(s) :', owner ? (owner.type === 'COMPANY' ? owner.name : [owner.firstName, owner.lastName].filter(Boolean).join(' ')) : '');
-    para('Date : ....../....../20......', 9, dark);
+    y -= 2;
+    field('Adresse du bien', address);
+    field('Nom du (des) mandant(s)', owner ? (owner.type === 'COMPANY' ? owner.name : [owner.firstName, owner.lastName].filter(Boolean).join(' ')) : '');
     y -= 6;
+    para('Date : ....../....../20......', 9, dark);
+    y -= 4;
     para('Signature du (des) mandant(s) :', 9, dark);
 
     // ======================= PAGES 6-7 : Conditions particulieres =======================
@@ -245,7 +298,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       'Mandat exclusif : seule l\'agence detentrice du mandat peut vendre le bien pendant la duree dudit mandat. Commission due meme si la vente est finalisee directement par le Mandant.',
       'Mandat succes : seule l\'agence detentrice du mandat peut vendre le bien pendant la duree dudit mandat. La commission n\'est pas due si la vente est finalisee directement par le Mandant.',
     ], 8.5);
-    y -= 6;
     sectionTitle('Autorisations accordees au mandataire');
     bullets([
       'faire visiter le bien a tout client potentiel ;',
@@ -269,10 +321,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       'signaler toute proposition recue personnellement ;',
       'respecter les dispositions legales en vigueur.',
     ], 8.5);
-    y -= 6;
     sectionTitle('Clause penale');
     para('En cas de violation du mandat exclusif ou de vente sans l\'intervention du Mandataire a un acquereur qu\'il a presente, une indemnite egale aux honoraires convenus sera exigible.', 8.5);
-    y -= 6;
     sectionTitle('Preuve de presentation');
     para('Le Mandataire informera le Mandant, par ecrit, de toute personne a qui le bien aura ete presente. Sans contestation ecrite du Mandant, ces personnes seront reputees entrees dans le cadre du present mandat.', 8.5);
 

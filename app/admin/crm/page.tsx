@@ -3,7 +3,7 @@ import AdminShell from "@/components/AdminShell";
 import Breadcrumb from "@/components/Breadcrumb";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useEffect, useState } from "react";
-import { Plus, X, Calendar, CheckCircle2, Circle, Edit2, Trash2, Paperclip, Download, Eye } from "lucide-react";
+import { Plus, X, Calendar, CheckCircle2, Circle, Edit2, Trash2, Paperclip, Download, Eye, FileText } from "lucide-react";
 
 type Action = {
   id: string;
@@ -75,6 +75,9 @@ export default function Page(){
   });
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [properties, setProperties] = useState<{ id: string; title?: string; reference?: string; city?: string }[]>([]);
+  const [mandatLeadId, setMandatLeadId] = useState<string | null>(null);
+  const [mandatPropertyId, setMandatPropertyId] = useState<string>('');
   const { confirm, dialog } = useConfirm();
 
   const fetchLeads = () => {
@@ -92,7 +95,19 @@ export default function Page(){
 
   useEffect(() => {
     fetchLeads();
+    fetch('/api/properties')
+      .then(r => r.json())
+      .then(data => setProperties(Array.isArray(data) ? data : []))
+      .catch(() => setProperties([]));
   }, []);
+
+  const handleGenerateMandat = () => {
+    if (!mandatPropertyId) {
+      alert('Veuillez sélectionner un bien à associer au mandat.');
+      return;
+    }
+    window.open(`/api/properties/${mandatPropertyId}/mandat/pdf`, '_blank');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -601,8 +616,17 @@ export default function Page(){
                       {lead.source || 'contact-form'}
                     </span>
                     
-                    {/* Boutons Modifier et Supprimer */}
+                    {/* Boutons Mandat, Modifier et Supprimer */}
                     <div className="flex gap-2 ml-auto">
+                      <button
+                        onClick={() => { setMandatLeadId(mandatLeadId === lead.id ? null : lead.id); setMandatPropertyId(''); }}
+                        className="btn text-xs flex items-center gap-1 px-2 py-1 hover:bg-amber-50 text-[#8A6D3F]"
+                        data-testid={`button-mandat-${lead.id}`}
+                        title="Générer un mandat de vente"
+                      >
+                        <FileText className="w-3 h-3" />
+                        Mandat
+                      </button>
                       <button
                         onClick={() => handleEditLead(lead)}
                         className="btn text-xs flex items-center gap-1 px-2 py-1 hover:bg-blue-50"
@@ -630,6 +654,45 @@ export default function Page(){
                     {lead.topic && <div>🏷️ {lead.topic}</div>}
                     <div className="opacity-60">📅 {formatDate(lead.createdAt)}</div>
                   </div>
+
+                  {/* Générateur de mandat de vente */}
+                  {mandatLeadId === lead.id && (
+                    <div className="mb-3 p-3 rounded border border-amber-200 bg-amber-50" data-testid={`mandat-picker-${lead.id}`}>
+                      <label className="block text-xs font-semibold mb-1 flex items-center gap-1 text-[#8A6D3F]">
+                        <FileText className="w-3 h-3" />
+                        Générer un mandat de vente
+                      </label>
+                      <div className="flex flex-wrap gap-2 items-center">
+                        <select
+                          value={mandatPropertyId}
+                          onChange={e => setMandatPropertyId(e.target.value)}
+                          className="input text-sm flex-1 min-w-[220px]"
+                          data-testid={`select-mandat-property-${lead.id}`}
+                        >
+                          <option value="">— Sélectionner un bien —</option>
+                          {properties.map(prop => (
+                            <option key={prop.id} value={prop.id}>
+                              {prop.title || prop.reference || prop.id}{prop.city ? ` — ${prop.city}` : ''}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={handleGenerateMandat}
+                          className="btn-luxe text-sm px-3 py-1 flex items-center gap-1"
+                          data-testid={`button-generate-mandat-${lead.id}`}
+                        >
+                          <Download className="w-3 h-3" />
+                          Générer le PDF
+                        </button>
+                      </div>
+                      <p className="text-xs opacity-60 mt-2">
+                        Le mandat se pré-remplit avec les infos du bien et du propriétaire (mandant, société auto-récupérée). Complétez les champs manquants dans Contenu → Biens → Mandat de vente.
+                      </p>
+                      {properties.length === 0 && (
+                        <p className="text-xs text-red-600 mt-1">Aucun bien disponible. Ajoutez un bien dans Contenu → Biens.</p>
+                      )}
+                    </div>
+                  )}
 
                   {lead.message && (
                     <p className="text-sm opacity-80 mt-2 p-3 bg-black/5 rounded">
