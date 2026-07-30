@@ -31,10 +31,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const PW = 595, PH = 842, M = 52, BAND = 58;
     const CW = PW - M * 2;
 
-    // Nettoyage : garde les accents (Latin-1 / WinAnsi) mais retire les
+    // Nettoyage : conserve les accents (Latin-1 / WinAnsi) mais retire les
     // caractères non encodables (emojis, espaces spéciales, symboles hors jeu).
     const clean = (t: any) => String(t ?? '')
-      .replace(/[    ​⁠]/g, ' ')
+      .replace(/[    ​⁠]/g, ' ')
       .replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-')
       .replace(/€/g, 'EUR').replace(/²/g, '2')
       .replace(/œ/g, 'oe').replace(/Œ/g, 'OE').replace(/æ/g, 'ae').replace(/Æ/g, 'AE')
@@ -67,7 +67,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       page.drawText(t, { x: (PW - tw) / 2, y: PH - 24, size: 14, font: fontBold, color: gold });
       const subs = [
         'NOVUS CAPITAL - 50 rue de la Garenne - 76130 Mont-Saint-Aignan',
-        'Representee par Arthur LEMEILLE - CPI 7606 2024 000 000 038',
+        'Représentée par Arthur LEMEILLE - CPI 7606 2024 000 000 038',
       ];
       let sy = PH - 37;
       for (const l of subs) { const w = font.widthOfTextAtSize(l, 7.5); page.drawText(l, { x: (PW - w) / 2, y: sy, size: 7.5, font, color: light }); sy -= 11; }
@@ -77,7 +77,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       const lines = [
         'NOVUS CAPITAL SAS - Capital 100 Euros - SIRET 937 847 937 00011 - TVA FR41937847937 - 50 Rue de la Garenne 76130 Mont St Aignan',
         'RCP ZURICH INSURANCE PLC N°7400023129 - Transactions sur immeubles et fonds de commerce',
-        'Notre Cabinet ne detient aucun fonds pour le compte de ses clients',
+        'Notre Cabinet ne détient aucun fonds pour le compte de ses clients',
       ];
       let fy = 34;
       page.drawLine({ start: { x: M, y: fy + 10 }, end: { x: PW - M, y: fy + 10 }, thickness: 0.5, color: rule });
@@ -90,7 +90,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       pageCount++;
       header();
       footer(pageCount);
-      y = PH - BAND - 16;
+      y = PH - BAND - 18;
     };
     const ensure = (need: number) => { if (y - need < 66) newPage(); };
 
@@ -101,28 +101,29 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       page.drawText(t, { x: (PW - w) / 2, y, size: 15, font: timesBold, color: navyH });
       y -= 11;
       page.drawLine({ start: { x: (PW - w) / 2, y }, end: { x: (PW + w) / 2, y }, thickness: 1, color: gold });
-      y -= 20;
+      y -= 22;
     };
 
-    // Titre de section (I – …) : texte navy + filet doré, dense
+    // Titre de section (I – …) : texte navy + filet doré
     const sec = (t: string) => {
-      ensure(26);
-      y -= 5;
+      ensure(30);
+      y -= 8;
       page.drawText(clean(t).toUpperCase(), { x: M, y, size: 10.5, font: fontBold, color: navyH });
-      y -= 5;
+      y -= 6;
       page.drawLine({ start: { x: M, y }, end: { x: PW - M, y }, thickness: 0.8, color: gold });
-      y -= 13;
+      y -= 15;
     };
 
-    const sub = (t: string) => { ensure(16); page.drawText(clean(t), { x: M, y, size: 9.5, font: fontBold, color: gold }); y -= 14; };
+    const sub = (t: string) => { ensure(16); page.drawText(clean(t), { x: M, y, size: 9.5, font: fontBold, color: gold }); y -= 15; };
 
-    // Paragraphe justifié (sauf dernière ligne)
-    const para = (t: string, opts: { size?: number; color?: any; justify?: boolean; bold?: boolean; lh?: number } = {}) => {
+    // Paragraphe justifié (sauf dernière ligne), avec espace après le paragraphe
+    const para = (t: string, opts: { size?: number; color?: any; justify?: boolean; bold?: boolean; lh?: number; after?: number } = {}) => {
       const size = opts.size ?? 9;
       const color = opts.color ?? dark;
       const justify = opts.justify ?? true;
       const f = opts.bold ? fontBold : font;
-      const lh = opts.lh ?? size + 3.2;
+      const lh = opts.lh ?? size + 3.6;
+      const after = opts.after ?? 5;
       const space = f.widthOfTextAtSize(' ', size);
       for (const src of clean(t).split('\n')) {
         const words = src.split(/\s+/).filter(Boolean);
@@ -148,57 +149,74 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           y -= lh;
         });
       }
+      y -= after;
     };
 
-    // Ligne « Libellé : valeur » compacte (valeur en gras)
+    // Ligne « Libellé : valeur » (valeur en gras)
     const kv = (label: string, value: string) => {
       const l = clean(label) + ' : ';
       const lw = font.widthOfTextAtSize(l, 9);
       const vlines = wrap(value || '—', 9, CW - lw, fontBold);
-      ensure(13);
+      ensure(14);
       page.drawText(l, { x: M, y, size: 9, font, color: dark });
       page.drawText(vlines[0], { x: M + lw, y, size: 9, font: fontBold, color: dark });
-      y -= 13;
-      for (let i = 1; i < vlines.length; i++) { ensure(13); page.drawText(vlines[i], { x: M + lw, y, size: 9, font: fontBold, color: dark }); y -= 13; }
+      y -= 14;
+      for (let i = 1; i < vlines.length; i++) { ensure(14); page.drawText(vlines[i], { x: M + lw, y, size: 9, font: fontBold, color: dark }); y -= 14; }
     };
 
-    const drawCheck = (x: number, yb: number, checked: boolean) => {
-      const s = 8;
+    // Case à cocher centrée sur la ligne de texte (baseline y)
+    const drawCheck = (x: number, baseY: number, checked: boolean) => {
+      const s = 8.5;
+      const yb = baseY - 0.5; // bas de la case, centre ~ milieu du texte
       page.drawRectangle({ x, y: yb, width: s, height: s, borderColor: checked ? navyH : grey, borderWidth: 1, color: checked ? navyH : white });
       if (checked) {
-        page.drawLine({ start: { x: x + 1.6, y: yb + 4 }, end: { x: x + 3.2, y: yb + 2 }, thickness: 1.1, color: white });
-        page.drawLine({ start: { x: x + 3.2, y: yb + 2 }, end: { x: x + 6.4, y: yb + 6.2 }, thickness: 1.1, color: white });
+        page.drawLine({ start: { x: x + 1.8, y: yb + 4.4 }, end: { x: x + 3.5, y: yb + 2.4 }, thickness: 1.2, color: white });
+        page.drawLine({ start: { x: x + 3.5, y: yb + 2.4 }, end: { x: x + 6.8, y: yb + 6.6 }, thickness: 1.2, color: white });
       }
     };
 
     // Cases à cocher en liste (une par ligne)
     const checkList = (items: { label: string; checked: boolean }[]) => {
       for (const it of items) {
-        const lines = wrap(it.label, 9, CW - 16);
+        const lines = wrap(it.label, 9, CW - 18);
         lines.forEach((ln, i) => {
-          ensure(13);
-          if (i === 0) drawCheck(M, y - 7, it.checked);
-          page.drawText(ln, { x: M + 15, y, size: 9, font, color: dark });
-          y -= 12.5;
+          ensure(14);
+          if (i === 0) drawCheck(M, y, it.checked);
+          page.drawText(ln, { x: M + 16, y, size: 9, font, color: dark });
+          y -= 13.5;
         });
       }
-      y -= 1;
+      y -= 4;
     };
 
-    // Cases à cocher en ligne (prefixe optionnel)
+    // Cases à cocher en ligne (préfixe optionnel)
     const checkRow = (prefix: string, items: { label: string; checked: boolean }[]) => {
-      ensure(15);
+      ensure(16);
       let x = M;
-      if (prefix) { page.drawText(clean(prefix), { x, y, size: 9, font, color: dark }); x += font.widthOfTextAtSize(clean(prefix), 9) + 10; }
-      for (const it of items) {
-        drawCheck(x, y - 7, it.checked); x += 13;
-        page.drawText(clean(it.label), { x, y, size: 9, font, color: dark });
-        x += font.widthOfTextAtSize(clean(it.label), 9) + 18;
+      if (prefix) {
+        const pl = wrap(prefix, 9, CW);
+        if (pl.length > 1) { para(prefix, { justify: false, after: 2 }); x = M; }
+        else { page.drawText(clean(prefix), { x, y, size: 9, font, color: dark }); x += font.widthOfTextAtSize(clean(prefix), 9) + 12; }
       }
-      y -= 15;
+      for (const it of items) {
+        drawCheck(x, y, it.checked); x += 14;
+        page.drawText(clean(it.label), { x, y, size: 9, font, color: dark });
+        x += font.widthOfTextAtSize(clean(it.label), 9) + 20;
+      }
+      y -= 18;
     };
 
     const gap = (n: number) => { y -= n; };
+
+    // Bloc de signature : espace généreux + ligne de signature légendée
+    const signline = (caption: string) => {
+      gap(56);
+      ensure(2);
+      page.drawLine({ start: { x: M, y }, end: { x: M + 240, y }, thickness: 0.7, color: rule });
+      y -= 11;
+      page.drawText(clean(caption), { x: M, y, size: 7.5, font, color: grey });
+      y -= 16;
+    };
 
     // ------- Données -------
     const owners = Array.isArray(p.owners) ? p.owners : [];
@@ -221,77 +239,74 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 
     // ------- Clauses -------
-    const mandataireSentence = "La societe NOVUS CAPITAL SAS, conseil en transaction immobiliere, dont le siege social est a Mont-Saint-Aignan, 50 rue de la Garenne, immatriculee 937 847 937 00011, representee par son President, Monsieur Arthur LEMEILLE, titulaire de la carte professionnelle CPI 7606 2024 000 000 038 delivree par la Prefecture de Rouen.";
-    const preamble = "Aux termes du present mandat, etabli conformement a la loi n° 70-9 du 2 janvier 1970 et au decret n° 72-678 du 20 juillet 1972, le Mandant denomme ci-avant confere au Mandataire denomme ci-avant, qui l'accepte, mandat de vendre le bien designe ci-apres.";
-    const duree1 = "Le present mandat est consenti et accepte pour une periode de 3 mois renouvelable ensuite tacitement par periode de 3 mois. La duree de reconduction est limitee a 1 an, periode au terme de laquelle le present mandat prendra automatiquement fin. Conformement aux dispositions de l'article 78 du decret n° 72-678 du 20 juillet 1972, chacune des parties pourra a tout moment denoncer le mandat moyennant un preavis de quinze jours par lettre recommandee avec accuse de reception.";
-    const duree2 = "Article L136-1 du Code de la consommation (modifie par la loi n° 2014-344 du 17/03/14 - art. 35) : le professionnel prestataire de services informe le consommateur par ecrit, par lettre nominative ou courrier electronique dedies, au plus tot trois mois et au plus tard un mois avant le terme de la periode autorisant le rejet de la reconduction, de la possibilite de ne pas reconduire le contrat conclu avec une clause de reconduction tacite. Cette information, delivree dans des termes clairs et comprehensibles, mentionne dans un encadre apparent la date limite de resiliation. A defaut, le consommateur peut mettre gratuitement un terme au contrat, a tout moment a compter de la date de reconduction.";
-    const obl1 = "Par les presentes, le Mandant s'engage a fournir au Mandataire tous les documents utiles a l'exercice de sa mission, notamment les justificatifs de propriete. Le Mandant doit informer immediatement le Mandataire de tout changement juridique ou materiel concernant le bien mis en vente et effectuer tous les diagnostics obligatoires.";
-    const obl2 = "Le Mandant donne tous pouvoirs au Mandataire pour accomplir, pour son compte et en son nom, toutes les demarches utiles a la vente : reclamer toutes pieces utiles aupres de toute personne privee ou publique (notamment le certificat d'urbanisme), faire visiter le bien a tout client potentiel, prendre des photographies, publier sur tous supports publicitaires imprimes ou electroniques et apposer un panneau de mise en vente. Le Cabinet Conseil Immobilier sera proprietaire du droit a l'image des photographies du bien qu'il a prises ou fait prendre. Le Mandant s'oblige a assurer le moyen de visiter pendant le cours du mandat et autorise sa delegation a tout confrere titulaire de la carte professionnelle.";
-    const obl3 = "Le Mandant pourra exercer son droit d'acces et de rectification conformement a l'article 27 de la loi du 6 janvier 1978. Pendant la duree du mandat, il s'engage a ratifier la vente a tout acquereur presente par le Mandataire aux prix et conditions des presentes, et a liberer les lieux pour le jour de l'acte authentique. Clause penale : en cas de violation de l'exclusivite ou d'une des obligations du present paragraphe, le Mandant reglera une indemnite compensatrice forfaitaire egale a la remuneration convenue. Il s'interdit de traiter directement avec tout acquereur presente par le Mandataire sans le concours de ce dernier, pendant la duree du mandat et durant un an apres son expiration (articles 1142 et 1152 du code civil).";
-    const obl4 = "Sequestre : les fonds ou valeurs qu'il est d'usage de faire verser par l'acquereur seront detenus par tout sequestre habilite, soit le notaire. Loi Carrez (article 46 de la loi n° 65-557 du 10 juillet 1965) : si le Mandant ne fournit pas l'attestation de surface sous huitaine, il autorise le Mandataire a la faire etablir a ses frais. Copropriete : le Mandant autorise le Mandataire a demander au syndic, en son nom et a ses frais, communication et copie des documents devant etre fournis a l'acquereur (reglement de copropriete, carnet d'entretien, diagnostics des parties communes, etc.), pour les seuls documents non deja fournis.";
-    const obl5 = "Si l'acquereur a un lien (conjoint, parent, societe d'un meme groupe, intermediaire quelconque, etc.) avec une personne a qui le bien aurait ete presente et signale au Mandant, l'operation sera consideree comme effectivement realisee, sans que le Mandataire ait a apporter la preuve de ce lien. Le Mandataire indiquera par courriel au Mandant les personnes auxquelles il aura presente le bien ; sauf contestation ecrite du Mandant admise par le Mandataire, elles seront considerees comme entrant definitivement dans le cadre du present contrat.";
-    const obl6 = "Dans le cadre d'un mandat simple, le Mandant est libre de poursuivre ses recherches et de vendre le bien par lui-meme ou par un autre mandataire, au prix des presentes ; il en avisera alors immediatement le Mandataire par lettre recommandee avec accuse de reception. Dans le cas d'un mandat exclusif, le Mandant declare n'avoir consenti aucun autre mandat exclusif en cours et s'interdit de vendre son bien sans le concours du Mandataire ni de negocier avec un autre agent immobilier ; il s'engage a informer le Mandataire de toute proposition qui lui serait adressee personnellement.";
-    const mandat4 = "En consideration du mandat accorde, tous pouvoirs sont donnes au Mandataire pour mener a bien sa mission. Le Mandataire s'engage a effectuer toutes les demarches necessaires et a rendre compte de ses actions. Conformement a l'article 77 du decret du 20 juillet 1972, il informera le Mandant de l'accomplissement du mandat au plus tard dans les huit jours de l'operation, ainsi que de toute modification legislative ou commerciale susceptible de modifier les conditions de vente.";
-    const retract = "Le Mandant a la faculte de renoncer au mandat dans le delai de quatorze (14) jours a compter de la date de signature des presentes. S'il entend utiliser cette faculte, il utilisera le formulaire ci-joint ou procedera a toute autre declaration denuee d'ambiguite exprimant sa volonte de se retracter, et l'adressera en recommande avec demande d'avis de reception au Mandataire designe. Le delai commence a courir le lendemain de la signature a 0 heure et expire le 14e jour a minuit. L'exercice de cette faculte ne donnera lieu a aucune indemnite ni frais.";
-    const retractRappel = "Conformement au Code de la consommation (articles L.121-21 a L.121-21-8), le Mandant a la faculte de renoncer au mandat dans le delai de quatorze (14) jours a compter de la signature des presentes. La demande d'execution immediate du mandat ne le prive pas de sa faculte de retractation pendant ce delai de 14 jours, tant que l'Agence n'a pas pleinement execute sa mission.";
-    const mediation = "Conformement a l'article L.211-3 du Code de la consommation, le Mandant, en tant que consommateur, a le droit de recourir a un mediateur de la consommation en vue de la resolution amiable du litige qui pourrait l'opposer au Mandataire. Les modalites sont organisees par les articles L.611-1 et suivants et R.612-1 et suivants du Code de la consommation. La mediation est gratuite pour le consommateur (hors frais des 3° et 4° de l'article R.612-1). Le Mandant doit justifier avoir tente au prealable de resoudre son litige directement aupres du Mandataire par une reclamation ecrite, et saisir le mediateur dans un delai d'un an a compter de cette reclamation.";
+    const mandataireSentence = "La société NOVUS CAPITAL SAS, conseil en transaction immobilière, dont le siège social est à Mont-Saint-Aignan, 50 rue de la Garenne, immatriculée 937 847 937 00011, représentée par son Président, Monsieur Arthur LEMEILLE, titulaire de la carte professionnelle CPI 7606 2024 000 000 038 délivrée par la Préfecture de Rouen.";
+    const preamble = "Aux termes du présent mandat, établi conformément à la loi n° 70-9 du 2 janvier 1970 et au décret n° 72-678 du 20 juillet 1972, le Mandant dénommé ci-avant confère au Mandataire dénommé ci-avant, qui l'accepte, mandat de vendre le bien désigné ci-après.";
+    const duree1 = "Le présent mandat est consenti et accepté pour une période de 3 mois renouvelable ensuite tacitement par période de 3 mois. La durée de reconduction est limitée à 1 an, période au terme de laquelle le présent mandat prendra automatiquement fin. Conformément aux dispositions de l'article 78 du décret n° 72-678 du 20 juillet 1972, chacune des parties pourra à tout moment dénoncer le mandat moyennant un préavis de quinze jours par lettre recommandée avec accusé de réception.";
+    const duree2 = "Article L136-1 du Code de la consommation (modifié par la loi n° 2014-344 du 17/03/14 - art. 35) : le professionnel prestataire de services informe le consommateur par écrit, par lettre nominative ou courrier électronique dédiés, au plus tôt trois mois et au plus tard un mois avant le terme de la période autorisant le rejet de la reconduction, de la possibilité de ne pas reconduire le contrat conclu avec une clause de reconduction tacite. Cette information, délivrée dans des termes clairs et compréhensibles, mentionne dans un encadré apparent la date limite de résiliation. À défaut, le consommateur peut mettre gratuitement un terme au contrat, à tout moment à compter de la date de reconduction.";
+    const obl1 = "Par les présentes, le Mandant s'engage à fournir au Mandataire tous les documents utiles à l'exercice de sa mission, notamment les justificatifs de propriété. Le Mandant doit informer immédiatement le Mandataire de tout changement juridique ou matériel concernant le bien mis en vente et effectuer tous les diagnostics obligatoires.";
+    const obl2 = "Le Mandant donne tous pouvoirs au Mandataire pour accomplir, pour son compte et en son nom, toutes les démarches utiles à la vente : réclamer toutes pièces utiles auprès de toute personne privée ou publique (notamment le certificat d'urbanisme), faire visiter le bien à tout client potentiel, prendre des photographies, publier sur tous supports publicitaires imprimés ou électroniques et apposer un panneau de mise en vente. Le Cabinet Conseil Immobilier sera propriétaire du droit à l'image des photographies du bien qu'il a prises ou fait prendre. Le Mandant s'oblige à assurer le moyen de visiter pendant le cours du mandat et autorise sa délégation à tout confrère titulaire de la carte professionnelle.";
+    const obl3 = "Le Mandant pourra exercer son droit d'accès et de rectification conformément à l'article 27 de la loi du 6 janvier 1978. Pendant la durée du mandat, il s'engage à ratifier la vente à tout acquéreur présenté par le Mandataire aux prix et conditions des présentes, et à libérer les lieux pour le jour de l'acte authentique. Clause pénale : en cas de violation de l'exclusivité ou d'une des obligations du présent paragraphe, le Mandant réglera une indemnité compensatrice forfaitaire égale à la rémunération convenue. Il s'interdit de traiter directement avec tout acquéreur présenté par le Mandataire sans le concours de ce dernier, pendant la durée du mandat et durant un an après son expiration (articles 1142 et 1152 du code civil).";
+    const obl4 = "Séquestre : les fonds ou valeurs qu'il est d'usage de faire verser par l'acquéreur seront détenus par tout séquestre habilité, soit le notaire. Loi Carrez (article 46 de la loi n° 65-557 du 10 juillet 1965) : si le Mandant ne fournit pas l'attestation de surface sous huitaine, il autorise le Mandataire à la faire établir à ses frais. Copropriété : le Mandant autorise le Mandataire à demander au syndic, en son nom et à ses frais, communication et copie des documents devant être fournis à l'acquéreur (règlement de copropriété, carnet d'entretien, diagnostics des parties communes, etc.), pour les seuls documents non déjà fournis.";
+    const obl5 = "Si l'acquéreur a un lien (conjoint, parent, société d'un même groupe, intermédiaire quelconque, etc.) avec une personne à qui le bien aurait été présenté et signalé au Mandant, l'opération sera considérée comme effectivement réalisée, sans que le Mandataire ait à apporter la preuve de ce lien. Le Mandataire indiquera par courriel au Mandant les personnes auxquelles il aura présenté le bien ; sauf contestation écrite du Mandant admise par le Mandataire, elles seront considérées comme entrant définitivement dans le cadre du présent contrat.";
+    const obl6 = "Dans le cadre d'un mandat simple, le Mandant est libre de poursuivre ses recherches et de vendre le bien par lui-même ou par un autre mandataire, au prix des présentes ; il en avisera alors immédiatement le Mandataire par lettre recommandée avec accusé de réception. Dans le cas d'un mandat exclusif, le Mandant déclare n'avoir consenti aucun autre mandat exclusif en cours et s'interdit de vendre son bien sans le concours du Mandataire ni de négocier avec un autre agent immobilier ; il s'engage à informer le Mandataire de toute proposition qui lui serait adressée personnellement.";
+    const mandat4 = "En considération du mandat accordé, tous pouvoirs sont donnés au Mandataire pour mener à bien sa mission. Le Mandataire s'engage à effectuer toutes les démarches nécessaires et à rendre compte de ses actions. Conformément à l'article 77 du décret du 20 juillet 1972, il informera le Mandant de l'accomplissement du mandat au plus tard dans les huit jours de l'opération, ainsi que de toute modification législative ou commerciale susceptible de modifier les conditions de vente.";
+    const retract = "Le Mandant a la faculté de renoncer au mandat dans le délai de quatorze (14) jours à compter de la date de signature des présentes. S'il entend utiliser cette faculté, il utilisera le formulaire ci-joint ou procédera à toute autre déclaration dénuée d'ambiguïté exprimant sa volonté de se rétracter, et l'adressera en recommandé avec demande d'avis de réception au Mandataire désigné. Le délai commence à courir le lendemain de la signature à 0 heure et expire le 14e jour à minuit. L'exercice de cette faculté ne donnera lieu à aucune indemnité ni frais.";
+    const retractRappel = "Conformément au Code de la consommation (articles L.121-21 à L.121-21-8), le Mandant a la faculté de renoncer au mandat dans le délai de quatorze (14) jours à compter de la signature des présentes. La demande d'exécution immédiate du mandat ne le prive pas de sa faculté de rétractation pendant ce délai de 14 jours, tant que l'Agence n'a pas pleinement exécuté sa mission.";
+    const mediation = "Conformément à l'article L.211-3 du Code de la consommation, le Mandant, en tant que consommateur, a le droit de recourir à un médiateur de la consommation en vue de la résolution amiable du litige qui pourrait l'opposer au Mandataire. Les modalités sont organisées par les articles L.611-1 et suivants et R.612-1 et suivants du Code de la consommation. La médiation est gratuite pour le consommateur (hors frais des 3° et 4° de l'article R.612-1). Le Mandant doit justifier avoir tenté au préalable de résoudre son litige directement auprès du Mandataire par une réclamation écrite, et saisir le médiateur dans un délai d'un an à compter de cette réclamation.";
 
     // ======================= DOCUMENT =======================
     newPage();
     docTitle();
 
     checkList([
-      { label: 'Mandat Simple (sans exclusivite)', checked: mtype === 'SIMPLE' },
-      { label: 'Mandat en Exclusivite', checked: mtype === 'EXCLUSIF' },
-      { label: 'Mandat Succes', checked: mtype === 'SUCCES' },
+      { label: 'Mandat Simple (sans exclusivité)', checked: mtype === 'SIMPLE' },
+      { label: 'Mandat en Exclusivité', checked: mtype === 'EXCLUSIF' },
+      { label: 'Mandat Succès', checked: mtype === 'SUCCES' },
     ]);
     gap(6);
 
-    para('Les soussignes :', { bold: true, justify: false });
+    para('Les soussignés :', { bold: true, justify: false, after: 3 });
     if (isCompany) {
-      const cs = `La societe ${clean(owner.name || '')}${owner.legalForm ? ' (' + clean(owner.legalForm) + ')' : ''}, dont le siege social est ${clean(owner.address || '')}, immatriculee ${clean(owner.siren || '')}, representee par ${[owner.managerFirstName, owner.managerLastName].filter(Boolean).map(clean).join(' ')}${owner.managerRole ? ' (' + clean(owner.managerRole) + ')' : ''}.`;
+      const cs = `La société ${clean(owner.name || '')}${owner.legalForm ? ' (' + clean(owner.legalForm) + ')' : ''}, dont le siège social est ${clean(owner.address || '')}, immatriculée ${clean(owner.siren || '')}, représentée par ${[owner.managerFirstName, owner.managerLastName].filter(Boolean).map(clean).join(' ')}${owner.managerRole ? ' (' + clean(owner.managerRole) + ')' : ''}.`;
       para(cs);
     } else {
       const inds = owners.filter((o: any) => o?.type !== 'COMPANY');
-      if (inds.length) inds.forEach((o: any) => para([o.firstName, o.lastName].filter(Boolean).join(' ') || '—', { justify: false }));
-      else para('—', { justify: false });
+      if (inds.length) inds.forEach((o: any) => para([o.firstName, o.lastName].filter(Boolean).join(' ') || '—', { justify: false, after: 2 }));
+      else para('—', { justify: false, after: 2 });
     }
-    para('Ci-apres denomme(e) « le Mandant »', { justify: false });
-    gap(4);
-    para('Et :', { justify: false });
+    para('Ci-après dénommé(e) « le Mandant »', { justify: false });
+    para('Et :', { justify: false, after: 3 });
     para(mandataireSentence);
-    para('Ci-apres denomme(e) « le Mandataire »,', { justify: false });
-    gap(4);
-    para('Ont convenu ce qui suit :', { bold: true, justify: false });
+    para('Ci-après dénommé(e) « le Mandataire »,', { justify: false });
+    para('Ont convenu ce qui suit :', { bold: true, justify: false, after: 3 });
     para(preamble);
-    gap(4);
 
-    sec('Designation du bien');
+    sec('Désignation du bien');
     kv('Type de bien', typeLabel);
     kv('Adresse', address);
-    kv('Reference cadastrale', p.cadastralReference || '');
+    kv('Référence cadastrale', p.cadastralReference || '');
     kv('Superficie du bien', p.surface ? `${p.surface} m2` : '');
     if ((p.type || '') === 'MAISON') kv('Superficie de la parcelle', p.landSize ? `${p.landSize} m2` : '');
     kv('Descriptif', p.description || '');
 
     sec('I - Prix de vente et honoraires');
-    para('Prix net vendeur (Euros)', { justify: false });
+    para('Prix net vendeur (Euros)', { justify: false, after: 2 });
     para(`${eur(netVendeur)} - ${eurosEnLettres(netVendeur)}`, { bold: true, justify: false });
-    para("Il est precise que les droits afferents au bien (notamment les droits d'enregistrement) sont a la charge de l'acquereur.");
-    para("Il est precise que le bien sus-designe sera, le jour de la signature de l'acte de vente authentique :", { justify: false });
+    para("Il est précisé que les droits afférents au bien (notamment les droits d'enregistrement) sont à la charge de l'acquéreur.");
+    para("Il est précisé que le bien sus-désigné sera, le jour de la signature de l'acte de vente authentique :", { justify: false, after: 3 });
     checkList([
-      { label: 'Libre de toute location, occupation ou requisition', checked: !occupe },
-      { label: "Loue suivant l'etat locatif annexe aux presentes", checked: occupe },
+      { label: 'Libre de toute location, occupation ou réquisition', checked: !occupe },
+      { label: "Loué suivant l'état locatif annexé aux présentes", checked: occupe },
     ]);
-    para(`En remuneration de sa mission, le Mandataire percevra des honoraires (TVA incluse de 20%) d'un montant de ${honorairesPct} du prix net vendeur, soit ${eur(honoraires)} - ${eurosEnLettres(honoraires)}. La remuneration sera exigible lors de la signature de l'acte authentique par devant notaire, etant precise que les honoraires sont en sus du Prix Net Vendeur, a la charge :`);
+    para(`En rémunération de sa mission, le Mandataire percevra des honoraires (TVA incluse de 20%) d'un montant de ${honorairesPct} du prix net vendeur, soit ${eur(honoraires)} - ${eurosEnLettres(honoraires)}. La rémunération sera exigible lors de la signature de l'acte authentique par devant notaire, étant précisé que les honoraires sont en sus du Prix Net Vendeur, à la charge :`);
     checkRow('', [
       { label: 'du Vendeur', checked: charge === 'VENDEUR' },
-      { label: "de l'Acquereur", checked: charge === 'ACQUEREUR' },
+      { label: "de l'Acquéreur", checked: charge === 'ACQUEREUR' },
     ]);
-    para('Le prix du bien, honoraires inclus, sera ainsi presente a (Euros) :', { justify: false });
+    para('Le prix du bien, honoraires inclus, sera ainsi présenté à (Euros) :', { justify: false, after: 2 });
     para(`${eur(prixFAI)} - ${eurosEnLettres(prixFAI)}`, { bold: true, justify: false });
 
-    sec('II - Duree du mandat');
+    sec('II - Durée du mandat');
     para(duree1);
     para(duree2, { size: 8.5, color: grey });
 
@@ -300,57 +315,55 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     sec('IV - Pouvoirs et obligations du mandataire');
     para(mandat4);
-    para('Conditions particulieres : ' + (clean(p.mandateSpecialConditions || '') || '.....................................................................................................'), { justify: false });
+    para('Conditions particulières : ' + (clean(p.mandateSpecialConditions || '') || '.....................................................................................................'), { justify: false });
 
     sec('V - Moyens de diffusion des annonces commerciales');
     checkList([
       { label: 'Affiches vitrines', checked: true },
-      { label: 'Publicites dans la presse specialisee et generaliste', checked: true },
-      { label: 'Flyers distribues en boite aux lettres ou en mains propres', checked: true },
-      { label: 'Panneau a vendre', checked: true },
-      { label: 'Diffusion sur les reseaux sociaux', checked: true },
+      { label: 'Publicités dans la presse spécialisée et généraliste', checked: true },
+      { label: 'Flyers distribués en boîte aux lettres ou en mains propres', checked: true },
+      { label: 'Panneau à vendre', checked: true },
+      { label: 'Diffusion sur les réseaux sociaux', checked: true },
       { label: 'Sites internet du Cabinet Conseil', checked: true },
-      { label: "Portails internet d'annonces immobilieres", checked: true },
+      { label: "Portails internet d'annonces immobilières", checked: true },
     ]);
 
-    sec('VI - Faculte de retractation du mandant');
+    sec('VI - Faculté de rétractation du mandant');
     para(retract);
-    checkRow("Le Mandant demande que les prestations debutent avant l'expiration du delai de retractation :", [
+    checkRow("Le Mandant demande que les prestations débutent avant l'expiration du délai de rétractation :", [
       { label: 'Oui', checked: false },
       { label: 'Non', checked: false },
     ]);
-    para("Pour l'execution du present contrat, les parties font election de domicile aux adresses indiquees en tete des presentes et s'engagent a informer l'autre partie de tout changement d'adresse.");
+    para("Pour l'exécution du présent contrat, les parties font élection de domicile aux adresses indiquées en tête des présentes et s'engagent à informer l'autre partie de tout changement d'adresse.");
 
     sec('Signatures');
-    kv('Fait a', p.mandatePlace || p.city || '');
-    kv('Le', `${dateStr}, en 2 exemplaires dont un remis a chacune des parties`);
+    kv('Fait à', p.mandatePlace || p.city || '');
+    kv('Le', `${dateStr}, en 2 exemplaires dont un remis à chacune des parties`);
     para('Mots nuls : ..................        Lignes nulles : ..................', { justify: false });
+    gap(6);
+    para('Le Mandataire', { bold: true, justify: false, after: 2 });
+    para('Signature précédée de la mention manuscrite « Bon pour acceptation de mandat »', { size: 8, color: grey, justify: false, after: 0 });
+    signline('Signature du Mandataire');
     gap(8);
-    para('Le Mandataire', { bold: true, justify: false });
-    para('Signature precedee de la mention manuscrite « Bon pour acceptation de mandat »', { size: 8, color: grey, justify: false });
-    gap(34);
-    para('Le(s) Mandant(s)', { bold: true, justify: false });
+    para('Le(s) Mandant(s)', { bold: true, justify: false, after: 2 });
     kv('Nom en toutes lettres', mandantNom);
-    para('Signature precedee de la mention manuscrite « Bon pour mandat »', { size: 8, color: grey, justify: false });
-    gap(30);
+    para('Signature précédée de la mention manuscrite « Bon pour mandat »', { size: 8, color: grey, justify: false, after: 0 });
+    signline('Signature du (des) Mandant(s)');
+    gap(6);
     para(retractRappel, { size: 7.5, color: grey });
-    gap(10);
 
-    // ------- Annexe : formulaire de retractation (enchaine, sans page vide) -------
-    sec('Modele de formulaire de retractation');
-    para('(Veuillez completer et renvoyer le present formulaire uniquement si vous souhaitez vous retracter du contrat.)', { size: 8, color: grey, justify: false });
-    gap(2);
-    para('A l\'attention de : NOVUS CAPITAL - 50 rue de la Garenne, 76130 Mont-Saint-Aignan', { justify: false });
-    para('Je / nous (*) vous notifie / notifions (*) par la presente ma / notre (*) retractation du contrat de mandat portant sur le bien suivant :');
-    gap(2);
+    // ------- Annexe : formulaire de rétractation (enchaîne, sans page vide) -------
+    sec('Modèle de formulaire de rétractation');
+    para('(Veuillez compléter et renvoyer le présent formulaire uniquement si vous souhaitez vous rétracter du contrat.)', { size: 8, color: grey, justify: false });
+    para('À l\'attention de : NOVUS CAPITAL - 50 rue de la Garenne, 76130 Mont-Saint-Aignan', { justify: false });
+    para('Je / nous (*) vous notifie / notifions (*) par la présente ma / notre (*) rétractation du contrat de mandat portant sur le bien suivant :');
     kv('Adresse du bien', address);
     kv('Nom du (des) mandant(s)', mandantNom);
-    para('Commande le : ...........................            Date : ...........................', { justify: false });
-    gap(2);
-    para('Signature du (des) mandant(s) (uniquement en cas de notification du present formulaire sur papier) :', { justify: false });
+    para('Commandé le : ...........................            Date : ...........................', { justify: false });
+    para('Signature du (des) mandant(s) (uniquement en cas de notification du présent formulaire sur papier) :', { justify: false });
     para('(*) Rayez la mention inutile.', { size: 7.5, color: grey, justify: false });
-    gap(10);
-    sub('Mediation de la consommation');
+    gap(8);
+    sub('Médiation de la consommation');
     para(mediation, { size: 7.5, color: grey });
 
     const bytes = await pdfDoc.save();
