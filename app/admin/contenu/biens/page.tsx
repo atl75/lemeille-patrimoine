@@ -154,6 +154,7 @@ export default function Page() {
   const [calculationMode, setCalculationMode] = useState<'FROM_NET' | 'FROM_FAI'>('FROM_NET'); // Mode de calcul financier
   const [signLink, setSignLink] = useState<string | null>(null);
   const [signLoading, setSignLoading] = useState(false);
+  const [signEmailed, setSignEmailed] = useState<{ sent: boolean; email: string } | null>(null);
   const { confirm, dialog } = useConfirm();
 
   // Génère un lien de signature électronique pour le mandat du bien en cours.
@@ -161,11 +162,13 @@ export default function Page() {
     if (!editing?.id) return;
     setSignLoading(true);
     setSignLink(null);
+    setSignEmailed(null);
     try {
       const res = await fetch(`/api/properties/${editing.id}/mandat/sign-request`, { method: 'POST' });
       const d = await res.json();
       if (res.ok) {
         setSignLink(d.url);
+        setSignEmailed({ sent: !!d.emailed, email: d.signerEmail || '' });
         setEditing(prev => prev ? { ...prev, mandateSignStatus: 'PENDING', mandateSignToken: d.token, mandateSignature: undefined } : prev);
       } else {
         alert(d.error || 'Erreur lors de la génération du lien.');
@@ -2214,9 +2217,17 @@ export default function Page() {
                             Copier
                           </button>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Envoyez ce lien au mandant : il pourra lire le mandat et le signer en ligne. La signature (horodatée + IP) sera intégrée au PDF.
-                        </p>
+                        {signEmailed?.sent ? (
+                          <p className="text-xs text-green-700 mt-1">✉️ Lien envoyé automatiquement par email à {signEmailed.email}. Vous pouvez aussi le copier ci-dessus.</p>
+                        ) : signEmailed && !signEmailed.sent ? (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {signEmailed.email ? "L'email n'a pas pu être envoyé — copiez le lien et transmettez-le au mandant." : "Aucun email du mandant renseigné — copiez le lien et transmettez-le (email, SMS, WhatsApp)."}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Envoyez ce lien au mandant : il pourra lire le mandat et le signer en ligne. La signature (horodatée + IP) sera intégrée au PDF.
+                          </p>
+                        )}
                       </div>
                     )}
                   </>

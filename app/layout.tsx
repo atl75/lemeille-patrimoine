@@ -2,10 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
 import Script from 'next/script';
-import { Header } from '@/components/Header';
-import { Footer } from '@/components/Footer';
-import { WhatsAppButton } from '@/components/WhatsAppButton';
-import ChatWidget from '@/components/ChatWidget';
+import { SiteChrome } from '@/components/SiteChrome';
 import { OrganizationSchema } from '@/components/OrganizationSchema';
 import { Providers } from './providers';
 
@@ -79,11 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </>
         )}
         <Providers>
-          <Header />
-          {children}
-          <Footer />
-          <WhatsAppButton />
-          <ChatWidget />
+          <SiteChrome>{children}</SiteChrome>
         </Providers>
       </body>
     </html>
