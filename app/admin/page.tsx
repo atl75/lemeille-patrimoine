@@ -104,6 +104,10 @@ export default async function Page(){
             <h3 className="luxe text-xl">Indicateurs</h3>
             <p className="opacity-80 mt-2">Trafic, conversions, programmes, portefeuille.</p>
           </Link>
+          <Link className="card p-6 hover:border-[#B89C6D]" href="/admin/mandats" data-testid="link-mandats">
+            <h3 className="luxe text-xl">Registre des mandats</h3>
+            <p className="opacity-80 mt-2">Le livre des mandats — tous les mandats, statut de signature, impression PDF.</p>
+          </Link>
         </div>
       </AdminShell>
     </main>
