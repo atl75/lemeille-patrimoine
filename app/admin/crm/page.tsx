@@ -78,6 +78,7 @@ export default function Page(){
   const [properties, setProperties] = useState<{ id: string; title?: string; reference?: string; city?: string }[]>([]);
   const [mandatLeadId, setMandatLeadId] = useState<string | null>(null);
   const [mandatPropertyId, setMandatPropertyId] = useState<string>('');
+  const [creatingMandat, setCreatingMandat] = useState<string | null>(null);
   const { confirm, dialog } = useConfirm();
 
   const fetchLeads = () => {
@@ -107,6 +108,51 @@ export default function Page(){
       return;
     }
     window.open(`/api/properties/${mandatPropertyId}/mandat/pdf`, '_blank');
+  };
+
+  // Crée une fiche bien masquée (non publiée) pré-remplie avec le mandant issu
+  // du lead, puis ouvre l'éditeur de biens pour compléter et générer le mandat.
+  const handleCreatePropertyFromLead = async (lead: Lead) => {
+    setCreatingMandat(lead.id);
+    try {
+      const res = await fetch('/api/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `Mandat — ${[lead.firstName, lead.lastName].filter(Boolean).join(' ')}`.trim() || 'Nouveau bien (mandat)',
+          type: 'APPARTEMENT',
+          city: '',
+          region: '',
+          price: 0,
+          surface: 0,
+          rooms: 0,
+          description: '',
+          images: [],
+          features: [],
+          map: { precision: 'AREA', query: '', zoom: 12 },
+          dpe: { classEnergy: 'D', classGES: 'D', consumptionKwh: 0, emissionsKg: 0, date: '', ref: '' },
+          visible: false,
+          owners: [{
+            type: 'INDIVIDUAL',
+            firstName: lead.firstName || '',
+            lastName: lead.lastName || '',
+            email: lead.email || '',
+            phone: lead.phone || '',
+          }],
+        }),
+      });
+      if (!res.ok) {
+        alert('Erreur lors de la création de la fiche bien.');
+        setCreatingMandat(null);
+        return;
+      }
+      const created = await res.json();
+      // Redirige vers l'éditeur de biens ouvert sur la nouvelle fiche.
+      window.location.href = `/admin/contenu/biens?edit=${created.id}`;
+    } catch {
+      alert('Erreur lors de la création de la fiche bien.');
+      setCreatingMandat(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -660,37 +706,50 @@ export default function Page(){
                     <div className="mb-3 p-3 rounded border border-amber-200 bg-amber-50" data-testid={`mandat-picker-${lead.id}`}>
                       <label className="block text-xs font-semibold mb-1 flex items-center gap-1 text-[#8A6D3F]">
                         <FileText className="w-3 h-3" />
-                        Générer un mandat de vente
+                        Mandat de vente
                       </label>
-                      <div className="flex flex-wrap gap-2 items-center">
-                        <select
-                          value={mandatPropertyId}
-                          onChange={e => setMandatPropertyId(e.target.value)}
-                          className="input text-sm flex-1 min-w-[220px]"
-                          data-testid={`select-mandat-property-${lead.id}`}
-                        >
-                          <option value="">— Sélectionner un bien —</option>
-                          {properties.map(prop => (
-                            <option key={prop.id} value={prop.id}>
-                              {prop.title || prop.reference || prop.id}{prop.city ? ` — ${prop.city}` : ''}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={handleGenerateMandat}
-                          className="btn-luxe text-sm px-3 py-1 flex items-center gap-1"
-                          data-testid={`button-generate-mandat-${lead.id}`}
-                        >
-                          <Download className="w-3 h-3" />
-                          Générer le PDF
-                        </button>
-                      </div>
-                      <p className="text-xs opacity-60 mt-2">
-                        Le mandat se pré-remplit avec les infos du bien et du propriétaire (mandant, société auto-récupérée). Complétez les champs manquants dans Contenu → Biens → Mandat de vente.
+
+                      {/* Action principale : créer la fiche bien depuis le lead */}
+                      <button
+                        onClick={() => handleCreatePropertyFromLead(lead)}
+                        disabled={creatingMandat === lead.id}
+                        className="btn-luxe text-sm px-3 py-1.5 flex items-center gap-1 disabled:opacity-60"
+                        data-testid={`button-create-property-${lead.id}`}
+                      >
+                        <FileText className="w-3 h-3" />
+                        {creatingMandat === lead.id ? 'Création…' : 'Créer la fiche bien depuis ce lead'}
+                      </button>
+                      <p className="text-xs opacity-60 mt-1">
+                        Crée une fiche bien <strong>masquée</strong> (non publiée), pré-remplie avec le mandant (nom, coordonnées du lead). Vous complétez le bien et le mandat, générez le PDF, puis publiez plus tard. Pour une société, saisissez la raison sociale dans la fiche : les infos sont récupérées automatiquement.
                       </p>
-                      {properties.length === 0 && (
-                        <p className="text-xs text-red-600 mt-1">Aucun bien disponible. Ajoutez un bien dans Contenu → Biens.</p>
-                      )}
+
+                      {/* Option secondaire : générer depuis un bien déjà créé */}
+                      <div className="mt-3 pt-3 border-t border-amber-200">
+                        <label className="block text-xs opacity-70 mb-1">…ou générer depuis un bien déjà créé</label>
+                        <div className="flex flex-wrap gap-2 items-center">
+                          <select
+                            value={mandatPropertyId}
+                            onChange={e => setMandatPropertyId(e.target.value)}
+                            className="input text-sm flex-1 min-w-[220px]"
+                            data-testid={`select-mandat-property-${lead.id}`}
+                          >
+                            <option value="">— Sélectionner un bien —</option>
+                            {properties.map(prop => (
+                              <option key={prop.id} value={prop.id}>
+                                {prop.title || prop.reference || prop.id}{prop.city ? ` — ${prop.city}` : ''}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={handleGenerateMandat}
+                            className="btn text-sm px-3 py-1 flex items-center gap-1"
+                            data-testid={`button-generate-mandat-${lead.id}`}
+                          >
+                            <Download className="w-3 h-3" />
+                            Générer le PDF
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   )}
 

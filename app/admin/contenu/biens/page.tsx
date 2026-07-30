@@ -10,7 +10,7 @@ import MultiDocumentUploader from "@/components/MultiDocumentUploader";
 import CompanyAutocomplete from "@/components/CompanyAutocomplete";
 import CollapsibleSection from "@/components/CollapsibleSection";
 import { useConfirm } from "@/components/ConfirmDialog";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Property = {
   id: string;
@@ -308,6 +308,21 @@ export default function Page() {
   useEffect(() => {
     fetchProperties();
   }, []);
+
+  // Ouverture directe d'une fiche via ?edit=<id> (ex. depuis le CRM, après
+  // création d'une fiche bien à partir d'un lead pour saisir le mandat).
+  const openedFromUrl = useRef(false);
+  useEffect(() => {
+    if (openedFromUrl.current || properties.length === 0) return;
+    const editId = new URLSearchParams(window.location.search).get('edit');
+    if (!editId) return;
+    const prop = properties.find(p => p.id === editId);
+    if (prop) {
+      openedFromUrl.current = true;
+      setEditing(prop);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [properties]);
 
   const [reordering, setReordering] = useState(false);
 
