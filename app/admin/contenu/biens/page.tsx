@@ -84,6 +84,9 @@ type Property = {
   mandateHonorairesCharge?: 'VENDEUR' | 'ACQUEREUR';
   occupancy?: 'LIBRE' | 'OCCUPE';
   mandatePlace?: string;
+  mandateSignToken?: string;
+  mandateSignStatus?: 'PENDING' | 'SIGNED';
+  mandateSignature?: { signedAt?: string };
   // Documents
   titleDeed?: string;
   dpeDocument?: string;
@@ -149,7 +152,29 @@ export default function Page() {
   const [analyzing, setAnalyzing] = useState(false);
   const [searchingCadastre, setSearchingCadastre] = useState(false);
   const [calculationMode, setCalculationMode] = useState<'FROM_NET' | 'FROM_FAI'>('FROM_NET'); // Mode de calcul financier
+  const [signLink, setSignLink] = useState<string | null>(null);
+  const [signLoading, setSignLoading] = useState(false);
   const { confirm, dialog } = useConfirm();
+
+  // Génère un lien de signature électronique pour le mandat du bien en cours.
+  const handleSignRequest = async () => {
+    if (!editing?.id) return;
+    setSignLoading(true);
+    setSignLink(null);
+    try {
+      const res = await fetch(`/api/properties/${editing.id}/mandat/sign-request`, { method: 'POST' });
+      const d = await res.json();
+      if (res.ok) {
+        setSignLink(d.url);
+        setEditing(prev => prev ? { ...prev, mandateSignStatus: 'PENDING', mandateSignToken: d.token, mandateSignature: undefined } : prev);
+      } else {
+        alert(d.error || 'Erreur lors de la génération du lien.');
+      }
+    } catch {
+      alert('Erreur réseau.');
+    }
+    setSignLoading(false);
+  };
 
   // Fonction pour rechercher la parcelle cadastrale
   const searchCadastralReference = async () => {
@@ -2149,6 +2174,55 @@ export default function Page() {
             <p className="text-xs text-gray-500 mt-3">
               Le mandat reprend automatiquement le propriétaire, le bien, les prix (net vendeur, honoraires, FAI) et le représentant société. Enregistrez le bien puis générez le mandat depuis la liste des biens.
             </p>
+
+            {editing.id && (
+              <div className="mt-4 pt-3 border-t">
+                <div className="text-sm font-medium mb-1">✍️ Signature électronique</div>
+                {editing.mandateSignStatus === 'SIGNED' ? (
+                  <p className="text-sm text-green-700">
+                    ✔ Mandat signé électroniquement par le mandant{editing.mandateSignature?.signedAt ? ` le ${new Date(editing.mandateSignature.signedAt).toLocaleString('fr-FR')}` : ''}. La signature figure dans le PDF.
+                  </p>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleSignRequest}
+                      disabled={signLoading}
+                      className="px-3 py-1.5 text-sm bg-[#1F3B2C] text-white rounded hover:bg-[#173024] disabled:opacity-50"
+                      data-testid="button-sign-request"
+                    >
+                      {signLoading ? 'Génération…' : (editing.mandateSignToken ? 'Régénérer le lien de signature' : 'Générer le lien de signature')}
+                    </button>
+                    {(signLink || editing.mandateSignToken) && (
+                      <div className="mt-2">
+                        <div className="flex gap-2">
+                          <input
+                            readOnly
+                            value={signLink || (typeof window !== 'undefined' ? `${window.location.origin}/mandat/signer/${editing.mandateSignToken}` : '')}
+                            onFocus={e => e.currentTarget.select()}
+                            className="flex-1 px-2 py-1.5 text-xs border rounded bg-gray-50"
+                            data-testid="input-sign-link"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const link = signLink || `${window.location.origin}/mandat/signer/${editing.mandateSignToken}`;
+                              navigator.clipboard?.writeText(link);
+                            }}
+                            className="px-2 py-1.5 text-xs border rounded hover:bg-gray-50"
+                          >
+                            Copier
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Envoyez ce lien au mandant : il pourra lire le mandat et le signer en ligne. La signature (horodatée + IP) sera intégrée au PDF.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </CollapsibleSection>
 
           <div className="flex gap-2">

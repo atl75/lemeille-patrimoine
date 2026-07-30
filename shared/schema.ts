@@ -90,6 +90,12 @@ export const properties = pgTable("properties", {
   mandateHonorairesCharge: text("mandate_honoraires_charge"), // VENDEUR | ACQUEREUR
   occupancy: text("occupancy"),            // LIBRE | OCCUPE
   mandatePlace: text("mandate_place"),     // « Fait à … »
+  // Signature électronique simple du mandat (sans prestataire)
+  mandateSignToken: text("mandate_sign_token"),     // jeton du lien de signature
+  mandateSignStatus: text("mandate_sign_status"),   // PENDING | SIGNED
+  mandateSignerName: text("mandate_signer_name"),
+  mandateSignerEmail: text("mandate_signer_email"),
+  mandateSignature: jsonb("mandate_signature").$type<{ dataUrl: string, mention?: string, signedAt: string, ip?: string, userAgent?: string }>(),
   description: text("description").notNull(),
   images: jsonb("images").$type<string[]>().notNull(),
   features: jsonb("features").$type<string[]>().notNull(),
@@ -141,6 +147,17 @@ export const insertPropertySchema = createInsertSchema(properties, {
   mandateHonorairesCharge: z.enum(['VENDEUR', 'ACQUEREUR']).optional(),
   occupancy: z.enum(['LIBRE', 'OCCUPE']).optional(),
   mandatePlace: z.string().optional(),
+  mandateSignToken: z.string().optional(),
+  mandateSignStatus: z.enum(['PENDING', 'SIGNED']).optional(),
+  mandateSignerName: z.string().optional(),
+  mandateSignerEmail: z.string().email().optional().or(z.literal('')),
+  mandateSignature: z.object({
+    dataUrl: z.string(),
+    mention: z.string().optional(),
+    signedAt: z.string(),
+    ip: z.string().optional(),
+    userAgent: z.string().optional(),
+  }).optional(),
   netSellerAmount: z.number().optional(),
   commissionAmount: z.number().optional(),
   commissionPercentage: z.number().optional(),
