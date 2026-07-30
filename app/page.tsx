@@ -36,8 +36,8 @@ export default async function Home() {
         <div className="container py-8 md:py-12 min-h-[360px] md:min-h-[380px] flex flex-col justify-center">
           <h1 className="text-4xl md:text-5xl luxe text-cream">Lemeille Patrimoine</h1>
           <p className="mt-3 max-w-2xl text-cream/90">
-            Agence immobilière haut de gamme — transaction dans l&apos;ancien à Paris, en Normandie
-            et sur la Côte d&apos;Azur. Défiscalisation sur mesure : Malraux, Monument Historique, Déficit Foncier.
+            Agence spécialisée dans l&apos;immobilier de caractère — transaction dans l&apos;ancien à Paris,
+            en Normandie et sur la Côte d&apos;Azur. Défiscalisation sur mesure : Malraux, Monument Historique, Déficit Foncier.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link href="/immobilier" className="btn btn-gold" data-testid="button-immobilier">

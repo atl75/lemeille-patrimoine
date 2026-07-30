@@ -11,12 +11,12 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Immobilier Paris, Normandie, Côte d\'Azur | Lemeille Patrimoine',
-  description: 'Propriétés d\'exception à Paris, en Normandie et sur la Côte d\'Azur. Appartements et maisons haut de gamme. Expertise locale, conseil personnalisé, discrétion garantie.',
+  description: 'Propriétés d\'exception à Paris, en Normandie et sur la Côte d\'Azur. Appartements et maisons de caractère. Expertise locale, conseil personnalisé, discrétion garantie.',
   alternates: {
     canonical: '/immobilier'
   },
   openGraph: {
-    title: 'Immobilier haut de gamme Paris, Normandie, Côte d\'Azur',
+    title: 'Immobilier de caractère à Paris, Normandie, Côte d\'Azur',
     description: 'Propriétés d\'exception à Paris, en Normandie et sur la Côte d\'Azur.',
     url: '/immobilier',
     type: 'website',

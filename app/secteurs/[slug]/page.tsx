@@ -26,7 +26,7 @@ const SECTORS: Record<string, Sector> = {
     region: "PARIS",
     cities: ["Paris 16", "Paris 16e", "75016", "Neuilly", "Neuilly-sur-Seine", "Boulogne", "Boulogne-Billancourt"],
     description: "L'Ouest parisien conjugue prestige résidentiel et qualité de vie familiale. Grands appartements traversants, immeubles de standing, terrasses et proximité du Bois de Boulogne : un secteur prisé pour ses adresses cossues et ses écoles recherchées, du 16e à Neuilly-sur-Seine.",
-    highlights: ["Grands appartements familiaux & terrasses", "16e arrondissement, Neuilly, Boulogne-Billancourt", "Cadre résidentiel haut de gamme, écoles réputées"],
+    highlights: ["Grands appartements familiaux & terrasses", "16e arrondissement, Neuilly, Boulogne-Billancourt", "Cadre résidentiel recherché, écoles réputées"],
   },
   "paris-centre-historique": {
     title: "Paris — Centre historique",

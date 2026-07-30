@@ -108,7 +108,7 @@ export function OrganizationSchema() {
           "@type": "Offer",
           "itemOffered": {
             "@type": "Service",
-            "name": "Transaction immobilière haut de gamme",
+            "name": "Transaction d'immobilier de caractère",
             "description": "Achat et vente de propriétés d'exception à Paris, Normandie et Côte d'Azur"
           }
         },
