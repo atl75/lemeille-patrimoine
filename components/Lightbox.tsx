@@ -40,6 +40,22 @@ export default function Lightbox({
     };
   }, [handleKeyDown]);
 
+  // Précharge les images adjacentes pour une navigation instantanée.
+  useEffect(() => {
+    const optim = (src: string, w = 1600) =>
+      typeof src === "string" && src.includes("res.cloudinary.com") && src.includes("/upload/")
+        ? src.replace("/upload/", `/upload/f_auto,q_auto,c_limit,w_${w}/`)
+        : src;
+    const neighbors = [currentIndex + 1, currentIndex - 1, currentIndex + 2]
+      .map((i) => (i + images.length) % images.length)
+      .filter((i, idx, arr) => arr.indexOf(i) === idx && i !== currentIndex);
+    for (const i of neighbors) {
+      if (!images[i]) continue;
+      const im = new window.Image();
+      im.src = optim(images[i]);
+    }
+  }, [currentIndex, images]);
+
   return (
     <div
       role="dialog"
@@ -82,8 +98,10 @@ export default function Lightbox({
         <Img
           src={images[currentIndex]}
           alt={title ? `${title} - Image ${currentIndex + 1}` : `Image ${currentIndex + 1}`}
-          width={1920}
-          height={1080}
+          width={1600}
+          height={1000}
+          sizes="90vw"
+          priority
           className="max-w-full max-h-[85vh] object-contain rounded-lg"
           data-testid={`lightbox-image-${currentIndex}`}
         />

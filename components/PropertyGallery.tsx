@@ -48,7 +48,7 @@ export default function PropertyGallery({ images, title }: PropertyGalleryProps)
       {/* Thumbnails */}
       {images.length > 1 && (
         <div className="mt-3 grid grid-cols-5 gap-2">
-          {images.slice(1, 10).map((src: string, i: number) => (
+          {images.slice(1).map((src: string, i: number) => (
             <Img
               key={i}
               src={src}

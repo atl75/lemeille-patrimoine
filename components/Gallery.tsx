@@ -24,7 +24,7 @@ export default function Gallery({ images, alt = 'Photo du bien' }: Props) {
       </button>
       {images.length > 1 && (
         <div className="mt-3 grid grid-cols-5 gap-2">
-          {images.slice(1, 10).map((src, i) => (
+          {images.slice(1).map((src, i) => (
             <button key={i} onClick={()=>openAt(i+1)} className="block">
               <Img src={src} alt={`${alt} ${i+2}`} className="w-full h-24 object-cover rounded-2xl border border-black/10" height={96} />
             </button>

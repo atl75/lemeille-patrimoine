@@ -175,9 +175,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         try {
           let bytes: Uint8Array;
           let src = url;
-          // Cloudinary : forcer un JPG (pdf-lib ne gère que jpg/png)
+          // Cloudinary : JPG allégé (pdf-lib ne gère que jpg/png ; largeur bornée
+          // pour garder un PDF léger même avec beaucoup de photos)
           if (/res\.cloudinary\.com\/.+\/upload\//.test(src)) {
-            src = src.replace('/upload/', '/upload/f_jpg,q_auto/');
+            src = src.replace('/upload/', '/upload/f_jpg,q_auto,c_limit,w_1000/');
           }
           if (src.startsWith('data:')) {
             const b64 = src.split(',')[1] || '';
@@ -197,11 +198,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         }
       };
 
-      const embedded: any[] = [];
-      for (let i = 0; i < Math.min(6, p.images.length); i++) {
-        const e = await toEmbeddable(p.images[i]);
-        if (e) embedded.push(e.img);
-      }
+      // Toutes les photos, récupérées en parallèle (ordre préservé).
+      const results = await Promise.all(p.images.map((u: string) => toEmbeddable(u)));
+      const embedded: any[] = results.filter(Boolean).map((e: any) => e.img);
 
       // grille 2 colonnes, hauteur de slot fixe
       const cols = 2;
