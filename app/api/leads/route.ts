@@ -155,6 +155,21 @@ function formatContactEmail(payload: any): string {
   `;
 }
 
+// Déduit le rôle (Acheteur/Vendeur) et la catégorie d'un lead entrant à partir
+// de sa source et de son sujet, sauf s'ils sont déjà renseignés (saisie manuelle).
+function applyRole(payload: any) {
+  if (payload.role) return;
+  const t = String(payload.topic || '').toLowerCase();
+  const s = String(payload.source || '').toLowerCase();
+  if (s === 'estimation-immobilier' || /vente|estimation|vendre|vendeur/.test(t)) {
+    payload.role = 'VENDEUR';
+    if (!payload.category) payload.category = 'immobilier';
+  } else if (/achat|acqu|acheteur/.test(t)) {
+    payload.role = 'ACHETEUR';
+    if (!payload.category) payload.category = 'immobilier';
+  }
+}
+
 export async function POST(req: Request){
   const contentType = req.headers.get('content-type') || '';
   
@@ -169,6 +184,7 @@ export async function POST(req: Request){
       status: 'new',
       ...body
     };
+    applyRole(payload);
     const data = await readJSON('leads.json');
     data.push(payload);
     await writeJSON('leads.json', data);
@@ -218,6 +234,7 @@ export async function POST(req: Request){
       consent: !!formData.get('consent'),
       source: 'contact-form'
     };
+    applyRole(payload);
     const data = await readJSON('leads.json');
     data.push(payload);
     await writeJSON('leads.json', data);
