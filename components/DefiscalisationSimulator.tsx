@@ -129,9 +129,10 @@ export default function DefiscalisationSimulator() {
         <div>
           <p className="text-sm opacity-70 mb-4">{DISPOSITIFS.find((d) => d.key === dispositif)?.hint}</p>
 
-          <label className="block text-sm font-medium mb-1">Montant des travaux de restauration</label>
+          <label htmlFor="sim-travaux" className="block text-sm font-medium mb-1">Montant des travaux de restauration</label>
           <div className="flex items-center gap-2 mb-4">
             <input
+              id="sim-travaux"
               className="input"
               type="number" min="0" step="1000"
               value={travaux}
@@ -144,8 +145,8 @@ export default function DefiscalisationSimulator() {
 
           {dispositif === "MALRAUX" && (
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Taux applicable</label>
-              <div className="flex gap-2">
+              <span className="block text-sm font-medium mb-1" id="sim-taux-label">Taux applicable</span>
+              <div className="flex gap-2" role="group" aria-labelledby="sim-taux-label">
                 {[0.30, 0.22].map((t) => (
                   <button
                     key={t} type="button" onClick={() => setTauxMalraux(t)}
@@ -161,8 +162,9 @@ export default function DefiscalisationSimulator() {
 
           {dispositif !== "MALRAUX" && (
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Votre tranche marginale d&apos;imposition (TMI)</label>
+              <label htmlFor="sim-tmi" className="block text-sm font-medium mb-1">Votre tranche marginale d&apos;imposition (TMI)</label>
               <select
+                id="sim-tmi"
                 className="input"
                 value={tmi}
                 onChange={(e) => setTmi(Number(e.target.value))}
@@ -204,10 +206,10 @@ export default function DefiscalisationSimulator() {
               <h3 className="luxe text-xl">Recevez une étude personnalisée</h3>
               <p className="text-sm opacity-70">Un conseiller affine cette estimation selon votre situation réelle.</p>
             </div>
-            <input className="input" placeholder="Prénom" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
-            <input className="input" placeholder="Nom" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
-            <input className="input" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <input className="input" placeholder="Téléphone (optionnel)" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <input className="input" aria-label="Prénom" placeholder="Prénom" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+            <input className="input" aria-label="Nom" placeholder="Nom" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+            <input className="input" type="email" aria-label="Email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <input className="input" aria-label="Téléphone (optionnel)" placeholder="Téléphone (optionnel)" value={phone} onChange={(e) => setPhone(e.target.value)} />
             <label className="sm:col-span-2 flex items-start gap-2 text-sm">
               <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} required className="mt-1" />
               <span>J&apos;accepte d&apos;être recontacté et la politique de confidentialité.</span>
