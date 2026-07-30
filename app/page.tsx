@@ -188,13 +188,13 @@ export default async function Home() {
           <div className="order-1 md:order-2">
             <h3 className="luxe text-2xl md:text-3xl mb-4 text-luxe">Arthur Lemeille</h3>
             <p className="text-gray-700 leading-relaxed mb-4">
-              <strong>Arthur Lemeille</strong> est le fondateur de Lemeille Patrimoine. Il débute sa carrière par 3 ans de conseil en Supply Chain/Logistique, où il apprend la précision des processus et la culture du résultat. Il poursuit 3 ans en développement commercial au sein d&apos;une start-up, expérience qui forge son goût du terrain, de la négociation et de la création de valeur. Il se spécialise ensuite dans l&apos;immobilier et la défiscalisation immobilière.
+              <strong>Arthur Lemeille</strong> est le fondateur de Lemeille Patrimoine. Il débute sa carrière par trois années de conseil en supply chain et logistique, qui lui transmettent le sens de la précision et la rigueur des processus. Il poursuit avec trois ans de développement commercial au sein d&apos;une start-up, où il cultive le goût du terrain, de la relation et de la négociation. Il choisit ensuite de se consacrer à l&apos;immobilier de caractère et à la défiscalisation immobilière.
             </p>
             <p className="text-gray-700 leading-relaxed mb-4">
-              Ce double regard, <em>transaction & optimisation fiscale</em>, lui permet d&apos;accompagner ses clients avec une approche globale : analyse, action, suivi. Son engagement tient en trois mots : <strong>proactif, actif, réactif</strong>.
+              De ce double parcours naît une approche à la fois humaine et rigoureuse, à la croisée de la <em>transaction et de l&apos;optimisation fiscale</em>. Arthur accompagne chaque client de bout en bout — écoute, analyse, action et suivi — avec la même exigence : rester <strong>proactif, actif et réactif</strong> à chaque étape.
             </p>
             <p className="text-gray-700 leading-relaxed">
-              Passionné d&apos;entrepreneuriat, Arthur mobilise un réseau de partenaires (notaires, banquiers, fiscalistes, artisans) pour sécuriser chaque étape, de l&apos;estimation à l&apos;arbitrage, et transforme les objectifs en décisions efficaces.
+              Passionné d&apos;entrepreneuriat, il s&apos;appuie sur un réseau de partenaires de confiance — notaires, banquiers, fiscalistes, artisans — pour sécuriser chaque étape, de l&apos;estimation à l&apos;arbitrage, et transformer sereinement les objectifs de ses clients en décisions justes.
             </p>
           </div>
         </div>
