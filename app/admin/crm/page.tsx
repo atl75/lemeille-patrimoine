@@ -31,6 +31,7 @@ type Lead = {
   lastName?: string;
   email: string;
   phone?: string;
+  address?: string;
   topic?: string;
   source?: string;
   message?: string;
@@ -61,6 +62,7 @@ export default function Page(){
     lastName: '',
     email: '',
     phone: '',
+    address: '',
     category: 'immobilier' as 'immobilier' | 'patrimoine',
     topic: 'Demande de renseignements',
     source: 'manual',
@@ -115,13 +117,18 @@ export default function Page(){
   const handleCreatePropertyFromLead = async (lead: Lead) => {
     setCreatingMandat(lead.id);
     try {
+      // Adresse du bien saisie en amont sur le lead : on la remonte dans la
+      // fiche (map.query) et on extrait au mieux la ville (après le code postal).
+      const address = (lead.address || '').trim();
+      const cityMatch = address.match(/\b\d{5}\s+([A-Za-zÀ-ÿ'’\-\s]+)$/);
+      const city = cityMatch ? cityMatch[1].trim() : '';
       const res = await fetch('/api/properties', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: `Mandat — ${[lead.firstName, lead.lastName].filter(Boolean).join(' ')}`.trim() || 'Nouveau bien (mandat)',
           type: 'APPARTEMENT',
-          city: '',
+          city,
           region: '',
           price: 0,
           surface: 0,
@@ -129,7 +136,7 @@ export default function Page(){
           description: '',
           images: [],
           features: [],
-          map: { precision: 'AREA', query: '', zoom: 12 },
+          map: { precision: 'AREA', query: address, zoom: 12 },
           dpe: { classEnergy: 'D', classGES: 'D', consumptionKwh: 0, emissionsKg: 0, date: '', ref: '' },
           visible: false,
           owners: [{
@@ -176,6 +183,7 @@ export default function Page(){
           lastName: '',
           email: '',
           phone: '',
+          address: '',
           category: 'immobilier',
           topic: 'Demande de renseignements',
           source: 'manual',
@@ -249,6 +257,7 @@ export default function Page(){
       lastName: lead.lastName || '',
       email: lead.email,
       phone: lead.phone || '',
+      address: lead.address || '',
       category: lead.category || 'immobilier',
       topic: lead.topic || 'Demande de renseignements',
       source: lead.source || 'manual',
@@ -281,6 +290,7 @@ export default function Page(){
           lastName: '',
           email: '',
           phone: '',
+          address: '',
           category: 'immobilier',
           topic: 'Demande de renseignements',
           source: 'manual',
@@ -327,6 +337,7 @@ export default function Page(){
       lastName: '',
       email: '',
       phone: '',
+      address: '',
       category: 'immobilier',
       topic: 'Demande de renseignements',
       source: 'manual',
@@ -520,6 +531,19 @@ export default function Page(){
                 />
               </div>
 
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-1">Adresse du bien</label>
+                <input
+                  type="text"
+                  value={formData.address}
+                  onChange={e => setFormData({...formData, address: e.target.value})}
+                  className="input"
+                  placeholder="Ex : 12 Promenade des Anglais, 06000 Nice"
+                  data-testid="input-address"
+                />
+                <p className="text-xs opacity-60 mt-1">Sert à pré-remplir la fiche bien et le mandat lors de la création depuis ce lead.</p>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-1">Sujet *</label>
                 <select
@@ -697,6 +721,7 @@ export default function Page(){
                   <div className="grid md:grid-cols-2 gap-2 text-sm mb-3">
                     <div>📧 {lead.email}</div>
                     {lead.phone && <div>📞 {lead.phone}</div>}
+                    {lead.address && <div>📍 {lead.address}</div>}
                     {lead.topic && <div>🏷️ {lead.topic}</div>}
                     <div className="opacity-60">📅 {formatDate(lead.createdAt)}</div>
                   </div>
