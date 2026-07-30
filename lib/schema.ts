@@ -5,7 +5,7 @@ export function orgJsonLd() {
     name: 'Lemeille Patrimoine',
     url: process.env.NEXT_PUBLIC_SITE_URL || 'https://lemeillepatrimoine.com',
     logo: (process.env.NEXT_PUBLIC_SITE_URL || '') + '/logo.png',
-    description: "Agence immobilière et gestion de patrimoine haut de gamme. Paris, Normandie, Côte d'Azur.",
+    description: "Agence spécialisée dans l'immobilier de caractère et la défiscalisation. Paris, Normandie, Côte d'Azur.",
     address: [
       { '@type': 'PostalAddress', streetAddress: '50 rue de la Garenne', addressLocality: 'Mont-Saint-Aignan', postalCode: '76130', addressCountry: 'FR' },
       { '@type': 'PostalAddress', streetAddress: '35 rue Ganterie', addressLocality: 'Rouen', postalCode: '76000', addressCountry: 'FR' },

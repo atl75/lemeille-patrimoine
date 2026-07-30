@@ -14,7 +14,7 @@ export function OrganizationSchema() {
       "height": 200
     },
     "image": `${baseUrl}/og-image.jpg`,
-    "description": "Agence immobilière haut de gamme spécialisée dans la transaction dans l'ancien et la défiscalisation à Paris, en Normandie et sur la Côte d'Azur. Dispositifs Malraux, Monument Historique, Déficit Foncier.",
+    "description": "Agence spécialisée dans l'immobilier de caractère, la transaction dans l'ancien et la défiscalisation à Paris, en Normandie et sur la Côte d'Azur. Dispositifs Malraux, Monument Historique, Déficit Foncier.",
     "priceRange": "€€€€",
     "telephone": "+33687157259",
     "email": "arthur.lemeille@lemeillepatrimoine.com",

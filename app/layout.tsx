@@ -25,7 +25,7 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = {
   title: 'Lemeille Patrimoine — Immobilier & défiscalisation',
-  description: "Immobilier haut de gamme et défiscalisation à Paris, Normandie et Côte d'Azur. Transaction dans l'ancien et dispositifs Malraux, Monument Historique, Déficit Foncier.",
+  description: "Immobilier de caractère et défiscalisation à Paris, Normandie et Côte d'Azur. Transaction dans l'ancien et dispositifs Malraux, Monument Historique, Déficit Foncier.",
   // Pas de canonical global ici : il serait hérité par toutes les pages
   // (chaque page définit son propre canonical ; l'accueil le fait ci-dessous).
   openGraph: {
@@ -33,19 +33,19 @@ export const metadata: Metadata = {
     locale: 'fr_FR',
     url: process.env.NEXT_PUBLIC_SITE_URL || 'https://lemeillepatrimoine.com',
     siteName: 'Lemeille Patrimoine',
-    title: 'Lemeille Patrimoine — Immobilier haut de gamme & défiscalisation',
-    description: "Agence immobilière haut de gamme spécialisée dans la transaction dans l'ancien et la défiscalisation à Paris, en Normandie et sur la Côte d'Azur.",
+    title: 'Lemeille Patrimoine — Immobilier de caractère & défiscalisation',
+    description: "Agence spécialisée dans l'immobilier de caractère et la défiscalisation à Paris, en Normandie et sur la Côte d'Azur.",
     images: [{
       url: '/og-image.jpg?v=2',
       width: 1200,
       height: 630,
-      alt: 'Lemeille Patrimoine — Immobilier haut de gamme & défiscalisation'
+      alt: 'Lemeille Patrimoine — Immobilier de caractère & défiscalisation'
     }]
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Lemeille Patrimoine — Immobilier & défiscalisation',
-    description: "Immobilier haut de gamme & défiscalisation - Paris, Normandie, Côte d'Azur",
+    description: "Immobilier de caractère & défiscalisation - Paris, Normandie, Côte d'Azur",
     images: ['/og-image.jpg?v=2'],
   },
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://lemeillepatrimoine.com'),
