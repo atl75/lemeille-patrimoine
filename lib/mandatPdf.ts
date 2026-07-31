@@ -13,7 +13,7 @@ export async function buildMandatePdf(p: any): Promise<Uint8Array> {
   const logoImg = await pdfDoc.embedPng(Buffer.from(NOVUS_LOGO_BASE64, 'base64'));
 
   const navyH = rgb(0.125, 0.149, 0.196);
-  const gold = rgb(0.541, 0.427, 0.247);
+  const gold = rgb(0.722, 0.612, 0.427);
   const dark = rgb(0.13, 0.13, 0.13);
   const grey = rgb(0.42, 0.42, 0.42);
   const light = rgb(0.86, 0.86, 0.89);

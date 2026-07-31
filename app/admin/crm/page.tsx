@@ -816,7 +816,7 @@ export default function Page(){
                       {(lead.category || 'immobilier') === 'immobilier' && (lead.role || 'ACHETEUR') === 'VENDEUR' && (
                         <button
                           onClick={() => openMandatPanel(lead)}
-                          className="btn text-xs flex items-center gap-1 px-2 py-1 hover:bg-amber-50 text-[#8A6D3F]"
+                          className="btn text-xs flex items-center gap-1 px-2 py-1 hover:bg-amber-50 text-[#B89C6D]"
                           data-testid={`button-mandat-${lead.id}`}
                           title="Mandat & bien du vendeur"
                         >
@@ -856,7 +856,7 @@ export default function Page(){
                   {/* Biens reliés au vendeur (résumé permanent) */}
                   {(lead.category || 'immobilier') === 'immobilier' && (lead.role || 'ACHETEUR') === 'VENDEUR' && biensOfSeller(lead.id).length > 0 && (
                     <div className="mb-3 text-sm">
-                      <span className="font-medium text-[#8A6D3F]">🏠 Biens en vente ({biensOfSeller(lead.id).length}) :</span>{' '}
+                      <span className="font-medium text-[#B89C6D]">🏠 Biens en vente ({biensOfSeller(lead.id).length}) :</span>{' '}
                       {biensOfSeller(lead.id).map((b: any, i: number) => (
                         <span key={b.id}>
                           {i > 0 && ', '}
@@ -870,7 +870,7 @@ export default function Page(){
                   {/* Panneau vendeur : éléments du mandat + création du bien + liaison */}
                   {mandatLeadId === lead.id && (
                     <div className="mb-3 p-3 rounded border border-amber-200 bg-amber-50" data-testid={`mandat-picker-${lead.id}`}>
-                      <label className="block text-xs font-semibold mb-2 flex items-center gap-1 text-[#8A6D3F]">
+                      <label className="block text-xs font-semibold mb-2 flex items-center gap-1 text-[#B89C6D]">
                         <FileText className="w-3 h-3" />
                         Éléments du mandat — création du bien
                       </label>
@@ -936,7 +936,7 @@ export default function Page(){
                             {biensOfSeller(lead.id).map((b: any) => (
                               <div key={b.id} className="flex items-center gap-2 text-sm">
                                 <a href={`/admin/contenu/biens?edit=${b.id}`} className="underline flex-1">{b.title || b.id}{b.city ? ` — ${b.city}` : ''}</a>
-                                <a href={`/api/properties/${b.id}/mandat/pdf`} target="_blank" rel="noopener noreferrer" className="text-[#8A6D3F]" title="Mandat PDF"><Download className="w-4 h-4" /></a>
+                                <a href={`/api/properties/${b.id}/mandat/pdf`} target="_blank" rel="noopener noreferrer" className="text-[#B89C6D]" title="Mandat PDF"><Download className="w-4 h-4" /></a>
                                 <button onClick={() => unlinkBien(b.id, lead.id)} className="text-red-600" title="Délier"><X className="w-4 h-4" /></button>
                               </div>
                             ))}

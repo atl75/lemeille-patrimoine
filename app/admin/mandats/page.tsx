@@ -164,7 +164,7 @@ export default function Page() {
                       </td>
                       <td className="px-3 py-2 no-print">
                         <div className="flex gap-2">
-                          <a href={`/api/properties/${m.id}/mandat/pdf`} target="_blank" rel="noopener noreferrer" title="Mandat PDF" className="text-[#8A6D3F] hover:opacity-70">
+                          <a href={`/api/properties/${m.id}/mandat/pdf`} target="_blank" rel="noopener noreferrer" title="Mandat PDF" className="text-[#B89C6D] hover:opacity-70">
                             <FileText className="w-4 h-4" />
                           </a>
                           <a href={`/admin/contenu/biens?edit=${m.id}`} title="Ouvrir le bien" className="text-gray-500 hover:opacity-70">

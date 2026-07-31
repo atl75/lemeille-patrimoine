@@ -91,7 +91,7 @@ function formatDefiscEmail(payload: any): string {
   const eur = (n: any) => (Number(n) || 0).toLocaleString('fr-FR') + ' €';
   return `
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1F3B2C">
-      <h2 style="color:#8A6D3F">💶 Nouvelle simulation de défiscalisation</h2>
+      <h2 style="color:#B89C6D">💶 Nouvelle simulation de défiscalisation</h2>
       <p><strong>${payload.firstName || ''} ${payload.lastName || ''}</strong></p>
       <p>Email : <a href="mailto:${payload.email || ''}">${payload.email || '—'}</a><br/>
          Téléphone : ${payload.phone || '—'}</p>

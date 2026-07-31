@@ -29,10 +29,10 @@ async function notifySubscribers(item: any) {
     const price = item.price ? Number(item.price).toLocaleString('fr-FR') + ' €' : '';
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1F3B2C">
-        <h2 style="color:#8A6D3F">Nouveau bien — Lemeille Patrimoine</h2>
+        <h2 style="color:#B89C6D">Nouveau bien — Lemeille Patrimoine</h2>
         <h3 style="margin:8px 0">${item.title || 'Bien'}</h3>
         <p style="color:#555">${item.city || ''}${region ? ' · ' + region : ''}${price ? ' — <strong>' + price + '</strong>' : ''}</p>
-        <p><a href="${url}" style="background:#8A6D3F;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Découvrir le bien</a></p>
+        <p><a href="${url}" style="background:#B89C6D;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Découvrir le bien</a></p>
         <p style="font-size:12px;color:#999;margin-top:24px">Vous recevez cet email car vous êtes inscrit à notre alerte nouveaux biens.</p>
       </div>`;
 

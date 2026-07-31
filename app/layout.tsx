@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     title: 'Lemeille Patrimoine — Immobilier de caractère & défiscalisation',
     description: "Agence spécialisée dans l'immobilier de caractère et la défiscalisation à Paris, en Normandie et sur la Côte d'Azur.",
     images: [{
-      url: '/og-image.jpg?v=3',
+      url: '/og-image.jpg?v=4',
       width: 1200,
       height: 630,
       alt: 'Lemeille Patrimoine — Immobilier de caractère & défiscalisation'
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Lemeille Patrimoine — Immobilier & défiscalisation',
     description: "Immobilier de caractère & défiscalisation - Paris, Normandie, Côte d'Azur",
-    images: ['/og-image.jpg?v=3'],
+    images: ['/og-image.jpg?v=4'],
   },
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://lemeillepatrimoine.com'),
 };

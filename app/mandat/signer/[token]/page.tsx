@@ -122,7 +122,7 @@ export default function SignMandatPage() {
       <div style={{ maxWidth: 640, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 20 }}>
           <div style={{ fontFamily: "Georgia, serif", fontSize: 26, color: "#1F3B2C", letterSpacing: 1 }}>Lemeille Patrimoine</div>
-          <div style={{ color: "#8A6D3F", fontSize: 13, marginTop: 2 }}>Signature électronique du mandat de vente</div>
+          <div style={{ color: "#B89C6D", fontSize: 13, marginTop: 2 }}>Signature électronique du mandat de vente</div>
         </div>
         <div style={{ background: "#fff", borderRadius: 14, boxShadow: "0 2px 16px rgba(0,0,0,0.06)", padding: 24 }}>
           {children}
@@ -164,7 +164,7 @@ export default function SignMandatPage() {
       <p style={{ color: "#555", fontSize: 14, marginBottom: 16 }}>Mandataire : NOVUS CAPITAL SAS (Arthur Lemeille).</p>
 
       <a href={`/api/mandat/sign/${token}/pdf`} target="_blank" rel="noopener noreferrer"
-        style={{ display: "inline-block", marginBottom: 18, color: "#8A6D3F", fontWeight: 600, textDecoration: "underline", fontSize: 14 }}>
+        style={{ display: "inline-block", marginBottom: 18, color: "#B89C6D", fontWeight: 600, textDecoration: "underline", fontSize: 14 }}>
         📄 Lire le mandat complet avant de signer
       </a>
 
@@ -194,7 +194,7 @@ export default function SignMandatPage() {
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, marginBottom: 16 }}>
         <span style={{ fontSize: 12, color: "#777" }}>Mention : « Bon pour mandat »</span>
-        <button type="button" onClick={clearCanvas} style={{ fontSize: 13, color: "#8A6D3F", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>Effacer</button>
+        <button type="button" onClick={clearCanvas} style={{ fontSize: 13, color: "#B89C6D", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>Effacer</button>
       </div>
 
       <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: "#444", marginBottom: 18 }}>
@@ -205,7 +205,7 @@ export default function SignMandatPage() {
       {error && <p style={{ color: "#b00", fontSize: 13, marginBottom: 12 }}>{error}</p>}
 
       <button type="button" onClick={submit} disabled={submitting}
-        style={{ width: "100%", padding: "12px", background: "#8A6D3F", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: submitting ? "default" : "pointer", opacity: submitting ? 0.7 : 1 }}>
+        style={{ width: "100%", padding: "12px", background: "#B89C6D", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: submitting ? "default" : "pointer", opacity: submitting ? 0.7 : 1 }}>
         {submitting ? "Signature en cours…" : "Signer le mandat"}
       </button>
     </Shell>

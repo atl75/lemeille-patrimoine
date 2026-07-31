@@ -14,11 +14,11 @@ async function sendSignInvite(to: string, name: string, url: string, mandateNumb
     const from = process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>';
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1F3B2C">
-        <h2 style="color:#8A6D3F">Signature de votre mandat de vente</h2>
+        <h2 style="color:#B89C6D">Signature de votre mandat de vente</h2>
         <p>Bonjour ${name || ''},</p>
         <p>Votre mandat de vente${mandateNumber ? ` (N° ${mandateNumber})` : ''} est prêt à être signé. Vous pouvez le consulter et le signer en ligne, en quelques secondes :</p>
         <p style="text-align:center;margin:28px 0">
-          <a href="${url}" style="background:#8A6D3F;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Lire et signer le mandat</a>
+          <a href="${url}" style="background:#B89C6D;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Lire et signer le mandat</a>
         </p>
         <p style="font-size:13px;color:#555">Ou copiez ce lien : <br>${url}</p>
         <p style="font-size:12px;color:#999;margin-top:24px">NOVUS CAPITAL SAS — Arthur Lemeille — CPI 7606 2024 000 000 038 — 50 rue de la Garenne, 76130 Mont-Saint-Aignan.</p>

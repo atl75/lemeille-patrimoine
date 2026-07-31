@@ -29,8 +29,8 @@ export default function GoogleReviews() {
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-4">
           <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 64 64" role="img" aria-label="Lemeille Patrimoine">
-            <circle cx="32" cy="32" r="26" fill="none" stroke="#8A6D3F" strokeWidth="2"/>
-            <text x="32" y="39" style={{ fontFamily: 'Georgia, "Times New Roman", Times, serif' }} fontSize="22" textAnchor="middle" fill="#8A6D3F">LP</text>
+            <circle cx="32" cy="32" r="26" fill="none" stroke="#B89C6D" strokeWidth="2"/>
+            <text x="32" y="39" style={{ fontFamily: 'Georgia, "Times New Roman", Times, serif' }} fontSize="22" textAnchor="middle" fill="#B89C6D">LP</text>
           </svg>
           <div>
             <div className="luxe text-xl">Avis Google</div>
@@ -46,8 +46,8 @@ export default function GoogleReviews() {
       <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
         <div className="flex items-center gap-3">
           <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 64 64" role="img" aria-label="Lemeille Patrimoine">
-            <circle cx="32" cy="32" r="26" fill="none" stroke="#8A6D3F" strokeWidth="2"/>
-            <text x="32" y="39" style={{ fontFamily: 'Georgia, "Times New Roman", Times, serif' }} fontSize="22" textAnchor="middle" fill="#8A6D3F">LP</text>
+            <circle cx="32" cy="32" r="26" fill="none" stroke="#B89C6D" strokeWidth="2"/>
+            <text x="32" y="39" style={{ fontFamily: 'Georgia, "Times New Roman", Times, serif' }} fontSize="22" textAnchor="middle" fill="#B89C6D">LP</text>
           </svg>
           <div>
             <div className="luxe text-xl">Avis Google</div>

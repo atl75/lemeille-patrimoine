@@ -15,8 +15,8 @@ export function Header(){
             <defs>
               <style>{`.serif { font-family: Georgia, "Times New Roman", Times, serif; } .logo-text { display: none; } @media (min-width: 768px) { .logo-text { display: block; } }`}</style>
             </defs>
-            <circle cx="32" cy="32" r="26" fill="none" stroke="#8A6D3F" strokeWidth="2"/>
-            <text x="32" y="39" className="serif" fontSize="22" textAnchor="middle" fill="#8A6D3F">LP</text>
+            <circle cx="32" cy="32" r="26" fill="none" stroke="#B89C6D" strokeWidth="2"/>
+            <text x="32" y="39" className="serif" fontSize="22" textAnchor="middle" fill="#B89C6D">LP</text>
             <text x="72" y="40" className="serif logo-text" fontSize="22" fill="#1F3B2C" letterSpacing=".4">
               Lemeille Patrimoine
             </text>

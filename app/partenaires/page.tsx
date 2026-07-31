@@ -76,7 +76,7 @@ export default function Page() {
             <div key={p.name} className="card p-6 flex flex-col">
               <div className="flex items-center gap-4 mb-4">
                 <div className="shrink-0 w-16 h-16 rounded-full border-2 border-[#B89C6D] flex items-center justify-center">
-                  <span className="luxe text-xl text-[#8A6D3F]">{initials(p.name)}</span>
+                  <span className="luxe text-xl text-[#B89C6D]">{initials(p.name)}</span>
                 </div>
                 <div>
                   <h2 className="luxe text-xl leading-tight">{p.name}</h2>

@@ -13,7 +13,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    const gold = rgb(0.541, 0.427, 0.247);
+    const gold = rgb(0.722, 0.612, 0.427);
     const navy = rgb(0.122, 0.231, 0.173);
     const darkText = rgb(0.15, 0.15, 0.15);
     const lightText = rgb(0.45, 0.45, 0.45);
