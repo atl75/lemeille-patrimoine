@@ -143,8 +143,9 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
           )}
         </div>
 
-        {/* Colonne droite */}
-        <div className="grid gap-4 content-start">
+        {/* Colonne droite : flex vertical, cartes pleine largeur, bouton PDF en bas
+            pour aligner le bas de la colonne sur celui de la colonne gauche (desktop). */}
+        <div className="flex flex-col gap-4">
           {/* Caractéristiques au-dessus du DPE — desktop uniquement */}
           <div className="hidden md:block">{caracteristiquesCard}</div>
           <DPECard dpe={p.dpe} />
@@ -154,7 +155,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
               ? <MapEmbed query={mapQuery} precision={mapPrecision}/>
               : <div className="text-sm opacity-80">Adresse non communiquée.</div>}
           </div>
-          <a className="btn btn-gold text-center" href={`/api/properties/${p.id}/pdf`}>Télécharger la fiche PDF</a>
+          <a className="btn btn-gold text-center w-full md:mt-auto" href={`/api/properties/${p.id}/pdf`}>Télécharger la fiche PDF</a>
         </div>
       </section>
     </main>
