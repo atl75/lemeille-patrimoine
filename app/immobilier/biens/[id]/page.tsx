@@ -56,6 +56,33 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
   const mapPrecision: 'EXACT' | 'AREA' = p.map?.precision === 'EXACT' ? 'EXACT' : 'AREA';
   const mapQuery = mapPrecision === 'EXACT' ? p.map?.query : (p.city || p.map?.query);
 
+  // Bloc « Caractéristiques » rendu à deux emplacements : sur mobile dans la
+  // colonne principale (position d'origine), sur desktop dans la colonne de
+  // droite au-dessus du DPE (via les classes de visibilité md:).
+  const caracteristiquesCard = (
+    <div className="card p-6">
+      <h2 className="luxe text-2xl mb-3">Caractéristiques</h2>
+      <ul className="grid sm:grid-cols-2 gap-2 text-sm">
+        <li><strong>Prix</strong> : {p.priceOnRequest ? 'Nous consulter' : (p.price ? Number(p.price).toLocaleString('fr-FR')+' €' : '—')}</li>
+        <li><strong>Surface</strong> : {p.surface ?? '—'} m²</li>
+        <li><strong>Pièces</strong> : {p.rooms ?? '—'}</li>
+        {p.type === 'MAISON' && p.landSize ? <li><strong>Terrain</strong> : {p.landSize} m²</li> : null}
+        {p.annexSurface && <li><strong>Surface hors Carrez</strong> : {p.annexSurface} m²</li>}
+        {p.propertyTaxAmount ? <li><strong>Taxe foncière</strong> : {Number(p.propertyTaxAmount).toLocaleString('fr-FR')} €/an</li> : null}
+        {p.coproChargesMonthly ? <li><strong>Charges de copropriété</strong> : {Number(p.coproChargesMonthly).toLocaleString('fr-FR')} €/mois</li> : null}
+        <li><strong>Référence</strong> : {p.id}</li>
+      </ul>
+      {Array.isArray(p.features) && p.features.length>0 && (
+        <>
+          <h3 className="luxe text-xl mt-5 mb-2">Atouts du bien</h3>
+          <div className="flex flex-wrap gap-2">
+            {p.features.map((f:string,i:number)=>(<span key={i} className="px-3 py-1 rounded-2xl border bg-white/70 text-sm">{f}</span>))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+
   return (
     <main>
       <PropertySeoJsonLd property={p} />
@@ -89,27 +116,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
             </div>
           )}
 
-          <div className="card p-6 mt-6">
-            <h2 className="luxe text-2xl mb-3">Caractéristiques</h2>
-            <ul className="grid sm:grid-cols-2 gap-2 text-sm">
-              <li><strong>Prix</strong> : {p.priceOnRequest ? 'Nous consulter' : (p.price ? Number(p.price).toLocaleString('fr-FR')+' €' : '—')}</li>
-              <li><strong>Surface</strong> : {p.surface ?? '—'} m²</li>
-              <li><strong>Pièces</strong> : {p.rooms ?? '—'}</li>
-              {p.type === 'MAISON' && p.landSize ? <li><strong>Terrain</strong> : {p.landSize} m²</li> : null}
-              {p.annexSurface && <li><strong>Surface hors Carrez</strong> : {p.annexSurface} m²</li>}
-              {p.propertyTaxAmount ? <li><strong>Taxe foncière</strong> : {Number(p.propertyTaxAmount).toLocaleString('fr-FR')} €/an</li> : null}
-              {p.coproChargesMonthly ? <li><strong>Charges de copropriété</strong> : {Number(p.coproChargesMonthly).toLocaleString('fr-FR')} €/mois</li> : null}
-              <li><strong>Référence</strong> : {p.id}</li>
-            </ul>
-            {Array.isArray(p.features) && p.features.length>0 && (
-              <>
-                <h3 className="luxe text-xl mt-5 mb-2">Atouts du bien</h3>
-                <div className="flex flex-wrap gap-2">
-                  {p.features.map((f:string,i:number)=>(<span key={i} className="px-3 py-1 rounded-2xl border bg-white/70 text-sm">{f}</span>))}
-                </div>
-              </>
-            )}
-          </div>
+          {/* Caractéristiques — mobile uniquement (desktop : colonne de droite, au-dessus du DPE) */}
+          <div className="md:hidden mt-6">{caracteristiquesCard}</div>
 
           <div className="card p-6 mt-4">
             <h2 className="luxe text-2xl mb-3">Description</h2>
@@ -137,6 +145,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
 
         {/* Colonne droite */}
         <div className="grid gap-4">
+          {/* Caractéristiques au-dessus du DPE — desktop uniquement */}
+          <div className="hidden md:block">{caracteristiquesCard}</div>
           <DPECard dpe={p.dpe} />
           <div className="card p-6">
             <h3 className="luxe text-xl mb-3">Localisation</h3>
