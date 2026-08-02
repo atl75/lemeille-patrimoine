@@ -157,7 +157,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       y -= 8;
     }
 
-    if (p.price) {
+    if (p.priceOnRequest) {
+      page.drawText(cleanText('Nous consulter'), {
+        x: MARGIN, y, size: 19, font: fontBold, color: gold,
+      });
+      y -= 16;
+    } else if (p.price) {
       page.drawText(cleanText(Number(p.price).toLocaleString('fr-FR') + ' €'), {
         x: MARGIN, y, size: 19, font: fontBold, color: gold,
       });
@@ -231,7 +236,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     keyVal('Nombre de pièces', `${p.rooms ?? '—'}`);
     if (p.type === 'MAISON' && p.landSize) keyVal('Surface du terrain', `${p.landSize} m²`);
     if (p.annexSurface) keyVal('Surface hors Carrez', `${p.annexSurface} m²`);
-    if (p.surface && p.price) keyVal('Prix au m²', `${Math.round(Number(p.price) / Number(p.surface)).toLocaleString('fr-FR')} €/m²`);
+    if (p.surface && p.price && !p.priceOnRequest) keyVal('Prix au m²', `${Math.round(Number(p.price) / Number(p.surface)).toLocaleString('fr-FR')} €/m²`);
     if (p.propertyTaxAmount) keyVal('Taxe foncière', `${Number(p.propertyTaxAmount).toLocaleString('fr-FR')} €/an`);
     if (p.coproChargesMonthly) keyVal('Charges de copropriété', `${Number(p.coproChargesMonthly).toLocaleString('fr-FR')} €/mois`);
     keyVal('Référence du bien', id);
