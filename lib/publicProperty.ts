@@ -25,6 +25,7 @@ export function toPublicProperty(p: any) {
     city: p.city,
     region: p.region,
     price: p.price,
+    priceOnRequest: p.priceOnRequest,
     surface: p.surface,
     rooms: p.rooms,
     // Superficie du terrain : pertinente uniquement pour une maison

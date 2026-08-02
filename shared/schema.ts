@@ -63,6 +63,7 @@ export const properties = pgTable("properties", {
   city: text("city").notNull(),
   region: text("region").notNull(), // PARIS, NORMANDIE, COTE_D_AZUR
   price: integer("price").notNull(), // Prix FAI (Frais d'Agence Inclus)
+  priceOnRequest: boolean("price_on_request"), // Prix « Nous consulter » (à discrétion)
   // Informations financières
   netSellerAmount: integer("net_seller_amount"), // Montant net vendeur
   commissionAmount: integer("commission_amount"), // Commission en € (valeur absolue)
@@ -159,6 +160,7 @@ export const insertPropertySchema = createInsertSchema(properties, {
     ip: z.string().optional(),
     userAgent: z.string().optional(),
   }).optional(),
+  priceOnRequest: z.boolean().optional(),
   netSellerAmount: z.number().optional(),
   commissionAmount: z.number().optional(),
   commissionPercentage: z.number().optional(),

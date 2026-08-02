@@ -19,6 +19,7 @@ type Property = {
   city: string;
   region: string;
   price: number;
+  priceOnRequest?: boolean;
   surface: number;
   rooms: number;
   landSize?: number;
@@ -554,7 +555,7 @@ export default function Page() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Prix :</span>
-                    <span className="font-medium text-[#B89C6D]">{viewing.price.toLocaleString('fr-FR')} €</span>
+                    <span className="font-medium text-[#B89C6D]">{viewing.priceOnRequest ? 'Nous consulter' : `${viewing.price.toLocaleString('fr-FR')} €`}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Surface :</span>
@@ -1277,109 +1278,14 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Notaires + Finances (repliable) */}
-          <CollapsibleSection title="Notaires & informations financières" subtitle="Vendeur, acquéreur, net vendeur, commission, FAI">
-          <div className="grid md:grid-cols-2 gap-3">
-            {/* Notaires */}
-            <div className="p-2 bg-gray-50 rounded">
-              <h3 className="font-semibold text-base mb-2 pb-2 border-b">Notaires</h3>
-              
-              <div className="space-y-2">
-                {/* Notaire Vendeur */}
-                <div className="p-2 bg-white border rounded text-xs">
-                  <h4 className="font-medium text-xs mb-2">Vendeur</h4>
-                  <div className="space-y-1">
-                    <input
-                      type="text"
-                      value={editing.sellerNotary?.officeName || ''}
-                      onChange={(e) => updateField('sellerNotary', { ...editing.sellerNotary, officeName: e.target.value })}
-                      className="w-full px-2 py-1 text-xs border rounded"
-                      placeholder="Office notarial"
-                      data-testid="input-seller-notary-office"
-                    />
-                    <input
-                      type="text"
-                      value={editing.sellerNotary?.notaryName || ''}
-                      onChange={(e) => updateField('sellerNotary', { ...editing.sellerNotary, notaryName: e.target.value })}
-                      className="w-full px-2 py-1 text-xs border rounded"
-                      placeholder="Nom du notaire"
-                      data-testid="input-seller-notary-name"
-                    />
-                    <div className="grid grid-cols-2 gap-1">
-                      <input
-                        type="text"
-                        value={editing.sellerNotary?.phone || ''}
-                        onChange={(e) => updateField('sellerNotary', { ...editing.sellerNotary, phone: e.target.value })}
-                        className="w-full px-2 py-1 text-xs border rounded"
-                        placeholder="Tel"
-                        data-testid="input-seller-notary-phone"
-                      />
-                      <input
-                        type="email"
-                        value={editing.sellerNotary?.email || ''}
-                        onChange={(e) => updateField('sellerNotary', { ...editing.sellerNotary, email: e.target.value })}
-                        className="w-full px-2 py-1 text-xs border rounded"
-                        placeholder="Email"
-                        data-testid="input-seller-notary-email"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Notaire Acquéreur */}
-                <div className="p-2 bg-white border rounded text-xs">
-                  <div className="flex justify-between items-center mb-2">
-                    <h4 className="font-medium text-xs">Acquéreur</h4>
-                    <button
-                      type="button"
-                      onClick={() => updateField('buyerNotary', editing.sellerNotary)}
-                      className="px-1.5 py-0.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-                      data-testid="button-duplicate-notary"
-                    >
-                      Dupliquer
-                    </button>
-                  </div>
-                  <div className="space-y-1">
-                    <input
-                      type="text"
-                      value={editing.buyerNotary?.officeName || ''}
-                      onChange={(e) => updateField('buyerNotary', { ...editing.buyerNotary, officeName: e.target.value })}
-                      className="w-full px-2 py-1 text-xs border rounded"
-                      placeholder="Office notarial"
-                      data-testid="input-buyer-notary-office"
-                    />
-                    <input
-                      type="text"
-                      value={editing.buyerNotary?.notaryName || ''}
-                      onChange={(e) => updateField('buyerNotary', { ...editing.buyerNotary, notaryName: e.target.value })}
-                      className="w-full px-2 py-1 text-xs border rounded"
-                      placeholder="Nom du notaire"
-                      data-testid="input-buyer-notary-name"
-                    />
-                    <div className="grid grid-cols-2 gap-1">
-                      <input
-                        type="text"
-                        value={editing.buyerNotary?.phone || ''}
-                        onChange={(e) => updateField('buyerNotary', { ...editing.buyerNotary, phone: e.target.value })}
-                        className="w-full px-2 py-1 text-xs border rounded"
-                        placeholder="Tel"
-                        data-testid="input-buyer-notary-phone"
-                      />
-                      <input
-                        type="email"
-                        value={editing.buyerNotary?.email || ''}
-                        onChange={(e) => updateField('buyerNotary', { ...editing.buyerNotary, email: e.target.value })}
-                        className="w-full px-2 py-1 text-xs border rounded"
-                        placeholder="Email"
-                        data-testid="input-buyer-notary-email"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Informations Financières */}
+          {/* Prix — dans Informations générales */}
+          <div className="mb-3">
+            <h3 className="font-semibold text-base mb-2 pb-2 border-b">Prix</h3>
+            <label className="flex items-center gap-2 text-sm mb-3">
+              <input type="checkbox" checked={!!editing.priceOnRequest} onChange={e => updateField('priceOnRequest', e.target.checked || undefined)} data-testid="input-price-on-request" />
+              <span>Prix sur demande — « Nous consulter » (prix à discrétion)</span>
+            </label>
+            {!editing.priceOnRequest && (
             <div className="p-2 bg-blue-50 border border-blue-200 rounded">
               <div className="flex justify-between items-center mb-2 pb-2 border-b">
                 <h3 className="font-semibold text-base">Finances</h3>
@@ -1711,8 +1617,8 @@ export default function Page() {
               )}
             </div>
             </div>
+            )}
           </div>
-          </CollapsibleSection>
 
           {/* Description */}
           <div className="mb-3">
@@ -2025,6 +1931,106 @@ export default function Page() {
           </CollapsibleSection>
 
           {/* Acquéreur (repliable) */}
+          <CollapsibleSection title="Notaires" subtitle="Notaire vendeur et acquéreur">
+            <div className="p-2 bg-gray-50 rounded">
+              <h3 className="font-semibold text-base mb-2 pb-2 border-b">Notaires</h3>
+              
+              <div className="space-y-2">
+                {/* Notaire Vendeur */}
+                <div className="p-2 bg-white border rounded text-xs">
+                  <h4 className="font-medium text-xs mb-2">Vendeur</h4>
+                  <div className="space-y-1">
+                    <input
+                      type="text"
+                      value={editing.sellerNotary?.officeName || ''}
+                      onChange={(e) => updateField('sellerNotary', { ...editing.sellerNotary, officeName: e.target.value })}
+                      className="w-full px-2 py-1 text-xs border rounded"
+                      placeholder="Office notarial"
+                      data-testid="input-seller-notary-office"
+                    />
+                    <input
+                      type="text"
+                      value={editing.sellerNotary?.notaryName || ''}
+                      onChange={(e) => updateField('sellerNotary', { ...editing.sellerNotary, notaryName: e.target.value })}
+                      className="w-full px-2 py-1 text-xs border rounded"
+                      placeholder="Nom du notaire"
+                      data-testid="input-seller-notary-name"
+                    />
+                    <div className="grid grid-cols-2 gap-1">
+                      <input
+                        type="text"
+                        value={editing.sellerNotary?.phone || ''}
+                        onChange={(e) => updateField('sellerNotary', { ...editing.sellerNotary, phone: e.target.value })}
+                        className="w-full px-2 py-1 text-xs border rounded"
+                        placeholder="Tel"
+                        data-testid="input-seller-notary-phone"
+                      />
+                      <input
+                        type="email"
+                        value={editing.sellerNotary?.email || ''}
+                        onChange={(e) => updateField('sellerNotary', { ...editing.sellerNotary, email: e.target.value })}
+                        className="w-full px-2 py-1 text-xs border rounded"
+                        placeholder="Email"
+                        data-testid="input-seller-notary-email"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notaire Acquéreur */}
+                <div className="p-2 bg-white border rounded text-xs">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-medium text-xs">Acquéreur</h4>
+                    <button
+                      type="button"
+                      onClick={() => updateField('buyerNotary', editing.sellerNotary)}
+                      className="px-1.5 py-0.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                      data-testid="button-duplicate-notary"
+                    >
+                      Dupliquer
+                    </button>
+                  </div>
+                  <div className="space-y-1">
+                    <input
+                      type="text"
+                      value={editing.buyerNotary?.officeName || ''}
+                      onChange={(e) => updateField('buyerNotary', { ...editing.buyerNotary, officeName: e.target.value })}
+                      className="w-full px-2 py-1 text-xs border rounded"
+                      placeholder="Office notarial"
+                      data-testid="input-buyer-notary-office"
+                    />
+                    <input
+                      type="text"
+                      value={editing.buyerNotary?.notaryName || ''}
+                      onChange={(e) => updateField('buyerNotary', { ...editing.buyerNotary, notaryName: e.target.value })}
+                      className="w-full px-2 py-1 text-xs border rounded"
+                      placeholder="Nom du notaire"
+                      data-testid="input-buyer-notary-name"
+                    />
+                    <div className="grid grid-cols-2 gap-1">
+                      <input
+                        type="text"
+                        value={editing.buyerNotary?.phone || ''}
+                        onChange={(e) => updateField('buyerNotary', { ...editing.buyerNotary, phone: e.target.value })}
+                        className="w-full px-2 py-1 text-xs border rounded"
+                        placeholder="Tel"
+                        data-testid="input-buyer-notary-phone"
+                      />
+                      <input
+                        type="email"
+                        value={editing.buyerNotary?.email || ''}
+                        onChange={(e) => updateField('buyerNotary', { ...editing.buyerNotary, email: e.target.value })}
+                        className="w-full px-2 py-1 text-xs border rounded"
+                        placeholder="Email"
+                        data-testid="input-buyer-notary-email"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CollapsibleSection>
+
           <CollapsibleSection title="Informations acquéreur" subtitle="Coordonnées de l'acquéreur (après vente)">
           <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded">
             <h3 className="font-semibold text-sm mb-2">Informations Acquéreur</h3>

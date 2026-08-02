@@ -12,6 +12,7 @@ type Property = {
   region?: string;
   type?: string;
   price?: number;
+  priceOnRequest?: boolean;
   surface?: number;
   rooms?: number;
   landSize?: number;
@@ -70,7 +71,9 @@ export default function PropertyCard({
             {(property.type || "APPARTEMENT") === "APPARTEMENT" ? "Appartement" : "Maison"} · Surface: {property.surface ?? "—"} m² · Pièces: {property.rooms ?? "—"}
             {property.landSize && property.type === "MAISON" && <span> · Terrain: {property.landSize} m²</span>}
           </div>
-          {property.price != null && (
+          {property.priceOnRequest ? (
+            <div className="mt-2 font-semibold">Nous consulter</div>
+          ) : property.price != null && (
             <div className="mt-2 font-semibold">{Number(property.price).toLocaleString("fr-FR")} €</div>
           )}
           {property.dpe?.classEnergy && (

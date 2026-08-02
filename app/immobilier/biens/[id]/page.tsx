@@ -92,7 +92,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
           <div className="card p-6 mt-6">
             <h2 className="luxe text-2xl mb-3">Caractéristiques</h2>
             <ul className="grid sm:grid-cols-2 gap-2 text-sm">
-              <li><strong>Prix</strong> : {p.price ? Number(p.price).toLocaleString('fr-FR')+' €' : '—'}</li>
+              <li><strong>Prix</strong> : {p.priceOnRequest ? 'Nous consulter' : (p.price ? Number(p.price).toLocaleString('fr-FR')+' €' : '—')}</li>
               <li><strong>Surface</strong> : {p.surface ?? '—'} m²</li>
               <li><strong>Pièces</strong> : {p.rooms ?? '—'}</li>
               {p.type === 'MAISON' && p.landSize ? <li><strong>Terrain</strong> : {p.landSize} m²</li> : null}
