@@ -144,7 +144,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
         </div>
 
         {/* Colonne droite */}
-        <div className="grid gap-4">
+        <div className="grid gap-4 content-start">
           {/* Caractéristiques au-dessus du DPE — desktop uniquement */}
           <div className="hidden md:block">{caracteristiquesCard}</div>
           <DPECard dpe={p.dpe} />
