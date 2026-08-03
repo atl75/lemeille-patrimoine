@@ -48,6 +48,8 @@ type Lead = {
   attachments?: Attachment[];
   // Critères de recherche (leads acheteurs)
   buyerCriteria?: { budgetMin?: number; budgetMax?: number; sector?: string; type?: string; roomsMin?: number; surfaceMin?: number };
+  buyerSegment?: 'ANCIEN' | 'DEFISCALISATION';
+  interestPropertyId?: string;
 };
 
 function formatDate(iso: string) {
@@ -112,7 +114,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
   // Panneau acheteur : critères de recherche
   const [buyerLeadId, setBuyerLeadId] = useState<string | null>(null);
   const [savingBuyer, setSavingBuyer] = useState(false);
-  const [buyerForm, setBuyerForm] = useState({ budgetMin: '', budgetMax: '', sector: '', type: '', roomsMin: '', surfaceMin: '' });
+  const [buyerForm, setBuyerForm] = useState({ budgetMin: '', budgetMax: '', sector: '', type: '', roomsMin: '', surfaceMin: '', segment: '', interestPropertyId: '' });
   const [proposing, setProposing] = useState<string | null>(null);
   const [proposeMsg, setProposeMsg] = useState<{ leadId: string; text: string; ok: boolean } | null>(null);
   const { confirm, dialog } = useConfirm();
@@ -254,6 +256,8 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
       type: c.type || '',
       roomsMin: c.roomsMin != null ? String(c.roomsMin) : '',
       surfaceMin: c.surfaceMin != null ? String(c.surfaceMin) : '',
+      segment: lead.buyerSegment || '',
+      interestPropertyId: lead.interestPropertyId || '',
     });
   };
 
@@ -273,7 +277,11 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
     try {
       const res = await fetch(`/api/leads/${lead.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ buyerCriteria: bc }),
+        body: JSON.stringify({
+          buyerCriteria: bc,
+          buyerSegment: buyerForm.segment || null,
+          interestPropertyId: buyerForm.interestPropertyId || null,
+        }),
       });
       if (res.ok) fetchLeads(); else alert('Erreur lors de l\'enregistrement des critères.');
     } catch { alert('Erreur réseau.'); }
@@ -1059,6 +1067,26 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                     </div>
                   )}
 
+                  {/* Résumé acheteur : catégorie recherchée + bien précis d'intérêt */}
+                  {(lead.category || 'immobilier') === 'immobilier' && (lead.role || 'ACHETEUR') === 'ACHETEUR' && (lead.buyerSegment || lead.interestPropertyId) && (
+                    <div className="mb-2 text-sm flex items-center gap-2 flex-wrap">
+                      {lead.buyerSegment && (
+                        <span className="pill text-xs border-teal-300 text-teal-700">{lead.buyerSegment === 'ANCIEN' ? '🏛️ Ancien' : '📉 Défiscalisation'}</span>
+                      )}
+                      {lead.interestPropertyId && (() => {
+                        const b = properties.find((p: any) => p.id === lead.interestPropertyId);
+                        return (
+                          <span className="opacity-80">
+                            <span className="font-medium text-teal-700">🎯 Bien visé :</span>{' '}
+                            {b ? (
+                              <a href={`/immobilier/biens/${b.id}`} target="_blank" rel="noopener noreferrer" className="underline">{b.title || b.id}{b.city ? ` — ${b.city}` : ''}</a>
+                            ) : lead.interestPropertyId}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  )}
+
                   {/* Résumé acheteur (critères + biens correspondants) */}
                   {(lead.category || 'immobilier') === 'immobilier' && (lead.role || 'ACHETEUR') === 'ACHETEUR' && hasCriteria(lead.buyerCriteria) && (
                     <div className="mb-3 text-sm">
@@ -1081,8 +1109,24 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                     <div className="mb-3 p-3 rounded border border-teal-200 bg-teal-50" data-testid={`buyer-panel-${lead.id}`}>
                       <label className="block text-xs font-semibold mb-2 flex items-center gap-1 text-teal-700">
                         <Search className="w-3 h-3" />
-                        Critères de recherche de l&apos;acheteur
+                        Recherche de l&apos;acheteur
                       </label>
+                      <div className="grid md:grid-cols-2 gap-2 mb-2">
+                        <select className="input text-sm" value={buyerForm.segment} onChange={e => setBuyerForm({ ...buyerForm, segment: e.target.value })}>
+                          <option value="">Catégorie — indifférent</option>
+                          <option value="ANCIEN">Ancien</option>
+                          <option value="DEFISCALISATION">Défiscalisation</option>
+                        </select>
+                        <select className="input text-sm" value={buyerForm.interestPropertyId} onChange={e => setBuyerForm({ ...buyerForm, interestPropertyId: e.target.value })}>
+                          <option value="">Bien précis — aucun</option>
+                          {properties
+                            .filter((p: any) => p.visible !== false && !p.sold && p.status !== 'SOLD')
+                            .map((p: any) => (
+                              <option key={p.id} value={p.id}>{p.title || p.id}{p.city ? ` — ${p.city}` : ''}</option>
+                            ))}
+                        </select>
+                      </div>
+                      <label className="block text-xs opacity-70 mb-1">Critères de recherche</label>
                       <div className="grid md:grid-cols-3 gap-2">
                         <select className="input text-sm" value={buyerForm.type} onChange={e => setBuyerForm({ ...buyerForm, type: e.target.value })}>
                           <option value="">Type — indifférent</option>
