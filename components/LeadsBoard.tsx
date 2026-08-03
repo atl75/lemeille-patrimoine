@@ -2,6 +2,7 @@
 import AdminShell from "@/components/AdminShell";
 import Breadcrumb from "@/components/Breadcrumb";
 import { useConfirm } from "@/components/ConfirmDialog";
+import CompanyAutocomplete from "@/components/CompanyAutocomplete";
 import { useEffect, useState } from "react";
 import { Plus, X, Calendar, CheckCircle2, Circle, Edit2, Trash2, Paperclip, Download, Eye, FileText, Search, Mail } from "lucide-react";
 
@@ -28,6 +29,12 @@ type Lead = {
   status?: string;
   category?: 'immobilier' | 'patrimoine';
   role?: 'ACHETEUR' | 'VENDEUR';
+  company?: boolean;
+  companyName?: string;
+  siren?: string;
+  legalForm?: string;
+  managerFirstName?: string;
+  managerLastName?: string;
   firstName?: string;
   lastName?: string;
   email: string;
@@ -67,6 +74,12 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
     email: '',
     phone: '',
     address: '',
+    company: false,
+    companyName: '',
+    siren: '',
+    legalForm: '',
+    managerFirstName: '',
+    managerLastName: '',
     category: 'immobilier' as 'immobilier' | 'patrimoine',
     role: 'ACHETEUR' as 'ACHETEUR' | 'VENDEUR',
     topic: 'Demande de renseignements',
@@ -90,9 +103,10 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
   const [filterStatus, setFilterStatus] = useState<'all' | 'new' | 'contacted' | 'qualified' | 'closed'>('all');
   // Éléments du mandat saisis pour un vendeur (avant création du bien)
   const [mandatForm, setMandatForm] = useState({
-    type: 'APPARTEMENT', rooms: '', surface: '', address: '',
-    netSellerAmount: '', commissionPercentage: '', mandateType: 'EXCLUSIF',
-    mandateNumber: '', mandateHonorairesCharge: 'VENDEUR', occupancy: 'LIBRE',
+    type: 'APPARTEMENT', rooms: '', surface: '', annexSurface: '', landSize: '', cadastre: '', address: '',
+    netSellerAmount: '', commissionMode: 'PCT', commissionPercentage: '', commissionAmount: '',
+    mandateType: 'EXCLUSIF', mandateNumber: '', mandateHonorairesCharge: 'VENDEUR', occupancy: 'LIBRE',
+    description: '',
   });
   const [linkPropertyId, setLinkPropertyId] = useState<string>('');
   // Panneau acheteur : critères de recherche
@@ -136,18 +150,48 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
       const cityMatch = address.match(/\b\d{5}\s+([A-Za-zÀ-ÿ'’\-\s]+)$/);
       const city = cityMatch ? cityMatch[1].trim() : '';
       const net = Number(mandatForm.netSellerAmount) || 0;
-      const pct = Number(mandatForm.commissionPercentage) || 0;
-      const honoraires = Math.round(net * pct / 100);
-      const prixFAI = mandatForm.mandateHonorairesCharge === 'VENDEUR' ? net : net + honoraires;
+      let honoraires = 0, pct = 0;
+      if (mandatForm.commissionMode === 'EUR') {
+        honoraires = Number(mandatForm.commissionAmount) || 0;
+        pct = net ? +(honoraires / net * 100).toFixed(2) : 0;
+      } else {
+        pct = Number(mandatForm.commissionPercentage) || 0;
+        honoraires = Math.round(net * pct / 100);
+      }
+      const prixFAI = net + honoraires; // FAI = net vendeur + honoraires
+      const isMaison = mandatForm.type === 'MAISON';
+      const owner: any = lead.company
+        ? {
+            type: 'COMPANY',
+            name: lead.companyName || `${lead.firstName || ''} ${lead.lastName || ''}`.trim(),
+            siren: lead.siren || '',
+            legalForm: lead.legalForm || '',
+            managerFirstName: lead.managerFirstName || lead.firstName || '',
+            managerLastName: lead.managerLastName || lead.lastName || '',
+            address: lead.address || '',
+            email: lead.email || '',
+            phone: lead.phone || '',
+          }
+        : {
+            type: 'INDIVIDUAL',
+            firstName: lead.firstName || '',
+            lastName: lead.lastName || '',
+            email: lead.email || '',
+            phone: lead.phone || '',
+            address: lead.address || '',
+          };
       const body: any = {
-        title: `Mandat — ${[lead.firstName, lead.lastName].filter(Boolean).join(' ')}`.trim() || 'Nouveau bien (mandat)',
+        title: `Mandat — ${lead.company ? (lead.companyName || '') : [lead.firstName, lead.lastName].filter(Boolean).join(' ')}`.trim() || 'Nouveau bien (mandat)',
         type: mandatForm.type || 'APPARTEMENT',
         city,
         region: '',
         price: prixFAI,
         surface: Number(mandatForm.surface) || 0,
+        annexSurface: Number(mandatForm.annexSurface) || undefined,
+        landSize: isMaison ? (Number(mandatForm.landSize) || undefined) : undefined,
         rooms: Number(mandatForm.rooms) || 0,
-        description: '',
+        cadastralReference: mandatForm.cadastre || undefined,
+        description: mandatForm.description || '',
         images: [],
         features: [],
         map: { precision: 'AREA', query: address, zoom: 12 },
@@ -162,14 +206,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
         occupancy: mandatForm.occupancy || undefined,
         mandatePlace: city || undefined,
         sellerLeadIds: [lead.id],
-        owners: [{
-          type: 'INDIVIDUAL',
-          firstName: lead.firstName || '',
-          lastName: lead.lastName || '',
-          email: lead.email || '',
-          phone: lead.phone || '',
-          address: lead.address || '',
-        }],
+        owners: [owner],
       };
       const res = await fetch('/api/properties', {
         method: 'POST',
@@ -195,9 +232,10 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
     setMandatLeadId(lead.id);
     setLinkPropertyId('');
     setMandatForm({
-      type: 'APPARTEMENT', rooms: '', surface: '', address: lead.address || '',
-      netSellerAmount: '', commissionPercentage: '', mandateType: 'EXCLUSIF',
-      mandateNumber: '', mandateHonorairesCharge: 'VENDEUR', occupancy: 'LIBRE',
+      type: 'APPARTEMENT', rooms: '', surface: '', annexSurface: '', landSize: '', cadastre: '', address: lead.address || '',
+      netSellerAmount: '', commissionMode: 'PCT', commissionPercentage: '', commissionAmount: '',
+      mandateType: 'EXCLUSIF', mandateNumber: '', mandateHonorairesCharge: 'VENDEUR', occupancy: 'LIBRE',
+      description: '',
     });
   };
 
@@ -328,6 +366,12 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
           email: '',
           phone: '',
           address: '',
+          company: false,
+          companyName: '',
+          siren: '',
+          legalForm: '',
+          managerFirstName: '',
+          managerLastName: '',
           category: 'immobilier',
           role: 'ACHETEUR',
           topic: 'Demande de renseignements',
@@ -403,6 +447,12 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
       email: lead.email,
       phone: lead.phone || '',
       address: lead.address || '',
+      company: !!lead.company,
+      companyName: lead.companyName || '',
+      siren: lead.siren || '',
+      legalForm: lead.legalForm || '',
+      managerFirstName: lead.managerFirstName || '',
+      managerLastName: lead.managerLastName || '',
       category: lead.category || 'immobilier',
       role: lead.role || 'ACHETEUR',
       topic: lead.topic || 'Demande de renseignements',
@@ -439,6 +489,12 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
           email: '',
           phone: '',
           address: '',
+          company: false,
+          companyName: '',
+          siren: '',
+          legalForm: '',
+          managerFirstName: '',
+          managerLastName: '',
           category: 'immobilier',
           role: 'ACHETEUR',
           topic: 'Demande de renseignements',
@@ -487,6 +543,12 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
       email: '',
       phone: '',
       address: '',
+      company: false,
+      companyName: '',
+      siren: '',
+      legalForm: '',
+      managerFirstName: '',
+      managerLastName: '',
       category: 'immobilier',
       role: 'ACHETEUR',
       topic: 'Demande de renseignements',
@@ -685,11 +747,41 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                 />
               </div>
 
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 flex items-center gap-3 flex-wrap">
                 <span className={`pill text-xs font-semibold ${role === 'VENDEUR' ? 'bg-amber-100 border-amber-300 text-amber-800' : 'bg-teal-100 border-teal-300 text-teal-800'}`}>
                   {role === 'VENDEUR' ? '🏷️ Lead vendeur (immobilier)' : '🔑 Lead acheteur (immobilier)'}
                 </span>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={formData.company} onChange={e => setFormData({ ...formData, company: e.target.checked })} data-testid="checkbox-company" />
+                  C&apos;est une société
+                </label>
               </div>
+
+              {formData.company && (
+                <div className="md:col-span-2 p-3 rounded border bg-gray-50">
+                  <CompanyAutocomplete
+                    value={formData.companyName}
+                    label="Raison sociale (recherche automatique SIREN)"
+                    onSelect={(c: any) => setFormData({
+                      ...formData,
+                      companyName: c.name || '',
+                      siren: c.siren || '',
+                      legalForm: c.legalForm || '',
+                      managerFirstName: c.managerFirstName || '',
+                      managerLastName: c.managerLastName || '',
+                      firstName: c.managerFirstName || formData.firstName,
+                      lastName: c.managerLastName || formData.lastName,
+                      address: c.address || formData.address,
+                    })}
+                  />
+                  {formData.siren && (
+                    <p className="text-xs opacity-70 mt-2">
+                      SIREN <strong>{formData.siren}</strong>{formData.legalForm ? ` · ${formData.legalForm}` : ''}
+                      {(formData.managerFirstName || formData.managerLastName) ? ` · Représentant : ${formData.managerFirstName} ${formData.managerLastName}` : ''}
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium mb-1">Email *</label>
@@ -1057,31 +1149,62 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                         Éléments du mandat — création du bien
                       </label>
 
+                      {/* Le bien */}
+                      <div className="text-xs font-semibold text-gray-600 mb-1">🏠 Le bien</div>
                       <div className="grid md:grid-cols-3 gap-2">
                         <select className="input text-sm" value={mandatForm.type} onChange={e => setMandatForm({ ...mandatForm, type: e.target.value })}>
                           <option value="APPARTEMENT">Appartement</option>
                           <option value="MAISON">Maison</option>
                         </select>
                         <input className="input text-sm" type="number" min="0" placeholder="Pièces" value={mandatForm.rooms} onChange={e => setMandatForm({ ...mandatForm, rooms: e.target.value })} />
-                        <input className="input text-sm" type="number" min="0" placeholder="Surface (m²)" value={mandatForm.surface} onChange={e => setMandatForm({ ...mandatForm, surface: e.target.value })} />
-                        <input className="input text-sm md:col-span-3" placeholder="Adresse du bien" value={mandatForm.address} onChange={e => setMandatForm({ ...mandatForm, address: e.target.value })} />
-                        <input className="input text-sm" type="number" min="0" placeholder="Prix net vendeur (€)" value={mandatForm.netSellerAmount} onChange={e => setMandatForm({ ...mandatForm, netSellerAmount: e.target.value })} />
-                        <input className="input text-sm" type="number" min="0" step="0.1" placeholder="Honoraires (%)" value={mandatForm.commissionPercentage} onChange={e => setMandatForm({ ...mandatForm, commissionPercentage: e.target.value })} />
-                        <input className="input text-sm" placeholder="N° de mandat" value={mandatForm.mandateNumber} onChange={e => setMandatForm({ ...mandatForm, mandateNumber: e.target.value })} />
+                        <input className="input text-sm" placeholder="Réf. cadastrale" value={mandatForm.cadastre} onChange={e => setMandatForm({ ...mandatForm, cadastre: e.target.value })} />
+                        <input className="input text-sm" type="number" min="0" placeholder="Surface Carrez (m²)" value={mandatForm.surface} onChange={e => setMandatForm({ ...mandatForm, surface: e.target.value })} />
+                        <input className="input text-sm" type="number" min="0" placeholder="Surface hors Carrez (m²)" value={mandatForm.annexSurface} onChange={e => setMandatForm({ ...mandatForm, annexSurface: e.target.value })} />
+                        {mandatForm.type === 'MAISON' && (
+                          <input className="input text-sm" type="number" min="0" placeholder="Terrain (m²)" value={mandatForm.landSize} onChange={e => setMandatForm({ ...mandatForm, landSize: e.target.value })} />
+                        )}
+                        <input className="input text-sm md:col-span-3" placeholder="Adresse du bien (avec code postal + ville)" value={mandatForm.address} onChange={e => setMandatForm({ ...mandatForm, address: e.target.value })} />
+                      </div>
+
+                      {/* Le mandat */}
+                      <div className="text-xs font-semibold text-gray-600 mt-3 mb-1">📄 Le mandat</div>
+                      <div className="grid md:grid-cols-3 gap-2">
                         <select className="input text-sm" value={mandatForm.mandateType} onChange={e => setMandatForm({ ...mandatForm, mandateType: e.target.value })}>
                           <option value="SIMPLE">Mandat simple</option>
                           <option value="EXCLUSIF">Mandat exclusif</option>
                           <option value="SUCCES">Mandat succès</option>
                         </select>
-                        <select className="input text-sm" value={mandatForm.mandateHonorairesCharge} onChange={e => setMandatForm({ ...mandatForm, mandateHonorairesCharge: e.target.value })}>
-                          <option value="VENDEUR">Honoraires charge vendeur</option>
-                          <option value="ACQUEREUR">Honoraires charge acquéreur</option>
-                        </select>
+                        <input className="input text-sm" placeholder="N° de mandat" value={mandatForm.mandateNumber} onChange={e => setMandatForm({ ...mandatForm, mandateNumber: e.target.value })} />
                         <select className="input text-sm" value={mandatForm.occupancy} onChange={e => setMandatForm({ ...mandatForm, occupancy: e.target.value })}>
                           <option value="LIBRE">Bien libre</option>
                           <option value="OCCUPE">Bien occupé / loué</option>
                         </select>
+                        <textarea className="input text-sm md:col-span-3" rows={2} placeholder="Description du bien" value={mandatForm.description} onChange={e => setMandatForm({ ...mandatForm, description: e.target.value })} />
+                        <input className="input text-sm" type="number" min="0" placeholder="Prix net vendeur (€)" value={mandatForm.netSellerAmount} onChange={e => setMandatForm({ ...mandatForm, netSellerAmount: e.target.value })} />
+                        <div className="flex gap-1">
+                          <button type="button" onClick={() => setMandatForm({ ...mandatForm, commissionMode: 'PCT' })} className={`px-2 rounded text-sm border ${mandatForm.commissionMode === 'PCT' ? 'bg-[#B89C6D] text-white border-[#B89C6D]' : 'bg-white border-gray-300'}`}>%</button>
+                          <button type="button" onClick={() => setMandatForm({ ...mandatForm, commissionMode: 'EUR' })} className={`px-2 rounded text-sm border ${mandatForm.commissionMode === 'EUR' ? 'bg-[#B89C6D] text-white border-[#B89C6D]' : 'bg-white border-gray-300'}`}>€</button>
+                          {mandatForm.commissionMode === 'PCT' ? (
+                            <input className="input text-sm flex-1" type="number" min="0" step="0.1" placeholder="Honoraires (%)" value={mandatForm.commissionPercentage} onChange={e => setMandatForm({ ...mandatForm, commissionPercentage: e.target.value })} />
+                          ) : (
+                            <input className="input text-sm flex-1" type="number" min="0" placeholder="Honoraires (€)" value={mandatForm.commissionAmount} onChange={e => setMandatForm({ ...mandatForm, commissionAmount: e.target.value })} />
+                          )}
+                        </div>
+                        <select className="input text-sm" value={mandatForm.mandateHonorairesCharge} onChange={e => setMandatForm({ ...mandatForm, mandateHonorairesCharge: e.target.value })}>
+                          <option value="VENDEUR">Honoraires charge vendeur</option>
+                          <option value="ACQUEREUR">Honoraires charge acquéreur</option>
+                        </select>
                       </div>
+                      {(() => {
+                        const net = Number(mandatForm.netSellerAmount) || 0;
+                        const hon = mandatForm.commissionMode === 'EUR' ? (Number(mandatForm.commissionAmount) || 0) : Math.round(net * (Number(mandatForm.commissionPercentage) || 0) / 100);
+                        if (!net) return null;
+                        return (
+                          <div className="mt-2 text-xs bg-white border border-amber-200 rounded px-2 py-1">
+                            Net vendeur <strong>{net.toLocaleString('fr-FR')} €</strong> · Honoraires <strong>{hon.toLocaleString('fr-FR')} €</strong> · Prix FAI <strong className="text-[#B89C6D]">{(net + hon).toLocaleString('fr-FR')} €</strong>
+                          </div>
+                        );
+                      })()}
 
                       <button
                         onClick={() => handleCreatePropertyFromLead(lead)}

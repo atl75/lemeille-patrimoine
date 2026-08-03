@@ -13,3 +13,7 @@ public/uploads/*
 data/properties.json
 data/leads.json
 data/analytics.json
+.agents/
+tsconfig.tsbuildinfo
+skills-lock.json
+.claude/skills/
