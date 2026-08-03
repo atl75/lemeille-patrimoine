@@ -3,7 +3,7 @@ import AdminShell from "@/components/AdminShell";
 import Breadcrumb from "@/components/Breadcrumb";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useEffect, useState } from "react";
-import { Plus, X, Calendar, CheckCircle2, Circle, Edit2, Trash2, Paperclip, Download, Eye, FileText } from "lucide-react";
+import { Plus, X, Calendar, CheckCircle2, Circle, Edit2, Trash2, Paperclip, Download, Eye, FileText, Search } from "lucide-react";
 
 type Action = {
   id: string;
@@ -39,6 +39,8 @@ type Lead = {
   meta?: any;
   actions?: Action[];
   attachments?: Attachment[];
+  // Critères de recherche (leads acheteurs)
+  buyerCriteria?: { budgetMin?: number; budgetMax?: number; sector?: string; type?: string; roomsMin?: number; surfaceMin?: number };
 };
 
 function formatDate(iso: string) {
@@ -94,6 +96,10 @@ export default function Page(){
     mandateNumber: '', mandateHonorairesCharge: 'VENDEUR', occupancy: 'LIBRE',
   });
   const [linkPropertyId, setLinkPropertyId] = useState<string>('');
+  // Panneau acheteur : critères de recherche
+  const [buyerLeadId, setBuyerLeadId] = useState<string | null>(null);
+  const [savingBuyer, setSavingBuyer] = useState(false);
+  const [buyerForm, setBuyerForm] = useState({ budgetMin: '', budgetMax: '', sector: '', type: '', roomsMin: '', surfaceMin: '' });
   const { confirm, dialog } = useConfirm();
 
   const refreshProperties = () =>
@@ -196,6 +202,65 @@ export default function Page(){
 
   // Biens reliés à un vendeur (lead).
   const biensOfSeller = (leadId: string) => properties.filter((p: any) => Array.isArray(p.sellerLeadIds) && p.sellerLeadIds.includes(leadId));
+
+  // ---- Acheteur : critères de recherche + biens correspondants ----
+  const openBuyerPanel = (lead: Lead) => {
+    if (buyerLeadId === lead.id) { setBuyerLeadId(null); return; }
+    setBuyerLeadId(lead.id);
+    const c = lead.buyerCriteria || {};
+    setBuyerForm({
+      budgetMin: c.budgetMin != null ? String(c.budgetMin) : '',
+      budgetMax: c.budgetMax != null ? String(c.budgetMax) : '',
+      sector: c.sector || '',
+      type: c.type || '',
+      roomsMin: c.roomsMin != null ? String(c.roomsMin) : '',
+      surfaceMin: c.surfaceMin != null ? String(c.surfaceMin) : '',
+    });
+  };
+
+  // Critères construits à partir du formulaire en cours (aperçu live).
+  const currentBuyerCriteria = (): Lead['buyerCriteria'] => ({
+    budgetMin: Number(buyerForm.budgetMin) || undefined,
+    budgetMax: Number(buyerForm.budgetMax) || undefined,
+    sector: buyerForm.sector.trim() || undefined,
+    type: buyerForm.type || undefined,
+    roomsMin: Number(buyerForm.roomsMin) || undefined,
+    surfaceMin: Number(buyerForm.surfaceMin) || undefined,
+  });
+
+  const saveBuyerCriteria = async (lead: Lead) => {
+    setSavingBuyer(true);
+    const bc = currentBuyerCriteria();
+    try {
+      const res = await fetch(`/api/leads/${lead.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ buyerCriteria: bc }),
+      });
+      if (res.ok) fetchLeads(); else alert('Erreur lors de l\'enregistrement des critères.');
+    } catch { alert('Erreur réseau.'); }
+    setSavingBuyer(false);
+  };
+
+  // Biens disponibles correspondant aux critères d'un acheteur.
+  const matchingBiens = (c?: Lead['buyerCriteria']) => {
+    if (!c) return [];
+    return properties.filter((p: any) => {
+      if (p.visible === false || p.sold || p.status === 'SOLD') return false;
+      if (c.type && (p.type || 'APPARTEMENT') !== c.type) return false;
+      if (c.roomsMin && (p.rooms || 0) < c.roomsMin) return false;
+      if (c.surfaceMin && (p.surface || 0) < c.surfaceMin) return false;
+      if (!p.priceOnRequest) {
+        if (c.budgetMax && (p.price || 0) > c.budgetMax) return false;
+        if (c.budgetMin && (p.price || 0) < c.budgetMin) return false;
+      }
+      if (c.sector) {
+        const hay = [p.city, String(p.region || '').replaceAll('_', ' '), p.map?.query].filter(Boolean).join(' ').toLowerCase();
+        if (!hay.includes(c.sector.toLowerCase())) return false;
+      }
+      return true;
+    });
+  };
+  const hasCriteria = (c?: Lead['buyerCriteria']) => !!(c && (c.budgetMin || c.budgetMax || c.sector || c.type || c.roomsMin || c.surfaceMin));
 
   const linkExistingBien = async (lead: Lead) => {
     if (!linkPropertyId) return;
@@ -781,7 +846,17 @@ export default function Page(){
       {!loading && filteredLeads.length > 0 && (
         <div className="grid gap-4">
           {filteredLeads.map(lead => (
-            <div key={lead.id} className="card p-6" data-testid={`lead-${lead.id}`}>
+            <div
+              key={lead.id}
+              className={`card p-6 border-l-4 ${
+                (lead.category || 'immobilier') === 'patrimoine'
+                  ? 'border-l-purple-400'
+                  : (lead.role || 'ACHETEUR') === 'VENDEUR'
+                    ? 'border-l-amber-400'
+                    : 'border-l-teal-400'
+              }`}
+              data-testid={`lead-${lead.id}`}
+            >
               <div className="flex flex-wrap gap-4 justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2 flex-wrap">
@@ -811,8 +886,19 @@ export default function Page(){
                       {lead.source || 'contact-form'}
                     </span>
 
-                    {/* Boutons Mandat, Modifier et Supprimer */}
+                    {/* Boutons d'action (spécifiques au rôle), Modifier et Supprimer */}
                     <div className="flex gap-2 ml-auto">
+                      {(lead.category || 'immobilier') === 'immobilier' && (lead.role || 'ACHETEUR') === 'ACHETEUR' && (
+                        <button
+                          onClick={() => openBuyerPanel(lead)}
+                          className="btn text-xs flex items-center gap-1 px-2 py-1 hover:bg-teal-50 text-teal-700"
+                          data-testid={`button-buyer-${lead.id}`}
+                          title="Recherche & biens correspondants"
+                        >
+                          <Search className="w-3 h-3" />
+                          Recherche & biens
+                        </button>
+                      )}
                       {(lead.category || 'immobilier') === 'immobilier' && (lead.role || 'ACHETEUR') === 'VENDEUR' && (
                         <button
                           onClick={() => openMandatPanel(lead)}
@@ -864,6 +950,73 @@ export default function Page(){
                           {b.mandateSignStatus === 'SIGNED' ? ' ✔' : ''}
                         </span>
                       ))}
+                    </div>
+                  )}
+
+                  {/* Résumé acheteur (critères + biens correspondants) */}
+                  {(lead.category || 'immobilier') === 'immobilier' && (lead.role || 'ACHETEUR') === 'ACHETEUR' && hasCriteria(lead.buyerCriteria) && (
+                    <div className="mb-3 text-sm">
+                      <span className="font-medium text-teal-700">🔎 Recherche :</span>{' '}
+                      <span className="opacity-80">
+                        {[
+                          lead.buyerCriteria?.type ? (lead.buyerCriteria.type === 'MAISON' ? 'Maison' : 'Appartement') : null,
+                          lead.buyerCriteria?.roomsMin ? `${lead.buyerCriteria.roomsMin}+ pièces` : null,
+                          lead.buyerCriteria?.surfaceMin ? `≥ ${lead.buyerCriteria.surfaceMin} m²` : null,
+                          lead.buyerCriteria?.budgetMax ? `≤ ${Number(lead.buyerCriteria.budgetMax).toLocaleString('fr-FR')} €` : null,
+                          lead.buyerCriteria?.sector ? `secteur ${lead.buyerCriteria.sector}` : null,
+                        ].filter(Boolean).join(' · ') || 'critères enregistrés'}
+                      </span>
+                      <span className="ml-2 pill text-xs border-teal-300 text-teal-700">{matchingBiens(lead.buyerCriteria).length} bien(s) correspondant(s)</span>
+                    </div>
+                  )}
+
+                  {/* Panneau acheteur : critères de recherche + biens correspondants */}
+                  {buyerLeadId === lead.id && (
+                    <div className="mb-3 p-3 rounded border border-teal-200 bg-teal-50" data-testid={`buyer-panel-${lead.id}`}>
+                      <label className="block text-xs font-semibold mb-2 flex items-center gap-1 text-teal-700">
+                        <Search className="w-3 h-3" />
+                        Critères de recherche de l&apos;acheteur
+                      </label>
+                      <div className="grid md:grid-cols-3 gap-2">
+                        <select className="input text-sm" value={buyerForm.type} onChange={e => setBuyerForm({ ...buyerForm, type: e.target.value })}>
+                          <option value="">Type — indifférent</option>
+                          <option value="APPARTEMENT">Appartement</option>
+                          <option value="MAISON">Maison</option>
+                        </select>
+                        <input className="input text-sm" type="number" min="0" placeholder="Pièces min." value={buyerForm.roomsMin} onChange={e => setBuyerForm({ ...buyerForm, roomsMin: e.target.value })} />
+                        <input className="input text-sm" type="number" min="0" placeholder="Surface min. (m²)" value={buyerForm.surfaceMin} onChange={e => setBuyerForm({ ...buyerForm, surfaceMin: e.target.value })} />
+                        <input className="input text-sm" type="number" min="0" placeholder="Budget min. (€)" value={buyerForm.budgetMin} onChange={e => setBuyerForm({ ...buyerForm, budgetMin: e.target.value })} />
+                        <input className="input text-sm" type="number" min="0" placeholder="Budget max. (€)" value={buyerForm.budgetMax} onChange={e => setBuyerForm({ ...buyerForm, budgetMax: e.target.value })} />
+                        <input className="input text-sm" placeholder="Secteur (ville / région)" value={buyerForm.sector} onChange={e => setBuyerForm({ ...buyerForm, sector: e.target.value })} />
+                      </div>
+                      <button
+                        onClick={() => saveBuyerCriteria(lead)}
+                        disabled={savingBuyer}
+                        className="btn-luxe text-sm px-3 py-1.5 flex items-center gap-1 disabled:opacity-60 mt-3"
+                        data-testid={`button-save-buyer-${lead.id}`}
+                      >
+                        <Search className="w-3 h-3" />
+                        {savingBuyer ? 'Enregistrement…' : 'Enregistrer les critères'}
+                      </button>
+
+                      {/* Biens correspondants (aperçu live selon le formulaire) */}
+                      <div className="mt-3 pt-3 border-t border-teal-200">
+                        <label className="block text-xs opacity-70 mb-1">Biens disponibles correspondants ({matchingBiens(currentBuyerCriteria()).length})</label>
+                        {matchingBiens(currentBuyerCriteria()).length === 0 ? (
+                          <p className="text-xs opacity-60">Aucun bien ne correspond {hasCriteria(currentBuyerCriteria()) ? 'à ces critères' : '— renseignez des critères ci-dessus'}.</p>
+                        ) : (
+                          <div className="space-y-1">
+                            {matchingBiens(currentBuyerCriteria()).map((b: any) => (
+                              <div key={b.id} className="flex items-center gap-2 text-sm">
+                                <a href={`/immobilier/biens/${b.id}`} target="_blank" rel="noopener noreferrer" className="underline flex-1">
+                                  {b.title || b.id}{b.city ? ` — ${b.city}` : ''}{!b.priceOnRequest && b.price ? ` · ${Number(b.price).toLocaleString('fr-FR')} €` : ''}
+                                </a>
+                                <a href={`/admin/contenu/biens?edit=${b.id}`} className="text-gray-500 hover:opacity-70" title="Ouvrir le bien"><Edit2 className="w-3.5 h-3.5" /></a>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
