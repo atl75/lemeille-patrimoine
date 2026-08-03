@@ -153,32 +153,7 @@ export default function Page() {
   const [analyzing, setAnalyzing] = useState(false);
   const [searchingCadastre, setSearchingCadastre] = useState(false);
   const [calculationMode, setCalculationMode] = useState<'FROM_NET' | 'FROM_FAI'>('FROM_NET'); // Mode de calcul financier
-  const [signLink, setSignLink] = useState<string | null>(null);
-  const [signLoading, setSignLoading] = useState(false);
-  const [signEmailed, setSignEmailed] = useState<{ sent: boolean; email: string } | null>(null);
   const { confirm, dialog } = useConfirm();
-
-  // Génère un lien de signature électronique pour le mandat du bien en cours.
-  const handleSignRequest = async () => {
-    if (!editing?.id) return;
-    setSignLoading(true);
-    setSignLink(null);
-    setSignEmailed(null);
-    try {
-      const res = await fetch(`/api/properties/${editing.id}/mandat/sign-request`, { method: 'POST' });
-      const d = await res.json();
-      if (res.ok) {
-        setSignLink(d.url);
-        setSignEmailed({ sent: !!d.emailed, email: d.signerEmail || '' });
-        setEditing(prev => prev ? { ...prev, mandateSignStatus: 'PENDING', mandateSignToken: d.token, mandateSignature: undefined } : prev);
-      } else {
-        alert(d.error || 'Erreur lors de la génération du lien.');
-      }
-    } catch {
-      alert('Erreur réseau.');
-    }
-    setSignLoading(false);
-  };
 
   // Fonction pour rechercher la parcelle cadastrale
   const searchCadastralReference = async () => {
@@ -1811,16 +1786,6 @@ export default function Page() {
             <div className="flex justify-between items-center mb-1.5">
               <h3 className="font-semibold text-xs">Documents</h3>
               <div className="flex gap-0.5">
-                {editing.mandate && (
-                  <button
-                    onClick={() => analyzeDocument(editing.mandate!)}
-                    disabled={analyzing}
-                    className="px-1.5 py-0.5 text-[10px] bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                    data-testid="button-analyze-mandate"
-                  >
-                    {analyzing ? '...' : 'IA Mandat'}
-                  </button>
-                )}
                 {editing.estimation && (
                   <button
                     onClick={() => analyzeDocument(editing.estimation!)}
@@ -2137,109 +2102,6 @@ export default function Page() {
             )}
           </div>
 
-          </CollapsibleSection>
-
-          <CollapsibleSection title="Mandat de vente" subtitle="Type, numéro, honoraires, occupation — pour générer le mandat">
-            <div className="grid md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium mb-1">Type de mandat</label>
-                <select className="w-full px-2 py-1.5 text-sm border rounded" value={editing.mandateType || ''}
-                  onChange={e => updateField('mandateType', e.target.value || undefined)} data-testid="select-mandate-type">
-                  <option value="">—</option>
-                  <option value="SIMPLE">Simple</option>
-                  <option value="EXCLUSIF">Exclusif</option>
-                  <option value="SUCCES">Succès</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1">Numéro de mandat</label>
-                <input className="w-full px-2 py-1.5 text-sm border rounded" value={editing.mandateNumber || ''}
-                  onChange={e => updateField('mandateNumber', e.target.value)} placeholder="ex : 202602-02" data-testid="input-mandate-number" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1">Honoraires à la charge du</label>
-                <select className="w-full px-2 py-1.5 text-sm border rounded" value={editing.mandateHonorairesCharge || ''}
-                  onChange={e => updateField('mandateHonorairesCharge', e.target.value || undefined)} data-testid="select-mandate-charge">
-                  <option value="">—</option>
-                  <option value="VENDEUR">Vendeur</option>
-                  <option value="ACQUEREUR">Acquéreur</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1">État du bien</label>
-                <select className="w-full px-2 py-1.5 text-sm border rounded" value={editing.occupancy || ''}
-                  onChange={e => updateField('occupancy', e.target.value || undefined)} data-testid="select-occupancy">
-                  <option value="">—</option>
-                  <option value="LIBRE">Libre</option>
-                  <option value="OCCUPE">Occupé / loué</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1">Fait à (lieu de signature)</label>
-                <input className="w-full px-2 py-1.5 text-sm border rounded" value={editing.mandatePlace || ''}
-                  onChange={e => updateField('mandatePlace', e.target.value)} placeholder="ex : Nice" data-testid="input-mandate-place" />
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-3">
-              Le mandat reprend automatiquement le propriétaire, le bien, les prix (net vendeur, honoraires, FAI) et le représentant société. Enregistrez le bien puis générez le mandat depuis la liste des biens.
-            </p>
-
-            {editing.id && (
-              <div className="mt-4 pt-3 border-t">
-                <div className="text-sm font-medium mb-1">✍️ Signature électronique</div>
-                {editing.mandateSignStatus === 'SIGNED' ? (
-                  <p className="text-sm text-green-700">
-                    ✔ Mandat signé électroniquement par le mandant{editing.mandateSignature?.signedAt ? ` le ${new Date(editing.mandateSignature.signedAt).toLocaleString('fr-FR')}` : ''}. La signature figure dans le PDF.
-                  </p>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleSignRequest}
-                      disabled={signLoading}
-                      className="px-3 py-1.5 text-sm bg-[#1F3B2C] text-white rounded hover:bg-[#173024] disabled:opacity-50"
-                      data-testid="button-sign-request"
-                    >
-                      {signLoading ? 'Génération…' : (editing.mandateSignToken ? 'Régénérer le lien de signature' : 'Générer le lien de signature')}
-                    </button>
-                    {(signLink || editing.mandateSignToken) && (
-                      <div className="mt-2">
-                        <div className="flex gap-2">
-                          <input
-                            readOnly
-                            value={signLink || (typeof window !== 'undefined' ? `${window.location.origin}/mandat/signer/${editing.mandateSignToken}` : '')}
-                            onFocus={e => e.currentTarget.select()}
-                            className="flex-1 px-2 py-1.5 text-xs border rounded bg-gray-50"
-                            data-testid="input-sign-link"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const link = signLink || `${window.location.origin}/mandat/signer/${editing.mandateSignToken}`;
-                              navigator.clipboard?.writeText(link);
-                            }}
-                            className="px-2 py-1.5 text-xs border rounded hover:bg-gray-50"
-                          >
-                            Copier
-                          </button>
-                        </div>
-                        {signEmailed?.sent ? (
-                          <p className="text-xs text-green-700 mt-1">✉️ Lien envoyé automatiquement par email à {signEmailed.email}. Vous pouvez aussi le copier ci-dessus.</p>
-                        ) : signEmailed && !signEmailed.sent ? (
-                          <p className="text-xs text-gray-500 mt-1">
-                            {signEmailed.email ? "L'email n'a pas pu être envoyé — copiez le lien et transmettez-le au mandant." : "Aucun email du mandant renseigné — copiez le lien et transmettez-le (email, SMS, WhatsApp)."}
-                          </p>
-                        ) : (
-                          <p className="text-xs text-gray-500 mt-1">
-                            Envoyez ce lien au mandant : il pourra lire le mandat et le signer en ligne. La signature (horodatée + IP) sera intégrée au PDF.
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
           </CollapsibleSection>
 
           <div className="flex gap-2">

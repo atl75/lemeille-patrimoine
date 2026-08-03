@@ -1,8 +1,8 @@
 "use client";
 import AdminShell from "@/components/AdminShell";
 import Breadcrumb from "@/components/Breadcrumb";
-import { useEffect, useMemo, useState } from "react";
-import { Printer, FileText, Link2 } from "lucide-react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { Printer, FileText, Link2, PenLine } from "lucide-react";
 
 type Owner = { type?: string; firstName?: string; lastName?: string; name?: string; address?: string };
 type Mandat = {
@@ -47,6 +47,24 @@ function bienLabel(m: Mandat): string {
 export default function Page() {
   const [items, setItems] = useState<Mandat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [signingId, setSigningId] = useState<string | null>(null);
+  const [signInfo, setSignInfo] = useState<Record<string, { link: string; emailed: boolean; email: string }>>({});
+
+  // Génère (ou régénère) le lien de signature électronique du mandat.
+  const handleSign = async (m: Mandat) => {
+    setSigningId(m.id);
+    try {
+      const res = await fetch(`/api/properties/${m.id}/mandat/sign-request`, { method: 'POST' });
+      const d = await res.json();
+      if (res.ok) {
+        setSignInfo(prev => ({ ...prev, [m.id]: { link: d.url, emailed: !!d.emailed, email: d.signerEmail || '' } }));
+        setItems(prev => prev.map(x => x.id === m.id ? { ...x, mandateSignStatus: 'PENDING' } : x));
+      } else {
+        alert(d.error || 'Erreur lors de la génération du lien.');
+      }
+    } catch { alert('Erreur réseau.'); }
+    setSigningId(null);
+  };
 
   useEffect(() => {
     fetch('/api/properties')
@@ -109,7 +127,7 @@ export default function Page() {
 
       {!loading && mandats.length === 0 && (
         <div className="card p-6 opacity-70">
-          Aucun mandat enregistré. Renseignez la section « Mandat de vente » d&apos;un bien (type et numéro de mandat) pour l&apos;inscrire au registre.
+          Aucun mandat enregistré. Créez un mandat depuis le CRM Vendeurs (bouton « Mandat &amp; bien » d&apos;un vendeur) : le bien et son mandat seront automatiquement inscrits au registre.
         </div>
       )}
 
@@ -139,7 +157,8 @@ export default function Page() {
                 {mandats.map((m, i) => {
                   const addr = mandantAddr(m);
                   return (
-                    <tr key={m.id} className={i % 2 ? 'bg-black/[0.03]' : ''} style={{ borderBottom: '1px solid #eee' }}>
+                    <Fragment key={m.id}>
+                    <tr className={i % 2 ? 'bg-black/[0.03]' : ''} style={{ borderBottom: '1px solid #eee' }}>
                       <td className="px-3 py-2 font-semibold whitespace-nowrap">{m.mandateNumber || '—'}</td>
                       <td className="px-3 py-2 whitespace-nowrap">
                         {m.mandateSignature?.signedAt ? new Date(m.mandateSignature.signedAt).toLocaleDateString('fr-FR') : <span className="opacity-50">—</span>}
@@ -164,6 +183,17 @@ export default function Page() {
                       </td>
                       <td className="px-3 py-2 no-print">
                         <div className="flex gap-2">
+                          {m.mandateSignStatus !== 'SIGNED' && (
+                            <button
+                              onClick={() => handleSign(m)}
+                              disabled={signingId === m.id}
+                              title={m.mandateSignStatus === 'PENDING' ? 'Régénérer le lien de signature' : 'Générer le lien de signature'}
+                              className="text-[#1F3B2C] hover:opacity-70 disabled:opacity-40"
+                              data-testid={`button-sign-${m.id}`}
+                            >
+                              <PenLine className="w-4 h-4" />
+                            </button>
+                          )}
                           <a href={`/api/properties/${m.id}/mandat/pdf`} target="_blank" rel="noopener noreferrer" title="Mandat PDF" className="text-[#B89C6D] hover:opacity-70">
                             <FileText className="w-4 h-4" />
                           </a>
@@ -173,6 +203,33 @@ export default function Page() {
                         </div>
                       </td>
                     </tr>
+                    {signInfo[m.id] && (
+                      <tr className="no-print">
+                        <td colSpan={10} className="px-3 py-2 bg-amber-50" style={{ borderBottom: '1px solid #eee' }}>
+                          <div className="flex gap-2 items-center flex-wrap">
+                            <span className="text-xs font-medium whitespace-nowrap">✍️ Lien de signature :</span>
+                            <input
+                              readOnly
+                              value={signInfo[m.id].link}
+                              onFocus={e => e.currentTarget.select()}
+                              className="flex-1 min-w-[220px] px-2 py-1 text-xs border rounded bg-white"
+                            />
+                            <button
+                              onClick={() => navigator.clipboard?.writeText(signInfo[m.id].link)}
+                              className="px-2 py-1 text-xs border rounded hover:bg-white"
+                            >
+                              Copier
+                            </button>
+                            {signInfo[m.id].emailed ? (
+                              <span className="text-xs text-green-700 whitespace-nowrap">✉️ Envoyé à {signInfo[m.id].email}</span>
+                            ) : (
+                              <span className="text-xs text-gray-500">{signInfo[m.id].email ? "Email non envoyé — copiez le lien" : "Aucun email du mandant — copiez le lien et transmettez-le"}</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   );
                 })}
               </tbody>
