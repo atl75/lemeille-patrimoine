@@ -3,7 +3,7 @@ import AdminShell from "@/components/AdminShell";
 import Breadcrumb from "@/components/Breadcrumb";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useEffect, useState } from "react";
-import { Plus, X, Calendar, CheckCircle2, Circle, Edit2, Trash2, Paperclip, Download, Eye, FileText, Search } from "lucide-react";
+import { Plus, X, Calendar, CheckCircle2, Circle, Edit2, Trash2, Paperclip, Download, Eye, FileText, Search, Mail } from "lucide-react";
 
 type Action = {
   id: string;
@@ -100,6 +100,8 @@ export default function Page(){
   const [buyerLeadId, setBuyerLeadId] = useState<string | null>(null);
   const [savingBuyer, setSavingBuyer] = useState(false);
   const [buyerForm, setBuyerForm] = useState({ budgetMin: '', budgetMax: '', sector: '', type: '', roomsMin: '', surfaceMin: '' });
+  const [proposing, setProposing] = useState<string | null>(null);
+  const [proposeMsg, setProposeMsg] = useState<{ leadId: string; text: string; ok: boolean } | null>(null);
   const { confirm, dialog } = useConfirm();
 
   const refreshProperties = () =>
@@ -239,6 +241,25 @@ export default function Page(){
       if (res.ok) fetchLeads(); else alert('Erreur lors de l\'enregistrement des critères.');
     } catch { alert('Erreur réseau.'); }
     setSavingBuyer(false);
+  };
+
+  // Envoie au client la sélection de biens correspondants par email.
+  const proposeBiens = async (lead: Lead) => {
+    const ids = matchingBiens(currentBuyerCriteria()).map((b: any) => b.id);
+    if (!ids.length) { alert('Aucun bien à proposer.'); return; }
+    if (!lead.email) { alert("Ce lead n'a pas d'email."); return; }
+    setProposing(lead.id);
+    setProposeMsg(null);
+    try {
+      const res = await fetch(`/api/leads/${lead.id}/propose-biens`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ propertyIds: ids }),
+      });
+      const d = await res.json();
+      if (res.ok) setProposeMsg({ leadId: lead.id, ok: true, text: `✉️ ${d.count} bien(s) envoyé(s) à ${lead.email}` });
+      else setProposeMsg({ leadId: lead.id, ok: false, text: d.error || 'Échec de l\'envoi.' });
+    } catch { setProposeMsg({ leadId: lead.id, ok: false, text: 'Erreur réseau.' }); }
+    setProposing(null);
   };
 
   // Biens disponibles correspondant aux critères d'un acheteur.
@@ -1014,6 +1035,21 @@ export default function Page(){
                                 <a href={`/admin/contenu/biens?edit=${b.id}`} className="text-gray-500 hover:opacity-70" title="Ouvrir le bien"><Edit2 className="w-3.5 h-3.5" /></a>
                               </div>
                             ))}
+                          </div>
+                        )}
+                        {lead.email && matchingBiens(currentBuyerCriteria()).length > 0 && (
+                          <div className="mt-3 flex items-center gap-2 flex-wrap">
+                            <button
+                              onClick={() => proposeBiens(lead)}
+                              disabled={proposing === lead.id}
+                              className="btn text-sm px-3 py-1 flex items-center gap-1 disabled:opacity-60"
+                              data-testid={`button-propose-${lead.id}`}
+                            >
+                              <Mail className="w-3.5 h-3.5" /> {proposing === lead.id ? 'Envoi…' : 'Proposer ces biens par email'}
+                            </button>
+                            {proposeMsg?.leadId === lead.id && (
+                              <span className={`text-xs ${proposeMsg.ok ? 'text-green-700' : 'text-red-600'}`}>{proposeMsg.text}</span>
+                            )}
                           </div>
                         )}
                       </div>
