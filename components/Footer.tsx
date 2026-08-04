@@ -1,81 +1,105 @@
 import Link from "next/link";
 
-export function Footer(){
+export function Footer() {
+  const year = new Date().getFullYear();
+  const bureaux = [
+    { label: "Rouen", detail: "35 rue Ganterie, 76000", q: "35+rue+Ganterie%2C+76000+Rouen", testid: "link-map-rouen" },
+    { label: "Fréjus", detail: "722 avenue Alfred de Musset, 83370", q: "722+avenue+Alfred+de+Musset%2C+83370+Fr%C3%A9jus", testid: "link-map-frejus" },
+    { label: "Siège", detail: "50 rue de la Garenne, 76130 Mont-Saint-Aignan", q: "50+rue+de+la+Garenne%2C+76130+Mont-Saint-Aignan", testid: "link-map-siege" },
+  ];
+  const nav = [
+    { href: "/references", label: "Références" },
+    { href: "/partenaires", label: "Partenaires" },
+    { href: "/faq", label: "FAQ" },
+    { href: "/actualites", label: "Actualités" },
+    { href: "/bareme-honoraires", label: "Barème d'honoraires" },
+    { href: "/mentions-legales", label: "Mentions légales" },
+    { href: "/confidentialite", label: "Confidentialité" },
+    { href: "/cookies", label: "Cookies" },
+  ];
+  const secteurs = [
+    { href: "/secteurs/paris-rive-gauche", label: "Paris Rive gauche" },
+    { href: "/secteurs/paris-ouest", label: "Paris Ouest" },
+    { href: "/secteurs/paris-centre-historique", label: "Paris Centre historique" },
+    { href: "/secteurs/rouen-centre", label: "Rouen centre" },
+    { href: "/secteurs/mont-saint-aignan-bois-guillaume", label: "Mont-Saint-Aignan & Bois-Guillaume" },
+    { href: "/secteurs/saint-aygulf-frejus", label: "Saint-Aygulf & Fréjus" },
+    { href: "/secteurs/sainte-maxime-golfe-saint-tropez", label: "Sainte-Maxime & Golfe de Saint-Tropez" },
+    { href: "/secteurs/esterel-arriere-pays", label: "Estérel & arrière-pays" },
+  ];
+
+  const heading = "text-[11px] font-semibold uppercase tracking-[0.18em] text-luxe/45 mb-4";
+  const link = "text-luxe/65 hover:text-gold transition-colors";
+
   return (
-    <footer className="border-t border-black/5 mt-16">
-      <div className="container py-10 text-sm grid md:grid-cols-3 gap-6">
-        <div>
-          <div className="font-semibold luxe">Lemeille Patrimoine</div>
-          <div className="opacity-70 mt-1">Marque du groupe Novus Capital (SIREN 937 847 937)</div>
-          <div className="opacity-70 mt-1 text-xs">Carte professionnelle CPI 7606 2024 000 000 038 — CCI de Rouen Métropole</div>
-          <div className="opacity-70 text-xs">CIF — ORIAS n° 23 003 614 (<a href="/mentions-legales" className="hover:text-[#B89C6D] underline">mentions légales</a>)</div>
+    <footer className="mt-20 border-t border-gold/25 bg-cream/30 text-sm">
+      <div className="container py-14 grid gap-10 md:grid-cols-12">
+        {/* Marque */}
+        <div className="md:col-span-4">
+          <div className="luxe text-lg text-luxe">Lemeille Patrimoine</div>
+          <p className="mt-2 text-luxe/55 leading-relaxed max-w-xs">
+            Immobilier de caractère à Paris, en Normandie et sur la Côte d&apos;Azur.
+          </p>
+          <p className="mt-4 text-xs leading-relaxed text-luxe/40">
+            Marque du groupe Novus Capital · SIREN 937 847 937<br />
+            Carte professionnelle CPI 7606 2024 000 000 038 — CCI de Rouen Métropole<br />
+            CIF — ORIAS n° 23 003 614
+          </p>
         </div>
-        <div>
-          <div className="font-semibold">Nos bureaux</div>
-          <div className="flex flex-col gap-1 mt-1">
-            <a
-              href="https://www.google.com/maps/search/?api=1&query=35+rue+Ganterie%2C+76000+Rouen"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-[#B89C6D]"
-              data-testid="link-map-rouen"
-            >
-              Rouen — 35 rue Ganterie, 76000
-            </a>
-            <a
-              href="https://www.google.com/maps/search/?api=1&query=722+avenue+Alfred+de+Musset%2C+83370+Fr%C3%A9jus"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-[#B89C6D]"
-              data-testid="link-map-frejus"
-            >
-              Fréjus — 722 avenue Alfred de Musset, 83370
-            </a>
-            <a
-              href="https://www.google.com/maps/search/?api=1&query=50+rue+de+la+Garenne%2C+76130+Mont-Saint-Aignan"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-[#B89C6D]"
-              data-testid="link-map-siege"
-            >
-              Siège — 50 rue de la Garenne, 76130 Mont-Saint-Aignan
-            </a>
+
+        {/* Contact */}
+        <div className="md:col-span-4">
+          <div className={heading}>Nous contacter</div>
+          <div className="flex flex-col gap-1.5">
+            <a href="tel:+33687157259" className={link}>06 87 15 72 59</a>
+            <a href="mailto:arthur.lemeille@lemeillepatrimoine.com" className={link}>arthur.lemeille@lemeillepatrimoine.com</a>
           </div>
-          <div className="mt-2 flex flex-col gap-1">
-            <a href="tel:+33687157259" className="hover:text-[#B89C6D]">📞 06 87 15 72 59</a>
-            <a href="mailto:arthur.lemeille@lemeillepatrimoine.com" className="hover:text-[#B89C6D]">✉️ arthur.lemeille@lemeillepatrimoine.com</a>
+          <div className="mt-5 flex flex-col gap-2.5">
+            {bureaux.map(b => (
+              <a
+                key={b.testid}
+                href={`https://www.google.com/maps/search/?api=1&query=${b.q}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group leading-tight"
+                data-testid={b.testid}
+              >
+                <span className="text-luxe/80 group-hover:text-gold transition-colors">{b.label}</span>
+                <span className="block text-xs text-luxe/45">{b.detail}</span>
+              </a>
+            ))}
           </div>
         </div>
-        <div className="justify-self-end">
-          <nav className="flex flex-col gap-2 text-right">
-            <Link href="/references" className="hover:text-[#B89C6D]">Références</Link>
-            <Link href="/partenaires" className="hover:text-[#B89C6D]">Partenaires</Link>
-            <Link href="/faq" className="hover:text-[#B89C6D]">FAQ</Link>
-            <Link href="/actualites" className="hover:text-[#B89C6D]">Actualités</Link>
-            <Link href="/bareme-honoraires" className="hover:text-[#B89C6D]">Barème d&apos;honoraires</Link>
-            <Link href="/mentions-legales" className="hover:text-[#B89C6D]">Mentions légales</Link>
-            <Link href="/confidentialite" className="hover:text-[#B89C6D]">Confidentialité</Link>
-            <Link href="/cookies" className="hover:text-[#B89C6D]">Cookies</Link>
+
+        {/* Navigation */}
+        <div className="md:col-span-4">
+          <div className={heading}>Le cabinet</div>
+          <nav className="grid grid-cols-2 gap-x-6 gap-y-2.5">
+            {nav.map(n => (
+              <Link key={n.href} href={n.href} className={link}>{n.label}</Link>
+            ))}
           </nav>
         </div>
       </div>
 
       {/* Secteurs d'intervention — maillage interne / SEO local */}
-      <div className="container pb-6 border-t border-black/5 pt-6">
-        <div className="text-xs font-semibold opacity-70 mb-2">Secteurs d&apos;intervention</div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs opacity-80">
-          <Link href="/secteurs/paris-rive-gauche" className="hover:text-[#B89C6D]">Paris Rive gauche</Link>
-          <Link href="/secteurs/paris-ouest" className="hover:text-[#B89C6D]">Paris Ouest</Link>
-          <Link href="/secteurs/paris-centre-historique" className="hover:text-[#B89C6D]">Paris Centre historique</Link>
-          <Link href="/secteurs/rouen-centre" className="hover:text-[#B89C6D]">Rouen centre</Link>
-          <Link href="/secteurs/mont-saint-aignan-bois-guillaume" className="hover:text-[#B89C6D]">Mont-Saint-Aignan &amp; Bois-Guillaume</Link>
-          <Link href="/secteurs/saint-aygulf-frejus" className="hover:text-[#B89C6D]">Saint-Aygulf &amp; Fréjus</Link>
-          <Link href="/secteurs/sainte-maxime-golfe-saint-tropez" className="hover:text-[#B89C6D]">Sainte-Maxime &amp; Golfe de Saint-Tropez</Link>
-          <Link href="/secteurs/esterel-arriere-pays" className="hover:text-[#B89C6D]">Estérel &amp; arrière-pays</Link>
+      <div className="border-t border-gold/15">
+        <div className="container py-5">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-luxe/40 mb-2">Secteurs d&apos;intervention</div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
+            {secteurs.map(s => (
+              <Link key={s.href} href={s.href} className="text-luxe/55 hover:text-gold transition-colors">{s.label}</Link>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="container pb-8 text-xs opacity-70">&copy; {new Date().getFullYear()} Lemeille Patrimoine — Tous droits réservés.</div>
+      {/* Copyright */}
+      <div className="border-t border-gold/15">
+        <div className="container py-5 text-xs text-luxe/40">
+          &copy; {year} Lemeille Patrimoine — Tous droits réservés.
+        </div>
+      </div>
     </footer>
   );
 }

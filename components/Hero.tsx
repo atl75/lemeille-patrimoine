@@ -18,15 +18,19 @@ export default function Hero({
         <h1 className="text-4xl md:text-5xl luxe text-cream">{title}</h1>
         {subtitle && <p className="mt-3 max-w-2xl text-cream/90">{subtitle}</p>}
         {(primary || secondary) && (
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-6 flex flex-wrap items-center gap-x-7 gap-y-3">
             {primary && (
               <Link href={primary.href} className="btn btn-gold">
                 {primary.label}
               </Link>
             )}
             {secondary && (
-              <Link href={secondary.href} className="btn btn-ghost">
+              <Link
+                href={secondary.href}
+                className="group inline-flex items-center gap-1.5 font-medium text-cream/90 hover:text-cream transition-colors"
+              >
                 {secondary.label}
+                <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
               </Link>
             )}
           </div>

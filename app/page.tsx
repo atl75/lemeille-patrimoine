@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import Section from "@/components/Section";
+import HeroSlideshow from "@/components/HeroSlideshow";
 import PropertyCard from "@/components/PropertyCard";
 import HomeSeoJsonLd from "@/components/HomeSeoJsonLd";
 import type { Metadata } from "next";
@@ -31,15 +32,14 @@ export default async function Home() {
   const featured = await getFeatured();
   return (
     <main>
-      {/* HERO — photo plein cadre + CTA unique */}
+      {/* HERO — diaporama plein cadre + CTA unique */}
       <section className="relative isolate overflow-hidden">
-        <Image
-          src="/hero-accueil.jpg"
-          alt="Immeuble haussmannien de caractère à l'heure dorée"
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-center"
+        <HeroSlideshow
+          images={[
+            { src: "/hero-accueil.jpg", alt: "Immeuble haussmannien de caractère à l'heure dorée, Paris" },
+            { src: "/hero-normandie.jpg", alt: "Villa anglo-normande en bord de mer, Normandie" },
+            { src: "/hero-cote-azur.jpg", alt: "Villa Belle Époque avec vue mer, Côte d'Azur" },
+          ]}
         />
         {/* Voile vert dégradé — lisibilité du texte, le vert devient un accent et non un mur */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#12241b]/90 via-[#1F3B2C]/60 to-[#1F3B2C]/15" />
