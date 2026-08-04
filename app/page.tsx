@@ -31,20 +31,43 @@ export default async function Home() {
   const featured = await getFeatured();
   return (
     <main>
-      {/* HERO vert */}
-      <section className="bg-luxe text-white">
-        <div className="container py-8 md:py-12 min-h-[360px] md:min-h-[380px] flex flex-col justify-center">
-          <h1 className="text-4xl md:text-5xl luxe text-cream">Lemeille Patrimoine</h1>
-          <p className="mt-3 max-w-2xl text-cream/90">
+      {/* HERO — photo plein cadre + CTA unique */}
+      <section className="relative isolate overflow-hidden">
+        <Image
+          src="/hero-accueil.jpg"
+          alt="Immeuble haussmannien de caractère à l'heure dorée"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
+        />
+        {/* Voile vert dégradé — lisibilité du texte, le vert devient un accent et non un mur */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#12241b]/90 via-[#1F3B2C]/60 to-[#1F3B2C]/15" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#12241b]/60 via-transparent to-transparent" />
+
+        <div className="container relative flex min-h-[70vh] md:min-h-[80vh] flex-col justify-center py-20 md:py-28">
+          <span className="text-xs md:text-sm font-medium uppercase tracking-[0.28em] text-gold">
+            Immobilier de caractère
+          </span>
+          <h1 className="mt-4 text-5xl md:text-7xl luxe text-cream leading-[1.03]">
+            Lemeille Patrimoine
+          </h1>
+          <div className="mt-5 h-px w-16 bg-gold/70" />
+          <p className="mt-6 max-w-xl text-base md:text-lg text-cream/90 leading-relaxed">
             Agence spécialisée dans l&apos;immobilier de caractère — transaction dans l&apos;ancien à Paris,
             en Normandie et sur la Côte d&apos;Azur. Défiscalisation sur mesure : Malraux, Monument Historique, Déficit Foncier.
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-9 flex flex-wrap items-center gap-x-7 gap-y-4">
             <Link href="/immobilier" className="btn btn-gold" data-testid="button-immobilier">
-              Nos biens
+              Découvrir nos biens
             </Link>
-            <Link href="/programmes" className="btn btn-ghost" data-testid="button-defiscalisation">
-              Défiscalisation
+            <Link
+              href="/programmes"
+              className="group inline-flex items-center gap-1.5 font-medium text-cream/90 hover:text-cream transition-colors"
+              data-testid="button-defiscalisation"
+            >
+              Explorer la défiscalisation
+              <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
             </Link>
           </div>
         </div>
