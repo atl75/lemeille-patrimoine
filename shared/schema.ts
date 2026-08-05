@@ -206,7 +206,31 @@ export const programs = pgTable("programs", {
 export const insertProgramSchema = createInsertSchema(programs, {
   externalUrl: z.string().optional(),
   coverImage: z.string().optional(),
-});
+})
+  .extend({
+    // Champs enrichis (page programme complète). Les tableaux/objets imbriqués
+    // sont volontairement souples (z.any) : la structure est gérée par l'éditeur.
+    slug: z.string().optional(),
+    address: z.string().optional(),
+    region: z.string().optional(),
+    accroche: z.string().optional(),
+    heroImage: z.string().optional(),
+    livraison: z.string().optional(),
+    dispositifs: z.array(z.string()).optional(),
+    intro: z.string().optional(),
+    caracteristiques: z.array(z.string()).optional(),
+    finitions: z.array(z.string()).optional(),
+    pointsForts: z.array(z.string()).optional(),
+    lots: z.array(z.any()).optional(),
+    plans: z.array(z.any()).optional(),
+    projections: z.array(z.any()).optional(),
+    proximite: z.array(z.any()).optional(),
+    mapQuery: z.string().optional(),
+    virtualTourUrl: z.string().optional(),
+    dpe: z.any().optional(),
+    documents: z.array(z.any()).optional(),
+  })
+  .passthrough();
 export type InsertProgram = z.infer<typeof insertProgramSchema>;
 export type Program = typeof programs.$inferSelect;
 

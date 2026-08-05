@@ -1,11 +1,123 @@
 [
   {
     "id": "p1",
-    "title": "Rue des Carmes",
+    "title": "98 rue des Carmes",
     "city": "Rouen",
     "dispositif": "MALRAUX",
-    "summary": "Réhabilitation de caractère au cœur historique.",
+    "summary": "Réhabilitation de caractère au cœur du secteur sauvegardé de Rouen — appartements T1 à T4 rénovés.",
     "externalUrl": "",
+    "coverImage": "",
+    "visible": true,
+    "slug": "98-carmes",
+    "address": "98 rue des Carmes, 76000 Rouen",
+    "region": "NORMANDIE",
+    "accroche": "Des appartements d'exception au cœur historique de Rouen, éligibles aux dispositifs Malraux, Denormandie et Déficit Foncier.",
+    "heroImage": "",
+    "livraison": "T2 2027",
+    "dispositifs": [
+      "MALRAUX",
+      "DENORMANDIE",
+      "DEFICIT_FONCIER"
+    ],
+    "intro": "Au cœur du centre historique de Rouen, à quelques pas de la cathédrale, cet immeuble ancien fait l'objet d'une restauration complète dans les règles du secteur sauvegardé. Il proposera des appartements du studio au T4, alliant caractère patrimonial et confort contemporain.",
+    "caracteristiques": [
+      "Immeuble en secteur sauvegardé de Rouen",
+      "Appartements T1 à T4 rénovés",
+      "Surfaces de 25 à 90 m²",
+      "Caves et annexes privatives",
+      "Livraison prévue T2 2027"
+    ],
+    "finitions": [
+      "Parquet et menuiseries restaurés",
+      "Cuisines équipées",
+      "Salles de bains contemporaines",
+      "Chauffage individuel performant",
+      "Prestations haut de gamme"
+    ],
+    "pointsForts": [
+      "Cœur historique de Rouen",
+      "Secteur sauvegardé",
+      "Triple éligibilité fiscale",
+      "Garantie décennale"
+    ],
+    "lots": [],
+    "proximite": [
+      {
+        "nom": "Cathédrale Notre-Dame",
+        "distance": "5 min"
+      },
+      {
+        "nom": "Gros-Horloge",
+        "distance": "6 min"
+      },
+      {
+        "nom": "Gare de Rouen",
+        "distance": "12 min"
+      },
+      {
+        "nom": "Commerces & restaurants",
+        "distance": "sur place"
+      }
+    ],
+    "mapQuery": "98 rue des Carmes, 76000 Rouen"
+  },
+  {
+    "id": "pu0b5q705",
+    "slug": "97-bons-enfants",
+    "title": "97 rue des Bons-Enfants",
+    "city": "Rouen",
+    "region": "NORMANDIE",
+    "address": "97 rue des Bons-Enfants, 76000 Rouen",
+    "dispositif": "MONUMENT_HISTORIQUE",
+    "dispositifs": [
+      "MONUMENT_HISTORIQUE",
+      "DEFICIT_FONCIER"
+    ],
+    "summary": "Réhabilitation patrimoniale au cœur de Rouen — 8 logements de standing.",
+    "accroche": "Un immeuble d'exception réhabilité au cœur de Rouen, éligible Monument Historique et Déficit Foncier.",
+    "intro": "Cet immeuble de caractère situé rue des Bons-Enfants, en plein cœur de Rouen, fait l'objet d'une réhabilitation patrimoniale d'exception. Il proposera 8 logements de standing, chacun bénéficiant d'une cave privative, dans un cadre historique préservé.",
+    "caracteristiques": [
+      "8 logements de standing",
+      "8 caves privatives",
+      "1 local vélo sécurisé",
+      "Emplacement cœur de Rouen"
+    ],
+    "finitions": [
+      "Restauration patrimoniale soignée",
+      "Prestations de standing",
+      "Garantie décennale"
+    ],
+    "pointsForts": [
+      "8 logements de standing",
+      "8 caves privatives",
+      "Local vélo sécurisé",
+      "Cœur de Rouen",
+      "Garantie décennale",
+      "Fiscalité avantageuse"
+    ],
+    "mapQuery": "97 rue des Bons-Enfants, 76000 Rouen",
+    "proximite": [
+      {
+        "nom": "Gros-Horloge",
+        "distance": "4 min"
+      },
+      {
+        "nom": "Cathédrale Notre-Dame",
+        "distance": "7 min"
+      },
+      {
+        "nom": "Musée des Beaux-Arts",
+        "distance": "6 min"
+      },
+      {
+        "nom": "Gare de Rouen",
+        "distance": "10 min"
+      }
+    ],
+    "lots": [],
+    "externalUrl": "",
+    "coverImage": "",
+    "heroImage": "",
     "visible": true
   }
 ]

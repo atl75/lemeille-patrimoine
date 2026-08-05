@@ -4,6 +4,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import Section from "@/components/Section";
 import DefiscalisationSimulator from "@/components/DefiscalisationSimulator";
 import GuideDownload from "@/components/GuideDownload";
+import { dispositifsOf } from "@/lib/dispositifs";
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -106,25 +107,29 @@ export default async function Page(){
       </Section>
 
       {items.length > 0 && (
-        <Section title="Opérations en cours">
+        <Section title="Nos programmes" subtitle="Des opérations de restauration sélectionnées, éligibles aux dispositifs de défiscalisation. Découvrez le détail, les lots et l'emplacement de chacune.">
           <div className="grid md:grid-cols-2 gap-6">
             {items.map((p:any)=>{
-              const hasUrl = typeof p.externalUrl === "string" && /^https?:\/\//.test(p.externalUrl);
-              const Card = (
-                <>
-                  {p.coverImage && (
+              const href = `/programmes/${p.slug || p.id}`;
+              const dispos = dispositifsOf(p).map(d => d.nom).join(" · ");
+              const img = p.heroImage || p.coverImage;
+              return (
+                <Link key={p.id} className="card p-0 overflow-hidden hover:border-[#B89C6D] transition group" href={href}>
+                  {img ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.coverImage} alt={`Programme — ${p.title}`} className="w-full h-48 object-cover rounded-xl mb-4" />
+                    <img src={img} alt={`Programme — ${p.title}`} className="w-full h-48 object-cover" />
+                  ) : (
+                    <div className="w-full h-48 bg-luxe/90" />
                   )}
-                  <h3 className="luxe text-2xl">{p.title}</h3>
-                  <div className="opacity-70">{p.city} · {p.dispositif}</div>
-                  {p.summary && <p className="mt-2">{p.summary}</p>}
-                </>
-              );
-              return hasUrl ? (
-                <a key={p.id} className="card p-6 hover:border-[#B89C6D] transition" href={p.externalUrl} target="_blank" rel="noopener noreferrer">{Card}</a>
-              ) : (
-                <div key={p.id} className="card p-6">{Card}</div>
+                  <div className="p-6">
+                    <h3 className="luxe text-2xl">{p.title}</h3>
+                    <div className="opacity-70 text-sm mt-1">{p.city}{dispos ? ` · ${dispos}` : ""}</div>
+                    {p.summary && <p className="mt-2 text-sm opacity-80">{p.summary}</p>}
+                    <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-[#B89C6D] group-hover:gap-2.5 transition-all">
+                      Découvrir le programme →
+                    </span>
+                  </div>
+                </Link>
               );
             })}
           </div>
