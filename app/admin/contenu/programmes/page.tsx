@@ -42,6 +42,7 @@ const STATUTS = [
   { code: "DISPONIBLE", label: "Disponible" },
   { code: "OPTION", label: "Sous option" },
   { code: "RESERVE", label: "Réservé" },
+  { code: "VENDU", label: "Vendu" },
 ];
 
 const EMPTY_PROGRAM: Partial<Program> = {
@@ -454,6 +455,7 @@ export default function Page() {
                     <input type="number" value={lot.prixTravaux ?? ''} onChange={e => setLot(i, 'prixTravaux', e.target.value)} placeholder="Prix travaux €" className="px-2 py-1 text-sm border rounded" />
                     <input value={lot.annexeDescription || ''} onChange={e => setLot(i, 'annexeDescription', e.target.value)} placeholder="Annexe (Cave)" className="px-2 py-1 text-sm border rounded" />
                     <input type="number" value={lot.annexeSurface ?? ''} onChange={e => setLot(i, 'annexeSurface', e.target.value)} placeholder="Annexe m²" className="px-2 py-1 text-sm border rounded" />
+                    <input value={lot.dispositif || ''} onChange={e => setLot(i, 'dispositif', e.target.value)} placeholder="Dispositif éligible (ex : Monument Historique / Déficit Foncier)" className="md:col-span-2 px-2 py-1 text-sm border rounded" />
                     <input value={lot.description || ''} onChange={e => setLot(i, 'description', e.target.value)} placeholder="Description" className="md:col-span-2 px-2 py-1 text-sm border rounded" />
                   </div>
                   <div className="mt-2 flex items-center gap-2">

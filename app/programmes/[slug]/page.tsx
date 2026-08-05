@@ -48,7 +48,8 @@ const eur = (n: any) => (n || n === 0) && !isNaN(Number(n)) ? Number(n).toLocale
 const STATUT: Record<string, { label: string; cls: string }> = {
   DISPONIBLE: { label: "Disponible", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   OPTION: { label: "Sous option", cls: "bg-amber-50 text-amber-700 border-amber-200" },
-  RESERVE: { label: "Réservé", cls: "bg-gray-100 text-gray-500 border-gray-200" },
+  RESERVE: { label: "Réservé", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  VENDU: { label: "Vendu", cls: "bg-gray-100 text-gray-500 border-gray-200" },
 };
 
 function lotPrice(lot: any): string {
@@ -182,30 +183,38 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           <div className="mt-8 grid md:grid-cols-2 lg:grid-cols-3 gap-5">
             {lots.map((lot, i) => {
               const st = STATUT[lot.statut || "DISPONIBLE"] || STATUT.DISPONIBLE;
+              const sold = (lot.statut || "DISPONIBLE") === "VENDU";
               const surfAfter = Number(lot.surfaceApresTravaux) || 0;
               const surfNow = Number(lot.surfaceActuelle) || 0;
               return (
-                <div key={i} className="card overflow-hidden flex flex-col">
+                <div key={i} className={`card overflow-hidden flex flex-col ${sold ? "opacity-70" : ""}`}>
                   {lot.image && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={lot.image} alt={`Lot ${lot.numero || i + 1}`} className="w-full h-44 object-cover" />
+                    <img src={lot.image} alt={`Lot ${lot.numero || i + 1}`} className={`w-full h-44 object-cover ${sold ? "grayscale" : ""}`} />
                   )}
                   <div className="p-5 flex flex-col gap-2 flex-1">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <span className="luxe text-lg">Lot {lot.numero ?? i + 1}{lot.type ? ` · ${lot.type}` : ""}</span>
-                      <span className={`text-xs rounded-full border px-2 py-0.5 ${st.cls}`}>{st.label}</span>
+                      <span className={`text-xs rounded-full border px-2 py-0.5 whitespace-nowrap ${st.cls}`}>{st.label}</span>
                     </div>
                     <div className="text-sm text-luxe/60">
                       {lot.etage ? `${lot.etage} étage` : ""}
                       {surfAfter ? ` · ${surfNow ? `${surfNow} → ` : ""}${surfAfter} m²` : (surfNow ? ` · ${surfNow} m²` : "")}
                     </div>
+                    {lot.dispositif && (
+                      <div className="text-xs font-medium text-[#B89C6D]">Éligible : {lot.dispositif}</div>
+                    )}
                     {lot.description && <p className="text-sm text-luxe/70">{lot.description}</p>}
                     {(lot.annexeDescription || lot.annexeSurface) && (
                       <div className="text-xs text-luxe/50">Annexe : {lot.annexeDescription || ""}{lot.annexeSurface ? ` (${lot.annexeSurface} m²)` : ""}</div>
                     )}
                     <div className="mt-auto pt-2 flex items-center justify-between">
-                      <span className="font-semibold text-[#B89C6D]">{lotPrice(lot)}</span>
-                      <Link href={contactHref} className="text-sm underline text-luxe/70 hover:text-luxe">Ce lot m&apos;intéresse</Link>
+                      <span className={`font-semibold ${sold ? "text-luxe/40 line-through" : "text-[#B89C6D]"}`}>{lotPrice(lot)}</span>
+                      {sold ? (
+                        <span className="text-sm text-luxe/40">Vendu</span>
+                      ) : (
+                        <Link href={contactHref} className="text-sm underline text-luxe/70 hover:text-luxe">Ce lot m&apos;intéresse</Link>
+                      )}
                     </div>
                   </div>
                 </div>
