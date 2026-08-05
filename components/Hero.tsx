@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-type Btn = { label: string; href: string };
+type Btn = { label: string; href: string; blank?: boolean };
 
 // En-tête de page interne. Deux variantes :
 // - avec `image` : hero photo plein cadre + voile vert (registre premium).
@@ -22,7 +22,7 @@ export default function Hero({
   const cta = (primary || secondary) && (
     <div className="mt-7 flex flex-wrap items-center gap-x-7 gap-y-3">
       {primary && (
-        <Link href={primary.href} className="btn btn-gold">
+        <Link href={primary.href} className="btn btn-gold" {...(primary.blank ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
           {primary.label}
         </Link>
       )}

@@ -290,7 +290,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${id}-fiche.pdf"`,
+        // « inline » : le PDF s'affiche dans l'onglet (consultable), avec un nom
+        // de fichier proposé si l'utilisateur choisit de le télécharger.
+        'Content-Disposition': `inline; filename="${id}-fiche.pdf"`,
         'Content-Length': pdfBytes.length.toString(),
       }
     });

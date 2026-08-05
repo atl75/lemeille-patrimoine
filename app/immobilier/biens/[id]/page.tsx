@@ -89,7 +89,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
       <Hero
         title={p.title}
         subtitle={<span>{p.city}{p.region?` · ${String(p.region).replaceAll('_',' ')}`:''}</span>}
-        primary={{label:"Télécharger la fiche PDF", href:`/api/properties/${p.id}/pdf`}}
+        primary={{label:"Consulter la fiche PDF", href:`/api/properties/${p.id}/pdf`, blank:true}}
         secondary={{label:"Contact", href:`/contact?ref=${encodeURIComponent(p.id)}`}}
       />
       <section className="container py-6">
@@ -155,7 +155,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
               ? <MapEmbed query={mapQuery} precision={mapPrecision}/>
               : <div className="text-sm opacity-80">Adresse non communiquée.</div>}
           </div>
-          <a className="btn btn-gold text-center w-full" href={`/api/properties/${p.id}/pdf`}>Télécharger la fiche PDF</a>
+          <a className="btn btn-gold text-center w-full" href={`/api/properties/${p.id}/pdf`} target="_blank" rel="noopener noreferrer">Consulter la fiche PDF</a>
         </div>
       </section>
     </main>
