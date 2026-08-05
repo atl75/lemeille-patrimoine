@@ -41,6 +41,7 @@ export function toPublicProperty(p: any) {
     floorPlan: p.floorPlan,
     floorPlans: p.floorPlans,
     featured: p.featured,
+    entreeDeGamme: p.entreeDeGamme,
     visible: p.visible,
     sold: p.sold,
     status: p.status,

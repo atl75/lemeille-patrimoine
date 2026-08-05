@@ -202,6 +202,53 @@ export default async function Page({ searchParams }: {
     });
   }
 
+  // Séparer les biens principaux des biens « entrée de gamme » (vue en vente).
+  const principaux = items.filter((p: any) => !p.entreeDeGamme);
+  const entree = items.filter((p: any) => p.entreeDeGamme);
+
+  // Rendu d'une carte (vue vendus = grisée non cliquable ; vue en vente = PropertyCard).
+  const renderItem = (p: any, index: number) => {
+    if (isSoldView) {
+      const isUnderOffer = p.status === 'UNDER_OFFER';
+      const badgeColor = isUnderOffer ? 'bg-orange-500' : 'bg-red-600';
+      const badgeText = isUnderOffer ? 'SOUS PROMESSE' : 'VENDU';
+      return (
+        <div key={p.id} className="card p-0 relative" data-testid={`card-property-${p.id}`}>
+          <div className={`absolute top-4 right-4 ${badgeColor} text-white px-4 py-2 rounded-lg font-semibold text-sm shadow-lg z-10`}>
+            {badgeText}
+          </div>
+          <Img
+            src={(p.images?.[0]) || "/logo.png"}
+            alt={p.title}
+            width={1200}
+            height={600}
+            sizes="(max-width: 768px) 100vw, 50vw"
+            priority={index === 0}
+            className="w-full h-64 object-cover rounded-t-2xl grayscale opacity-60"
+          />
+          <div className="p-6 opacity-70">
+            <h3 className="luxe text-2xl">{p.title}</h3>
+            <div className="text-sm opacity-70">{formatCityWithDistrict(p.city)}</div>
+            <div className="mt-2 text-sm">
+              {(p.type || 'APPARTEMENT') === 'APPARTEMENT' ? 'Appartement' : 'Maison'} · Surface: {p.surface ?? "—"} m² · Pièces: {p.rooms ?? "—"}
+              {p.landSize && (p.type || 'APPARTEMENT') === 'MAISON' && <span> · Terrain: {p.landSize} m²</span>}
+            </div>
+            <div className="mt-2 font-semibold text-[#B89C6D]">Nous consulter</div>
+            {p.dpe && <div className="mt-2 text-xs opacity-70">DPE : {p.dpe.classEnergy} · GES : {p.dpe.classGES}</div>}
+          </div>
+        </div>
+      );
+    }
+    return (
+      <PropertyCard
+        key={p.id}
+        property={p}
+        cityLabel={formatCityWithDistrict(p.city)}
+        priority={index === 0}
+      />
+    );
+  };
+
   return (
     <main>
       <Hero
@@ -248,65 +295,44 @@ export default async function Page({ searchParams }: {
         )}
       </section>
 
-      <section className="container pb-12">
-        <div className="grid md:grid-cols-2 gap-6">
-          {items.map((p:any, index:number)=> {
-            // Affichage selon la vue active (pas selon p.sold)
-            // Si on est dans la vue "vendus", tous les biens affichés sont vendus
-            // Si on est dans la vue "en vente", tous les biens affichés sont disponibles
-            
-            if (isSoldView) {
-              // Vue "Biens vendus/sous promesse" : affichage non cliquable, grisé
-              const isUnderOffer = p.status === 'UNDER_OFFER';
-              const badgeColor = isUnderOffer ? 'bg-orange-500' : 'bg-red-600';
-              const badgeText = isUnderOffer ? 'SOUS PROMESSE' : 'VENDU';
-              
-              return (
-                <div key={p.id} className="card p-0 relative" data-testid={`card-property-${p.id}`}>
-                  {/* Badge "Vendu" ou "Sous Promesse" */}
-                  <div className={`absolute top-4 right-4 ${badgeColor} text-white px-4 py-2 rounded-lg font-semibold text-sm shadow-lg z-10`}>
-                    {badgeText}
-                  </div>
-                  <Img 
-                    src={(p.images?.[0])||"/logo.png"} 
-                    alt={p.title} 
-                    width={1200} 
-                    height={600}
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    priority={index === 0}
-                    className="w-full h-64 object-cover rounded-t-2xl grayscale opacity-60" 
-                  />
-                  <div className="p-6 opacity-70">
-                    <h3 className="luxe text-2xl">{p.title}</h3>
-                    <div className="text-sm opacity-70">{formatCityWithDistrict(p.city)}</div>
-                    <div className="mt-2 text-sm">
-                      {(p.type || 'APPARTEMENT') === 'APPARTEMENT' ? 'Appartement' : 'Maison'} · Surface: {p.surface ?? "—"} m² · Pièces: {p.rooms ?? "—"}
-                      {p.landSize && (p.type || 'APPARTEMENT') === 'MAISON' && <span> · Terrain: {p.landSize} m²</span>}
-                    </div>
-                    <div className="mt-2 font-semibold text-[#B89C6D]">Nous consulter</div>
-                    {p.dpe && <div className="mt-2 text-xs opacity-70">DPE : {p.dpe.classEnergy} · GES : {p.dpe.classGES}</div>}
-                  </div>
-                </div>
-              );
-            }
-            
-            // Vue "Biens en vente" : affichage normal (cliquable) + aperçu rapide
-            return (
-              <PropertyCard
-                key={p.id}
-                property={p}
-                cityLabel={formatCityWithDistrict(p.city)}
-                priority={index === 0}
-              />
-            );
-          })}
-          {!items.length && (
-            <div className="opacity-70">
-              {isSoldView ? "Aucun bien vendu ne correspond à ces filtres." : "Aucun bien ne correspond à ces filtres."}
+      {isSoldView ? (
+        <section className="container pb-12">
+          <div className="grid md:grid-cols-2 gap-6">
+            {items.map(renderItem)}
+            {!items.length && (
+              <div className="opacity-70">Aucun bien vendu ne correspond à ces filtres.</div>
+            )}
+          </div>
+        </section>
+      ) : (
+        <>
+          <section className="container pb-12">
+            {entree.length > 0 && principaux.length > 0 && (
+              <h2 className="luxe text-2xl md:text-3xl text-luxe mb-6">Nos biens de caractère</h2>
+            )}
+            <div className="grid md:grid-cols-2 gap-6">
+              {principaux.map(renderItem)}
+              {!items.length && (
+                <div className="opacity-70">Aucun bien ne correspond à ces filtres.</div>
+              )}
             </div>
+          </section>
+
+          {entree.length > 0 && (
+            <section className="container pb-12">
+              <div className="border-t border-gold/20 pt-8">
+                <h2 className="luxe text-2xl md:text-3xl text-luxe">Entrée de gamme</h2>
+                <p className="mt-1 text-sm text-luxe/60 max-w-2xl">
+                  Des biens plus accessibles — idéals pour un premier achat, un pied-à-terre ou un investissement à budget maîtrisé.
+                </p>
+                <div className="mt-6 grid md:grid-cols-2 gap-6">
+                  {entree.map((p: any, i: number) => renderItem(p, i + 1))}
+                </div>
+              </div>
+            </section>
           )}
-        </div>
-      </section>
+        </>
+      )}
 
       <section className="container pb-14">
         <AlerteBiens />

@@ -71,6 +71,7 @@ type Property = {
     ref: string;
   };
   featured?: boolean;
+  entreeDeGamme?: boolean;
   visible?: boolean;
   sold?: boolean;
   status?: 'AVAILABLE' | 'UNDER_OFFER' | 'SOLD';
@@ -1741,6 +1742,16 @@ export default function Page() {
                   className="w-3.5 h-3.5"
                 />
                 <span>Visible</span>
+              </label>
+              <label className="flex items-center gap-1.5 text-xs">
+                <input
+                  type="checkbox"
+                  checked={editing.entreeDeGamme || false}
+                  onChange={e => updateField('entreeDeGamme', e.target.checked)}
+                  data-testid="checkbox-entree-gamme"
+                  className="w-3.5 h-3.5"
+                />
+                <span>Entrée de gamme</span>
               </label>
             </div>
 

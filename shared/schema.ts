@@ -103,6 +103,7 @@ export const properties = pgTable("properties", {
   map: jsonb("map").$type<{precision: string, query: string, zoom: number}>().notNull(),
   dpe: jsonb("dpe").$type<{classEnergy: string, classGES: string, consumptionKwh: number, emissionsKg: number, date: string, ref: string}>().notNull(),
   featured: boolean("featured").default(false),
+  entreeDeGamme: boolean("entree_de_gamme").default(false), // Bien « entrée de gamme » (section distincte)
   visible: boolean("visible").default(true),
   sold: boolean("sold").default(false),
   status: text("status").default('AVAILABLE'), // AVAILABLE, UNDER_OFFER, SOLD
@@ -161,6 +162,7 @@ export const insertPropertySchema = createInsertSchema(properties, {
     userAgent: z.string().optional(),
   }).optional(),
   priceOnRequest: z.boolean().optional(),
+  entreeDeGamme: z.boolean().optional(),
   netSellerAmount: z.number().optional(),
   commissionAmount: z.number().optional(),
   commissionPercentage: z.number().optional(),
