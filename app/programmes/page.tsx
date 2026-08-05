@@ -61,9 +61,42 @@ export default async function Page(){
         <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Défiscalisation"}]} />
       </section>
 
+      {/* Nos programmes — les opérations concrètes, mises en avant en tête */}
+      {items.length > 0 && (
+        <Section title="Nos programmes" subtitle="Des opérations de restauration sélectionnées, éligibles aux dispositifs de défiscalisation. Découvrez le détail, les lots et l'emplacement de chacune.">
+          <div className="grid md:grid-cols-2 gap-6">
+            {items.map((p:any)=>{
+              const href = `/programmes/${p.slug || p.id}`;
+              const dispos = dispositifsOf(p).map(d => d.nom).join(" · ");
+              const img = p.heroImage || p.coverImage;
+              return (
+                <Link key={p.id} className="card p-0 overflow-hidden hover:border-[#B89C6D] transition group" href={href}>
+                  {img ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={img} alt={`Programme — ${p.title}`} className="w-full h-48 object-cover" />
+                  ) : (
+                    <div className="w-full h-48 bg-gradient-to-br from-[#1F3B2C] to-[#2e5140] flex items-center justify-center px-4 text-center">
+                      <span className="text-cream/75 text-xs uppercase tracking-[0.22em]">{dispos || "Défiscalisation"}</span>
+                    </div>
+                  )}
+                  <div className="p-6">
+                    <h3 className="luxe text-2xl">{p.title}</h3>
+                    <div className="opacity-70 text-sm mt-1">{p.city}{dispos ? ` · ${dispos}` : ""}</div>
+                    {p.summary && <p className="mt-2 text-sm opacity-80">{p.summary}</p>}
+                    <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-[#B89C6D] group-hover:gap-2.5 transition-all">
+                      Découvrir le programme →
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </Section>
+      )}
+
       <Section
-        title="Transformer l'impôt en patrimoine"
-        subtitle="Nous sélectionnons des opérations de restauration dans l'ancien qui allient qualité architecturale, emplacement et avantage fiscal, et nous vous accompagnons de l'étude à la livraison."
+        title="Les dispositifs de défiscalisation"
+        subtitle="Selon votre situation et le bien, nous mobilisons le levier le plus pertinent — de l'étude à la livraison."
       >
         <div className="grid md:grid-cols-3 gap-6">
           {DISPOSITIFS.map((d) => (
@@ -83,13 +116,6 @@ export default async function Page(){
         <DefiscalisationSimulator />
       </Section>
 
-      <Section
-        title="Nos guides gratuits"
-        subtitle="Téléchargez nos guides pour comprendre chaque dispositif : principe, conditions, avantage fiscal et points de vigilance."
-      >
-        <GuideDownload />
-      </Section>
-
       <Section title="Notre accompagnement">
         <ol className="grid md:grid-cols-4 gap-6 list-decimal pl-6">
           {[
@@ -106,43 +132,11 @@ export default async function Page(){
         </ol>
       </Section>
 
-      {items.length > 0 && (
-        <Section title="Nos programmes" subtitle="Des opérations de restauration sélectionnées, éligibles aux dispositifs de défiscalisation. Découvrez le détail, les lots et l'emplacement de chacune.">
-          <div className="grid md:grid-cols-2 gap-6">
-            {items.map((p:any)=>{
-              const href = `/programmes/${p.slug || p.id}`;
-              const dispos = dispositifsOf(p).map(d => d.nom).join(" · ");
-              const img = p.heroImage || p.coverImage;
-              return (
-                <Link key={p.id} className="card p-0 overflow-hidden hover:border-[#B89C6D] transition group" href={href}>
-                  {img ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={img} alt={`Programme — ${p.title}`} className="w-full h-48 object-cover" />
-                  ) : (
-                    <div className="w-full h-48 bg-luxe/90" />
-                  )}
-                  <div className="p-6">
-                    <h3 className="luxe text-2xl">{p.title}</h3>
-                    <div className="opacity-70 text-sm mt-1">{p.city}{dispos ? ` · ${dispos}` : ""}</div>
-                    {p.summary && <p className="mt-2 text-sm opacity-80">{p.summary}</p>}
-                    <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-[#B89C6D] group-hover:gap-2.5 transition-all">
-                      Découvrir le programme →
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </Section>
-      )}
-
-      <Section title="Envie d'optimiser votre fiscalité ?">
-        <div className="card p-6 flex flex-wrap items-center justify-between gap-3">
-          <p className="opacity-80 max-w-xl">
-            Chaque situation est unique. Nos conseillers étudient votre profil et vous orientent vers le dispositif le plus pertinent, sans engagement.
-          </p>
-          <Link href="/contact?topic=Défiscalisation" className="btn btn-gold">Prendre contact</Link>
-        </div>
+      <Section
+        title="Nos guides gratuits"
+        subtitle="Téléchargez nos guides pour comprendre chaque dispositif : principe, conditions, avantage fiscal et points de vigilance."
+      >
+        <GuideDownload />
       </Section>
     </main>
   );
