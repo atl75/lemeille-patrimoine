@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/Breadcrumb";
+import ProgramSeoJsonLd from "@/components/ProgramSeoJsonLd";
 import { dispositifsOf, dispositifLabel } from "@/lib/dispositifs";
 import type { Metadata } from "next";
 
@@ -73,6 +74,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 
   return (
     <main>
+      <ProgramSeoJsonLd program={p} />
       {/* HERO */}
       <section className="relative isolate overflow-hidden">
         <Image src={hero} alt={p.title} fill priority sizes="100vw" className="object-cover object-center" />

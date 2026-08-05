@@ -40,14 +40,19 @@ const STATIC_PATHS = [
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
-  const [properties, articles] = await Promise.all([
+  const [properties, articles, programs] = await Promise.all([
     readJSON('properties.json'),
     readJSON('articles.json'),
+    readJSON('programs.json'),
   ]);
 
   const propertyUrls: MetadataRoute.Sitemap = (Array.isArray(properties) ? properties : [])
     .filter((p: any) => p && p.visible !== false)
     .map((p: any) => ({ url: `${SITE}/immobilier/biens/${p.id}`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 }));
+
+  const programUrls: MetadataRoute.Sitemap = (Array.isArray(programs) ? programs : [])
+    .filter((p: any) => p && p.visible !== false)
+    .map((p: any) => ({ url: `${SITE}/programmes/${p.slug || p.id}`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 }));
 
   const articleUrls: MetadataRoute.Sitemap = (Array.isArray(articles) ? articles : [])
     .filter((a: any) => a && a.published !== false)
@@ -72,5 +77,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...staticUrls, ...sectorUrls, ...propertyUrls, ...articleUrls];
+  return [...staticUrls, ...sectorUrls, ...programUrls, ...propertyUrls, ...articleUrls];
 }
