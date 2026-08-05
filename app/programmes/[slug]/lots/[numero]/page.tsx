@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/Breadcrumb";
+import DocumentLink from "@/components/DocumentLink";
 import { dispositifsOf } from "@/lib/dispositifs";
-import { MapPin, Home, Calculator, FileText, Download } from "lucide-react";
+import { MapPin, Home, Calculator } from "lucide-react";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -152,14 +153,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string;
           <h2 className="luxe text-2xl text-luxe mb-4">Documents à télécharger</h2>
           <div className="grid sm:grid-cols-2 gap-3">
             {allDocs.map((d: any, i: number) => (
-              <a key={i} href={d.url} target="_blank" rel="noopener noreferrer" className="card p-4 flex items-center gap-3 hover:border-[#B89C6D] transition">
-                <FileText className="w-5 h-5 text-gold shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-luxe truncate">{d.name || "Document"}</div>
-                  {d.subtitle && <div className="text-xs text-luxe/55 truncate">{d.subtitle}</div>}
-                </div>
-                <Download className="w-4 h-4 text-luxe/40 shrink-0" />
-              </a>
+              <DocumentLink key={i} name={d.name} subtitle={d.subtitle} url={d.url} />
             ))}
           </div>
         </section>
