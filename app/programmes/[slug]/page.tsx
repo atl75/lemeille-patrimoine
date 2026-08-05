@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/Breadcrumb";
 import ProgramSeoJsonLd from "@/components/ProgramSeoJsonLd";
+import ProjectionsGallery from "@/components/ProjectionsGallery";
 import { dispositifsOf, dispositifLabel } from "@/lib/dispositifs";
 import { Zap, Wrench, CalendarDays } from "lucide-react";
 
@@ -342,14 +343,8 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
               </div>
             )}
             {plans.length > 0 && (
-              <div className="mt-8 grid md:grid-cols-3 gap-5">
-                {plans.map((pl: any, i: number) => (
-                  <figure key={i} className="card overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {pl.image && <img src={pl.image} alt={pl.title || `Plan ${i + 1}`} className="w-full h-56 object-cover" />}
-                    {pl.title && <figcaption className="p-3 text-sm text-luxe/70">{pl.title}</figcaption>}
-                  </figure>
-                ))}
+              <div className="mt-8">
+                <ProjectionsGallery items={plans} />
               </div>
             )}
           </div>
