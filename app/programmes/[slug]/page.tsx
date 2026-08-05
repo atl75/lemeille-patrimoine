@@ -149,7 +149,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           <div className="container">
             <h2 className="luxe text-3xl md:text-4xl text-luxe">Avantages fiscaux</h2>
             <div className="mt-3 h-px w-14 bg-gold/60" />
-            <p className="mt-4 max-w-2xl text-luxe/60">Ce programme est éligible aux dispositifs suivants. Le montage est vérifié et l'accompagnement assuré jusqu'à la mise en location.</p>
+            <p className="mt-4 max-w-2xl text-luxe/60">Ce programme est éligible aux dispositifs suivants. Le montage est vérifié et l&apos;accompagnement assuré jusqu&apos;à la mise en location.</p>
             <div className={`mt-8 grid gap-6 ${dispositifs.length >= 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
               {dispositifs.map(d => (
                 <div key={d.code} className="card p-6">
