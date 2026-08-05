@@ -44,13 +44,13 @@ function Gauge({ title, scale, value }: { title: string; scale: { c: string; bg:
   );
 }
 
-export default function DPECard({ dpe }: { dpe?: any }) {
+export default function DPECard({ dpe, title = "DPE" }: { dpe?: any; title?: string }) {
   if (!dpe) return <div className="text-sm opacity-80">DPE non communiqué.</div>;
   const energy = String(dpe.classEnergy || "").toUpperCase();
   const ges = String(dpe.classGES || "").toUpperCase();
   return (
     <div className="card p-6">
-      <h3 className="luxe text-xl mb-3">DPE</h3>
+      <h3 className="luxe text-xl mb-3">{title}</h3>
       <div className="grid sm:grid-cols-2 gap-5">
         <Gauge title="Classe énergie (consommation)" scale={energyScale} value={energy} />
         <Gauge title="Classe climat (GES)" scale={gesScale} value={ges} />

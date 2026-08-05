@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/Breadcrumb";
 import ProgramSeoJsonLd from "@/components/ProgramSeoJsonLd";
+import DPECard from "@/components/DPECard";
 import { dispositifsOf, dispositifLabel } from "@/lib/dispositifs";
 import type { Metadata } from "next";
 
@@ -69,6 +70,8 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   const dispo = lots.filter(l => (l.statut || "DISPONIBLE") === "DISPONIBLE").length;
   const proximite: any[] = Array.isArray(p.proximite) ? p.proximite : [];
   const plans: any[] = [...(Array.isArray(p.projections) ? p.projections : []), ...(Array.isArray(p.plans) ? p.plans : [])];
+  const calendrier: any[] = Array.isArray(p.calendrier) ? p.calendrier : [];
+  const hasDpe = p.dpe && (p.dpe.classEnergy || p.dpe.classGES);
   const hero = p.heroImage || p.coverImage || "/hero-accueil.jpg";
   const mapQuery = p.mapQuery || p.address || `${p.title}, ${p.city}`;
   const contactHref = `/contact?topic=${encodeURIComponent("Programme " + p.title)}`;
@@ -142,6 +145,38 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                 </ul>
               </div>
             )}
+          </div>
+
+          {hasDpe && (
+            <div className="mt-8 max-w-xl">
+              <DPECard dpe={p.dpe} title="DPE cible (après travaux)" />
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* CALENDRIER DU PROJET */}
+      {calendrier.length > 0 && (
+        <section className="bg-white/50 border-y border-gold/20 py-14">
+          <div className="container">
+            <h2 className="luxe text-3xl md:text-4xl text-luxe">Calendrier du projet</h2>
+            <div className="mt-3 h-px w-14 bg-gold/60" />
+            <ol className="mt-8 relative border-l-2 border-gold/30 ml-3 space-y-8">
+              {calendrier.map((etape: any, i: number) => {
+                const done = !!etape.done;
+                return (
+                  <li key={i} className="ml-6">
+                    <span className={`absolute -left-[9px] flex h-4 w-4 items-center justify-center rounded-full ring-4 ring-cream ${done ? "bg-gold" : "bg-white border-2 border-gold/50"}`} />
+                    <div className="flex flex-wrap items-baseline gap-x-3">
+                      <h3 className="luxe text-lg text-luxe">{etape.etape || etape.title}</h3>
+                      {etape.date && <span className="text-sm font-medium text-[#B89C6D]">{etape.date}</span>}
+                      {done && <span className="text-xs rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 px-2 py-0.5">Réalisé</span>}
+                    </div>
+                    {etape.description && <p className="mt-1 text-sm text-luxe/60">{etape.description}</p>}
+                  </li>
+                );
+              })}
+            </ol>
           </div>
         </section>
       )}

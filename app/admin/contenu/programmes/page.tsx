@@ -23,6 +23,8 @@ type Program = {
   proximite?: { nom: string; distance?: string }[];
   lots?: any[];
   projections?: { title?: string; image?: string }[];
+  dpe?: { classEnergy?: string; classGES?: string };
+  calendrier?: { etape?: string; date?: string; done?: boolean }[];
   mapQuery?: string;
   virtualTourUrl?: string;
   externalUrl?: string;
@@ -194,6 +196,15 @@ export default function Page() {
   const addProj = () => updateField('projections', [...projList(), { title: "", image: "" }]);
   const setProj = (i: number, key: string, v: string) => { const a = [...projList()]; a[i] = { ...a[i], [key]: v }; updateField('projections', a); };
   const rmProj = (i: number) => updateField('projections', projList().filter((_, j) => j !== i));
+
+  // ---- DPE cible ----
+  const setDpe = (key: string, v: string) => updateField('dpe', { ...(editing?.dpe || {}), [key]: v });
+
+  // ---- Calendrier du projet ----
+  const calList = (): any[] => Array.isArray((editing as any)?.calendrier) ? (editing as any).calendrier : [];
+  const addCal = () => updateField('calendrier', [...calList(), { etape: "", date: "", done: false }]);
+  const setCal = (i: number, key: string, v: any) => { const a = [...calList()]; a[i] = { ...a[i], [key]: v }; updateField('calendrier', a); };
+  const rmCal = (i: number) => updateField('calendrier', calList().filter((_, j) => j !== i));
 
   // Petit éditeur de liste de chaînes réutilisable.
   const StrListEditor = ({ field, label }: { field: string; label: string }) => (
@@ -427,6 +438,45 @@ export default function Page() {
               ))}
             </div>
             <button type="button" onClick={addProj} className="text-sm text-[#B89C6D] hover:underline mt-2">+ Ajouter une image</button>
+          </div>
+
+          {/* DPE cible */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">DPE cible (après travaux)</label>
+            <div className="flex flex-wrap gap-3">
+              <div>
+                <span className="block text-xs opacity-60 mb-0.5">Classe énergie</span>
+                <select value={editing.dpe?.classEnergy || ''} onChange={e => setDpe('classEnergy', e.target.value)} className="px-3 py-2 border rounded text-sm">
+                  <option value="">—</option>
+                  {["A","B","C","D","E","F","G"].map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <span className="block text-xs opacity-60 mb-0.5">Classe climat (GES)</span>
+                <select value={editing.dpe?.classGES || ''} onChange={e => setDpe('classGES', e.target.value)} className="px-3 py-2 border rounded text-sm">
+                  <option value="">—</option>
+                  {["A","B","C","D","E","F","G"].map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Calendrier du projet */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Calendrier du projet</label>
+            <div className="space-y-2">
+              {calList().map((et, i) => (
+                <div key={i} className="flex flex-wrap items-center gap-2">
+                  <input value={et.etape || ''} onChange={e => setCal(i, 'etape', e.target.value)} placeholder="Étape (ex : Livraison)" className="flex-1 min-w-[160px] px-3 py-1.5 text-sm border rounded" />
+                  <input value={et.date || ''} onChange={e => setCal(i, 'date', e.target.value)} placeholder="Date (ex : T2 2027)" className="w-36 px-3 py-1.5 text-sm border rounded" />
+                  <label className="flex items-center gap-1 text-xs whitespace-nowrap">
+                    <input type="checkbox" checked={!!et.done} onChange={e => setCal(i, 'done', e.target.checked)} /> Réalisé
+                  </label>
+                  <button type="button" onClick={() => rmCal(i)} className="px-2 text-red-500 hover:bg-red-50 rounded">✕</button>
+                </div>
+              ))}
+              <button type="button" onClick={addCal} className="text-sm text-[#B89C6D] hover:underline">+ Ajouter une étape</button>
+            </div>
           </div>
 
           {/* Lots */}

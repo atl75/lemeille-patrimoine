@@ -230,6 +230,7 @@ export const insertProgramSchema = createInsertSchema(programs, {
     mapQuery: z.string().optional(),
     virtualTourUrl: z.string().optional(),
     dpe: z.any().optional(),
+    calendrier: z.array(z.any()).optional(),
     documents: z.array(z.any()).optional(),
   })
   .passthrough();
