@@ -8,7 +8,7 @@ export default function CtaBand() {
   return (
     <section className="relative isolate overflow-hidden mt-20">
       <Image
-        src="/hero-cote-azur.jpg"
+        src="/hero-accueil.jpg"
         alt=""
         fill
         sizes="100vw"
