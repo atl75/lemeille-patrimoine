@@ -318,13 +318,9 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                     {(lot.annexeDescription || lot.annexeSurface) && (
                       <div className="text-xs text-luxe/50">Annexe : {lot.annexeDescription || ""}{lot.annexeSurface ? ` (${lot.annexeSurface} m²)` : ""}</div>
                     )}
-                    <div className="mt-auto pt-2 flex items-center justify-between">
+                    <div className="mt-auto pt-2 flex items-center justify-between gap-2">
                       <span className={`font-semibold ${sold ? "text-luxe/40 line-through" : "text-[#B89C6D]"}`}>{lotPrice(lot)}</span>
-                      {sold ? (
-                        <span className="text-sm text-luxe/40">Vendu</span>
-                      ) : (
-                        <Link href={contactHref} className="text-sm underline text-luxe/70 hover:text-luxe">Ce lot m&apos;intéresse</Link>
-                      )}
+                      <Link href={`/programmes/${p.slug || p.id}/lots/${lot.numero ?? i + 1}`} className="text-sm font-medium text-[#B89C6D] hover:underline whitespace-nowrap">Voir le lot →</Link>
                     </div>
                   </div>
                 </div>

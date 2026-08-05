@@ -1,6 +1,7 @@
 "use client";
 import AdminShell from "@/components/AdminShell";
 import Breadcrumb from "@/components/Breadcrumb";
+import DocumentUploader from "@/components/DocumentUploader";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useEffect, useState } from "react";
 
@@ -25,6 +26,7 @@ type Program = {
   projections?: { title?: string; image?: string }[];
   dpe?: { classEnergy?: string; classGES?: string; consumption?: string; emissions?: string };
   equipements?: { title?: string; subtitle?: string }[];
+  documents?: { name?: string; subtitle?: string; url?: string }[];
   calendrier?: { etape?: string; date?: string; description?: string; done?: boolean }[];
   mapQuery?: string;
   virtualTourUrl?: string;
@@ -212,6 +214,18 @@ export default function Page() {
   const addEq = () => updateField('equipements', [...eqList(), { title: "", subtitle: "" }]);
   const setEq = (i: number, key: string, v: string) => { const a = [...eqList()]; a[i] = { ...a[i], [key]: v }; updateField('equipements', a); };
   const rmEq = (i: number) => updateField('equipements', eqList().filter((_, j) => j !== i));
+
+  // ---- Documents du programme (communs) ----
+  const docList = (): any[] => Array.isArray((editing as any)?.documents) ? (editing as any).documents : [];
+  const addDoc = () => updateField('documents', [...docList(), { name: "", subtitle: "", url: "" }]);
+  const setDoc = (i: number, key: string, v: string) => { const a = [...docList()]; a[i] = { ...a[i], [key]: v }; updateField('documents', a); };
+  const rmDoc = (i: number) => updateField('documents', docList().filter((_, j) => j !== i));
+
+  // ---- Documents propres à un lot ----
+  const lotDocs = (li: number): any[] => Array.isArray(lotList()[li]?.documents) ? lotList()[li].documents : [];
+  const addLotDoc = (li: number) => setLot(li, 'documents', [...lotDocs(li), { name: "", url: "" }]);
+  const setLotDoc = (li: number, di: number, key: string, v: string) => { const a = [...lotDocs(li)]; a[di] = { ...a[di], [key]: v }; setLot(li, 'documents', a); };
+  const rmLotDoc = (li: number, di: number) => setLot(li, 'documents', lotDocs(li).filter((_, j) => j !== di));
 
   // Petit éditeur de liste de chaînes réutilisable.
   const StrListEditor = ({ field, label }: { field: string; label: string }) => (
@@ -542,9 +556,48 @@ export default function Page() {
                     ) : (
                       <input type="file" accept="image/*" onChange={async e => { const url = await uploadImage(e.target.files?.[0]); if (url) setLot(i, 'image', url); }} className="text-xs" />
                     )}
+                    <span className="text-xs opacity-60 ml-3">Plan :</span>
+                    {lot.plan ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={lot.plan} alt="" className="w-20 h-14 object-contain rounded border bg-white" />
+                        <button type="button" onClick={() => setLot(i, 'plan', '')} className="text-xs text-red-500 hover:underline">Retirer</button>
+                      </>
+                    ) : (
+                      <input type="file" accept="image/*" onChange={async e => { const url = await uploadImage(e.target.files?.[0]); if (url) setLot(i, 'plan', url); }} className="text-xs w-28" />
+                    )}
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-xs opacity-60">Documents du lot (Carrez, plan PDF…)</span>
+                    <div className="space-y-1 mt-1">
+                      {lotDocs(i).map((d: any, di: number) => (
+                        <div key={di} className="flex items-center gap-2">
+                          <input value={d.name || ''} onChange={e => setLotDoc(i, di, 'name', e.target.value)} placeholder="Nom du document" className="w-52 px-2 py-1 text-xs border rounded" />
+                          <div className="flex-1"><DocumentUploader document={d.url} onChange={(url) => setLotDoc(i, di, 'url', url || '')} label="" /></div>
+                          <button type="button" onClick={() => rmLotDoc(i, di)} className="px-1 text-red-500">✕</button>
+                        </div>
+                      ))}
+                      <button type="button" onClick={() => addLotDoc(i)} className="text-xs text-[#B89C6D] hover:underline">+ Document du lot</button>
+                    </div>
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Documents communs du programme */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Documents du programme (communs à tous les lots)</label>
+            <div className="space-y-2">
+              {docList().map((d, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input value={d.name || ''} onChange={e => setDoc(i, 'name', e.target.value)} placeholder="Nom (ex : Plans de l'immeuble)" className="w-52 px-2 py-1 text-sm border rounded" />
+                  <input value={d.subtitle || ''} onChange={e => setDoc(i, 'subtitle', e.target.value)} placeholder="Sous-titre (optionnel)" className="w-40 px-2 py-1 text-sm border rounded" />
+                  <div className="flex-1"><DocumentUploader document={d.url} onChange={(url) => setDoc(i, 'url', url || '')} label="" /></div>
+                  <button type="button" onClick={() => rmDoc(i)} className="px-1 text-red-500">✕</button>
+                </div>
+              ))}
+              <button type="button" onClick={addDoc} className="text-sm text-[#B89C6D] hover:underline">+ Ajouter un document</button>
             </div>
           </div>
 
