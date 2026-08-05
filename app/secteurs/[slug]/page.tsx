@@ -137,9 +137,16 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   const all = await getProperties();
   const items = all.filter((p:any)=>matchesSector(p, sector));
 
+  const REGION_IMAGE: Record<string, string> = {
+    PARIS: "/hero-accueil.jpg",
+    NORMANDIE: "/hero-normandie.jpg",
+    COTE_D_AZUR: "/hero-cote-azur.jpg",
+  };
+  const heroImage = REGION_IMAGE[String(sector.region || "")] || "/hero-accueil.jpg";
+
   return (
     <main>
-      <Hero title={sector.title} subtitle={sector.subtitle} primary={{label:"Tous nos biens", href:"/immobilier"}} />
+      <Hero title={sector.title} subtitle={sector.subtitle} primary={{label:"Tous nos biens", href:"/immobilier"}} image={heroImage} />
       <section className="container py-6">
         <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Immobilier", href:"/immobilier"},{label: sector.title}]} />
       </section>

@@ -10,10 +10,13 @@ export const metadata: Metadata = {
   alternates: { canonical: "/references" },
 };
 
+function apiBase() {
+  return process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT || "3000"}`;
+}
+
 async function getProperties() {
-  const base = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT || "3000"}`;
   try {
-    const r = await fetch(`${base}/api/properties`, { cache: "no-store" });
+    const r = await fetch(`${apiBase()}/api/properties`, { cache: "no-store" });
     if (!r.ok) return [];
     const d = await r.json();
     return Array.isArray(d) ? d : [];
@@ -22,8 +25,25 @@ async function getProperties() {
   }
 }
 
+async function getReviews() {
+  try {
+    const r = await fetch(`${apiBase()}/api/reviews`, { cache: "no-store" });
+    if (!r.ok) return [];
+    const d = await r.json();
+    return Array.isArray(d) ? d.filter((x: any) => x && x.published !== false) : [];
+  } catch {
+    return [];
+  }
+}
+
+const PARTNER_ROLES = [
+  { role: "Notaire", desc: "Sécurité juridique de chaque transaction" },
+  { role: "Architecte", desc: "Rénovation & valorisation, dossiers Malraux / MH" },
+  { role: "Courtier", desc: "Financement optimisé auprès des banques" },
+];
+
 export default async function Page() {
-  const all = await getProperties();
+  const [all, reviews] = await Promise.all([getProperties(), getReviews()]);
   const refs = all
     .filter((p: any) => p && p.visible !== false && (p.sold || p.status === "SOLD" || p.status === "UNDER_OFFER"))
     .sort((a: any, b: any) => {
@@ -43,6 +63,7 @@ export default async function Page() {
         subtitle="Nos dernières ventes — le reflet de notre savoir-faire et de la confiance de nos clients."
         primary={{ label: "Confier mon projet", href: "/contact" }}
         secondary={{ label: "Nos biens en vente", href: "/immobilier" }}
+        image="/hero-accueil.jpg"
       />
       <section className="container py-6">
         <Breadcrumb items={[{ label: "Accueil", href: "/" }, { label: "Références" }]} />
@@ -126,6 +147,47 @@ export default async function Page() {
             </div>
           </>
         )}
+      </section>
+      {reviews.length > 0 && (
+        <section className="bg-white/50 border-y border-gold/20 py-14">
+          <div className="container">
+            <h2 className="luxe text-2xl md:text-3xl text-luxe">Ils nous ont fait confiance</h2>
+            <div className="mt-3 h-px w-14 bg-gold/60" />
+            <div className="mt-8 grid md:grid-cols-3 gap-6">
+              {reviews.slice(0, 6).map((r: any, i: number) => {
+                const stars = Math.max(1, Math.min(5, Number(r.rating) || 5));
+                return (
+                  <figure key={i} className="card p-6">
+                    <div className="text-sm mb-2 text-[#B89C6D]">{"★".repeat(stars)}<span className="text-luxe/20">{"★".repeat(5 - stars)}</span></div>
+                    <blockquote className="text-sm text-luxe/80 leading-relaxed">« {r.text} »</blockquote>
+                    <figcaption className="mt-4 text-sm font-medium text-luxe">{r.author}{r.source ? ` · ${r.source}` : ""}</figcaption>
+                  </figure>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Réseau d'experts */}
+      <section className="container py-14">
+        <h2 className="luxe text-2xl md:text-3xl text-luxe">Un réseau d&apos;experts à vos côtés</h2>
+        <div className="mt-3 h-px w-14 bg-gold/60" />
+        <p className="mt-4 text-luxe/60 max-w-2xl">Notaire, architecte, courtier : nous nous entourons de partenaires reconnus pour sécuriser et optimiser chaque étape de votre projet.</p>
+        <div className="mt-8 grid sm:grid-cols-3 gap-4">
+          {PARTNER_ROLES.map((p) => (
+            <div key={p.role} className="card p-5 flex items-center gap-4">
+              <div className="shrink-0 w-12 h-12 rounded-full border-2 border-[#B89C6D] flex items-center justify-center luxe text-[#B89C6D]">{p.role[0]}</div>
+              <div>
+                <div className="luxe text-lg">{p.role}</div>
+                <div className="text-xs text-luxe/60">{p.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-6">
+          <Link href="/partenaires" className="text-sm font-medium text-[#B89C6D] hover:underline">Découvrir nos partenaires →</Link>
+        </div>
       </section>
     </main>
   );

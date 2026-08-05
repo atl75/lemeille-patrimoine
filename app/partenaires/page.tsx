@@ -57,6 +57,7 @@ export default function Page() {
         title="Nos partenaires"
         subtitle="Un réseau de professionnels de confiance pour sécuriser et optimiser chaque étape de votre projet."
         primary={{ label: "Nous contacter", href: "/contact" }}
+        image="/hero-accueil.jpg"
       />
       <section className="container py-6">
         <Breadcrumb items={[{ label: "Accueil", href: "/" }, { label: "Partenaires" }]} />
