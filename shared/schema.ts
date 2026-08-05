@@ -231,6 +231,7 @@ export const insertProgramSchema = createInsertSchema(programs, {
     virtualTourUrl: z.string().optional(),
     dpe: z.any().optional(),
     calendrier: z.array(z.any()).optional(),
+    equipements: z.array(z.any()).optional(),
     documents: z.array(z.any()).optional(),
   })
   .passthrough();

@@ -3,8 +3,22 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/Breadcrumb";
 import ProgramSeoJsonLd from "@/components/ProgramSeoJsonLd";
-import DPECard from "@/components/DPECard";
 import { dispositifsOf, dispositifLabel } from "@/lib/dispositifs";
+import { Zap, Wrench, CalendarDays } from "lucide-react";
+
+const ENERGY_COLORS: Record<string, string> = { A: "#2e7d32", B: "#558b2f", C: "#9e9d24", D: "#f9a825", E: "#fb8c00", F: "#f4511e", G: "#c62828" };
+const GES_COLORS: Record<string, string> = { A: "#8e6fc4", B: "#7e57c2", C: "#6f42b5", D: "#5e35b1", E: "#512da8", F: "#45279a", G: "#3a2185" };
+
+function DpeLetter({ c, kind }: { c?: string; kind: "energy" | "ges" }) {
+  const letter = String(c || "").toUpperCase();
+  if (!letter) return <span className="text-luxe/40">—</span>;
+  const color = (kind === "energy" ? ENERGY_COLORS : GES_COLORS)[letter] || "#9ca3af";
+  return (
+    <span className="inline-flex items-center justify-center min-w-[2rem] h-8 px-2 rounded-md text-white font-bold text-sm" style={{ background: color }}>
+      {letter}
+    </span>
+  );
+}
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -71,6 +85,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   const proximite: any[] = Array.isArray(p.proximite) ? p.proximite : [];
   const plans: any[] = [...(Array.isArray(p.projections) ? p.projections : []), ...(Array.isArray(p.plans) ? p.plans : [])];
   const calendrier: any[] = Array.isArray(p.calendrier) ? p.calendrier : [];
+  const equipements: any[] = Array.isArray(p.equipements) ? p.equipements : [];
   const hasDpe = p.dpe && (p.dpe.classEnergy || p.dpe.classGES);
   const hero = p.heroImage || p.coverImage || "/hero-accueil.jpg";
   const mapQuery = p.mapQuery || p.address || `${p.title}, ${p.city}`;
@@ -147,36 +162,96 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
             )}
           </div>
 
-          {hasDpe && (
-            <div className="mt-8 max-w-xl">
-              <DPECard dpe={p.dpe} title="DPE cible (après travaux)" />
-            </div>
-          )}
         </section>
       )}
 
       {/* CALENDRIER DU PROJET */}
       {calendrier.length > 0 && (
+        <section className="container py-14">
+          <div className="text-center max-w-2xl mx-auto">
+            <h2 className="luxe text-3xl md:text-4xl text-luxe">Calendrier du projet</h2>
+            <div className="mt-3 h-px w-14 bg-gold/60 mx-auto" />
+            <p className="mt-4 text-luxe/60">Planning détaillé de la commercialisation à la livraison</p>
+          </div>
+          <div className="mt-10 relative">
+            <div className="absolute left-[11px] top-4 bottom-4 w-px bg-gold/30" aria-hidden />
+            <ol className="space-y-4">
+              {calendrier.map((etape: any, i: number) => (
+                <li key={i} className="relative pl-10">
+                  <span className="absolute left-0 top-4 h-6 w-6 rounded-full border-2 border-gold bg-cream flex items-center justify-center">
+                    <span className="h-2 w-2 rounded-full bg-gold" />
+                  </span>
+                  <div className="card p-5 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h3 className="luxe text-lg text-luxe">{etape.etape || etape.title}</h3>
+                      {etape.description && <p className="text-sm text-luxe/60 mt-0.5">{etape.description}</p>}
+                    </div>
+                    {etape.date && (
+                      <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#B89C6D] whitespace-nowrap">
+                        <CalendarDays className="w-4 h-4" /> {etape.date}
+                      </span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+      )}
+
+      {/* DPE CIBLE */}
+      {hasDpe && (
         <section className="bg-white/50 border-y border-gold/20 py-14">
           <div className="container">
-            <h2 className="luxe text-3xl md:text-4xl text-luxe">Calendrier du projet</h2>
-            <div className="mt-3 h-px w-14 bg-gold/60" />
-            <ol className="mt-8 relative border-l-2 border-gold/30 ml-3 space-y-8">
-              {calendrier.map((etape: any, i: number) => {
-                const done = !!etape.done;
-                return (
-                  <li key={i} className="ml-6">
-                    <span className={`absolute -left-[9px] flex h-4 w-4 items-center justify-center rounded-full ring-4 ring-cream ${done ? "bg-gold" : "bg-white border-2 border-gold/50"}`} />
-                    <div className="flex flex-wrap items-baseline gap-x-3">
-                      <h3 className="luxe text-lg text-luxe">{etape.etape || etape.title}</h3>
-                      {etape.date && <span className="text-sm font-medium text-[#B89C6D]">{etape.date}</span>}
-                      {done && <span className="text-xs rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 px-2 py-0.5">Réalisé</span>}
+            <div className="text-center max-w-2xl mx-auto">
+              <h2 className="luxe text-3xl md:text-4xl text-luxe">DPE cible</h2>
+              <div className="mt-3 h-px w-14 bg-gold/60 mx-auto" />
+              <p className="mt-4 text-luxe/60">Performance énergétique optimisée après rénovation</p>
+            </div>
+            <div className="mt-10 grid md:grid-cols-2 gap-6">
+              <div className="card p-6">
+                <h3 className="luxe text-xl mb-4 flex items-center gap-2"><Zap className="w-5 h-5 text-gold" /> Performance énergétique</h3>
+                <dl className="divide-y divide-black/5">
+                  <div className="flex items-center justify-between py-3">
+                    <dt className="text-sm text-luxe/70">Classe énergétique cible</dt>
+                    <dd><DpeLetter c={p.dpe.classEnergy} kind="energy" /></dd>
+                  </div>
+                  {p.dpe.consumption && (
+                    <div className="flex items-center justify-between py-3">
+                      <dt className="text-sm text-luxe/70">Consommation estimée</dt>
+                      <dd className="text-sm font-medium text-luxe">{p.dpe.consumption}</dd>
                     </div>
-                    {etape.description && <p className="mt-1 text-sm text-luxe/60">{etape.description}</p>}
-                  </li>
-                );
-              })}
-            </ol>
+                  )}
+                  <div className="flex items-center justify-between py-3">
+                    <dt className="text-sm text-luxe/70">Émissions de GES</dt>
+                    <dd><DpeLetter c={p.dpe.classGES} kind="ges" /></dd>
+                  </div>
+                  {p.dpe.emissions && (
+                    <div className="flex items-center justify-between py-3">
+                      <dt className="text-sm text-luxe/70">Émissions estimées</dt>
+                      <dd className="text-sm font-medium text-luxe">{p.dpe.emissions}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+              {equipements.length > 0 && (
+                <div className="card p-6">
+                  <h3 className="luxe text-xl mb-4 flex items-center gap-2"><Wrench className="w-5 h-5 text-gold" /> Équipements performants</h3>
+                  <ul className="space-y-4">
+                    {equipements.map((e: any, i: number) => (
+                      <li key={i} className="flex gap-3">
+                        <span className="text-gold mt-1.5 text-[10px]">●</span>
+                        <div>
+                          <div className="font-medium text-luxe">{e.title || e.titre}</div>
+                          {(e.subtitle || e.description) && <div className="text-sm text-luxe/55">{e.subtitle || e.description}</div>}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <p className="mt-6 text-xs text-luxe/45 text-center">Performance visée après travaux — valeurs indicatives, non contractuelles.</p>
           </div>
         </section>
       )}

@@ -23,8 +23,9 @@ type Program = {
   proximite?: { nom: string; distance?: string }[];
   lots?: any[];
   projections?: { title?: string; image?: string }[];
-  dpe?: { classEnergy?: string; classGES?: string };
-  calendrier?: { etape?: string; date?: string; done?: boolean }[];
+  dpe?: { classEnergy?: string; classGES?: string; consumption?: string; emissions?: string };
+  equipements?: { title?: string; subtitle?: string }[];
+  calendrier?: { etape?: string; date?: string; description?: string; done?: boolean }[];
   mapQuery?: string;
   virtualTourUrl?: string;
   externalUrl?: string;
@@ -202,9 +203,15 @@ export default function Page() {
 
   // ---- Calendrier du projet ----
   const calList = (): any[] => Array.isArray((editing as any)?.calendrier) ? (editing as any).calendrier : [];
-  const addCal = () => updateField('calendrier', [...calList(), { etape: "", date: "", done: false }]);
+  const addCal = () => updateField('calendrier', [...calList(), { etape: "", date: "", description: "" }]);
   const setCal = (i: number, key: string, v: any) => { const a = [...calList()]; a[i] = { ...a[i], [key]: v }; updateField('calendrier', a); };
   const rmCal = (i: number) => updateField('calendrier', calList().filter((_, j) => j !== i));
+
+  // ---- Équipements performants (DPE) ----
+  const eqList = (): any[] => Array.isArray((editing as any)?.equipements) ? (editing as any).equipements : [];
+  const addEq = () => updateField('equipements', [...eqList(), { title: "", subtitle: "" }]);
+  const setEq = (i: number, key: string, v: string) => { const a = [...eqList()]; a[i] = { ...a[i], [key]: v }; updateField('equipements', a); };
+  const rmEq = (i: number) => updateField('equipements', eqList().filter((_, j) => j !== i));
 
   // Petit éditeur de liste de chaînes réutilisable.
   const StrListEditor = ({ field, label }: { field: string; label: string }) => (
@@ -459,6 +466,25 @@ export default function Page() {
                 </select>
               </div>
             </div>
+            <div className="grid md:grid-cols-2 gap-3 mt-3">
+              <input value={editing.dpe?.consumption || ''} onChange={e => setDpe('consumption', e.target.value)} placeholder="Consommation (ex : 110-180 kWh/m²/an)" className="px-3 py-2 border rounded text-sm" />
+              <input value={editing.dpe?.emissions || ''} onChange={e => setDpe('emissions', e.target.value)} placeholder="Émissions (ex : 25-45 kg CO₂/m²/an)" className="px-3 py-2 border rounded text-sm" />
+            </div>
+          </div>
+
+          {/* Équipements performants */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Équipements performants (DPE cible)</label>
+            <div className="space-y-2">
+              {eqList().map((eq, i) => (
+                <div key={i} className="flex flex-wrap items-center gap-2">
+                  <input value={eq.title || ''} onChange={e => setEq(i, 'title', e.target.value)} placeholder="Titre (ex : VMC double flux)" className="flex-1 min-w-[160px] px-3 py-1.5 text-sm border rounded" />
+                  <input value={eq.subtitle || ''} onChange={e => setEq(i, 'subtitle', e.target.value)} placeholder="Détail (ex : Récupération de chaleur)" className="flex-1 min-w-[160px] px-3 py-1.5 text-sm border rounded" />
+                  <button type="button" onClick={() => rmEq(i)} className="px-2 text-red-500 hover:bg-red-50 rounded">✕</button>
+                </div>
+              ))}
+              <button type="button" onClick={addEq} className="text-sm text-[#B89C6D] hover:underline">+ Ajouter un équipement</button>
+            </div>
           </div>
 
           {/* Calendrier du projet */}
@@ -467,11 +493,9 @@ export default function Page() {
             <div className="space-y-2">
               {calList().map((et, i) => (
                 <div key={i} className="flex flex-wrap items-center gap-2">
-                  <input value={et.etape || ''} onChange={e => setCal(i, 'etape', e.target.value)} placeholder="Étape (ex : Livraison)" className="flex-1 min-w-[160px] px-3 py-1.5 text-sm border rounded" />
-                  <input value={et.date || ''} onChange={e => setCal(i, 'date', e.target.value)} placeholder="Date (ex : T2 2027)" className="w-36 px-3 py-1.5 text-sm border rounded" />
-                  <label className="flex items-center gap-1 text-xs whitespace-nowrap">
-                    <input type="checkbox" checked={!!et.done} onChange={e => setCal(i, 'done', e.target.checked)} /> Réalisé
-                  </label>
+                  <input value={et.etape || ''} onChange={e => setCal(i, 'etape', e.target.value)} placeholder="Étape (ex : Livraison)" className="w-44 px-3 py-1.5 text-sm border rounded" />
+                  <input value={et.date || ''} onChange={e => setCal(i, 'date', e.target.value)} placeholder="Date (ex : T2 2027)" className="w-32 px-3 py-1.5 text-sm border rounded" />
+                  <input value={et.description || ''} onChange={e => setCal(i, 'description', e.target.value)} placeholder="Description" className="flex-1 min-w-[180px] px-3 py-1.5 text-sm border rounded" />
                   <button type="button" onClick={() => rmCal(i)} className="px-2 text-red-500 hover:bg-red-50 rounded">✕</button>
                 </div>
               ))}
