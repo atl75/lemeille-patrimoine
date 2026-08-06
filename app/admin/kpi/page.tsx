@@ -249,45 +249,51 @@ export default function Page(){
     const underOffer = properties.filter(p => p.status === 'UNDER_OFFER');
     const available = properties.filter(p => !isSold(p) && p.status !== 'UNDER_OFFER' && (p as any).visible !== false);
 
-    const caSold = sold.reduce((s, p) => s + (p.finalSalePrice || p.price || 0), 0);
+    const soldPriced = sold.filter(p => (p.finalSalePrice || p.price || 0) > 0);
+    const caSold = soldPriced.reduce((s, p) => s + (p.finalSalePrice || p.price || 0), 0);
     const commSold = sold.reduce((s, p) => s + (p.negotiatedCommission || p.commissionAmount || 0), 0);
     const commUnderOffer = underOffer.reduce((s, p) => s + (p.negotiatedCommission || p.commissionAmount || 0), 0);
     const stockValue = available.reduce((s, p) => s + (p.price || 0), 0);
-    const avgSalePrice = sold.length ? caSold / sold.length : 0;
-    const avgComm = sold.length ? commSold / sold.length : 0;
+    // Prix de vente moyen : uniquement sur les ventes dont le prix est renseigné.
+    const avgSalePrice = soldPriced.length ? caSold / soldPriced.length : 0;
+    const commPaid = sold.filter(p => (p.negotiatedCommission || p.commissionAmount || 0) > 0);
+    const avgComm = commPaid.length ? commSold / commPaid.length : 0;
     const commRate = caSold > 0 ? (commSold / caSold) * 100 : 0;
     const totalBiens = available.length + underOffer.length + sold.length;
     const commercialisation = totalBiens ? ((sold.length + underOffer.length) / totalBiens) * 100 : 0;
 
-    // Leads
+    // Leads (CRM)
     const since = (days: number) => new Date(Date.now() - days * 86400000);
     const leads30 = leads.filter(l => new Date(l.createdAt) >= since(30));
-    const qualifiedStatuses = ['qualified', 'estimation', 'mandate'];
-    const qualified = leads.filter(l => qualifiedStatuses.includes(l.status || ''));
+    const isContacted = (l: Lead) => (l.status || 'new') !== 'new';
+    const isQualified = (l: Lead) => ['qualified', 'estimation', 'mandate', 'closed'].includes(l.status || '');
+    const isClosed = (l: Lead) => ['closed', 'mandate'].includes(l.status || '');
+    const qualified = leads.filter(isQualified);
+    const closedLeads = leads.filter(isClosed);
     const acheteurs = leads.filter(l => (l.category || 'immobilier') === 'immobilier' && ((l as any).role || 'ACHETEUR') === 'ACHETEUR').length;
     const vendeurs = leads.filter(l => (l as any).role === 'VENDEUR').length;
 
-    // Connexions (taux de conversion)
+    // Connexions (taux de conversion, honnêtes et bornés)
     const visits30 = analyticsStats?.last30days || 0;
     const visitToLead = visits30 > 0 ? (leads30.length / visits30) * 100 : 0;
     const leadToQualified = leads.length > 0 ? (qualified.length / leads.length) * 100 : 0;
-    const leadToSale = leads.length > 0 ? (sold.length / leads.length) * 100 : 0;
+    const closingRate = leads.length > 0 ? (closedLeads.length / leads.length) * 100 : 0;
     const leadsParBien = available.length > 0 ? leads30.length / available.length : 0;
 
-    // Tunnel connecté
+    // Tunnel connecté (web → CRM), fenêtre cohérente 30 jours.
     const funnel = [
       { label: 'Visites (30j)', value: visits30 },
       { label: 'Leads (30j)', value: leads30.length },
-      { label: 'Qualifiés', value: qualified.length },
-      { label: 'Sous promesse', value: underOffer.length },
-      { label: 'Vendus (période)', value: sold.length },
+      { label: 'Contactés (30j)', value: leads30.filter(isContacted).length },
+      { label: 'Qualifiés (30j)', value: leads30.filter(isQualified).length },
+      { label: 'Fermés (30j)', value: leads30.filter(isClosed).length },
     ];
 
     return {
-      soldCount: sold.length, underOfferCount: underOffer.length, availableCount: available.length,
+      soldCount: sold.length, soldPricedCount: soldPriced.length, underOfferCount: underOffer.length, availableCount: available.length,
       caSold, commSold, commUnderOffer, stockValue, avgSalePrice, avgComm, commRate, commercialisation,
       leads30: leads30.length, qualified: qualified.length, acheteurs, vendeurs,
-      visits30, visitToLead, leadToQualified, leadToSale, leadsParBien, funnel,
+      visits30, visitToLead, leadToQualified, closingRate, leadsParBien, funnel,
     };
   }, [leads, properties, analyticsStats, startDate, endDate]);
 
@@ -388,8 +394,8 @@ export default function Page(){
               <div className="text-xs text-gray-500 mt-1">{smart.leads30} leads / {smart.visits30.toLocaleString('fr-FR')} visites (30j)</div>
             </div>
             <div className="card p-5">
-              <div className="text-[11px] uppercase tracking-wide text-gray-500">Conv. lead → vente</div>
-              <div className="text-2xl font-semibold mt-1 text-green-700">{pct(smart.leadToSale)}</div>
+              <div className="text-[11px] uppercase tracking-wide text-gray-500">Taux de closing (leads)</div>
+              <div className="text-2xl font-semibold mt-1 text-green-700">{pct(smart.closingRate)}</div>
               <div className="text-xs text-gray-500 mt-1">{pct(smart.leadToQualified)} qualifiés</div>
             </div>
           </div>
