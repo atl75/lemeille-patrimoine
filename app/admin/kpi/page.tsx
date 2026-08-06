@@ -289,8 +289,13 @@ export default function Page(){
       { label: 'Fermés (30j)', value: leads30.filter(isClosed).length },
     ];
 
+    const availablePriced = available.filter(p => (p.price || 0) > 0 || (p as any).priceOnRequest).length;
+    const leadsTracked = leads.filter(isContacted).length; // leads sortis du statut « nouveau »
+
     return {
-      soldCount: sold.length, soldPricedCount: soldPriced.length, underOfferCount: underOffer.length, availableCount: available.length,
+      soldCount: sold.length, soldPricedCount: soldPriced.length, soldCommCount: commPaid.length,
+      underOfferCount: underOffer.length, availableCount: available.length, availablePriced,
+      leadsTotal: leads.length, leadsTracked,
       caSold, commSold, commUnderOffer, stockValue, avgSalePrice, avgComm, commRate, commercialisation,
       leads30: leads30.length, qualified: qualified.length, acheteurs, vendeurs,
       visits30, visitToLead, leadToQualified, closingRate, leadsParBien, funnel,
@@ -446,6 +451,34 @@ export default function Page(){
                 <div><span className="text-xl font-semibold text-amber-700">{smart.vendeurs}</span><span className="text-xs text-gray-500 ml-1">vendeurs</span></div>
               </div>
               <div className="text-xs text-gray-500 mt-1">{smart.vendeurs} mandat{smart.vendeurs > 1 ? 's' : ''} potentiel{smart.vendeurs > 1 ? 's' : ''}</div>
+            </div>
+          </div>
+
+          {/* ===== COMPLÉTUDE DES DONNÉES ===== */}
+          <div className="card p-6 mb-8">
+            <h3 className="luxe text-xl mb-1">Complétude des données</h3>
+            <p className="text-sm text-gray-500 mb-4">Plus la donnée est renseignée, plus les indicateurs ci-dessus sont fiables. Complétez les lignes en rouge/orange.</p>
+            <div className="space-y-3">
+              {[
+                { label: "Ventes avec prix renseigné", done: smart.soldPricedCount, total: smart.soldCount },
+                { label: "Ventes avec commission renseignée", done: smart.soldCommCount, total: smart.soldCount },
+                { label: "Biens en vente avec prix", done: smart.availablePriced, total: smart.availableCount },
+                { label: "Leads suivis (statut au-delà de « nouveau »)", done: smart.leadsTracked, total: smart.leadsTotal },
+              ].map((r, i) => {
+                const rate = r.total > 0 ? Math.round((r.done / r.total) * 100) : 0;
+                const color = rate >= 80 ? "#2e7d32" : rate >= 40 ? "#f9a825" : "#c62828";
+                return (
+                  <div key={i}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-700">{r.label}</span>
+                      <span className="font-medium text-gray-900">{r.done}/{r.total} · {rate} %</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${rate}%`, background: color }} />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
