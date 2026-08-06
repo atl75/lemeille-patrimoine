@@ -295,6 +295,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
             {lots.map((lot, i) => {
               const st = STATUT[lot.statut || "DISPONIBLE"] || STATUT.DISPONIBLE;
               const sold = (lot.statut || "DISPONIBLE") === "VENDU";
+              const disponible = (lot.statut || "DISPONIBLE") === "DISPONIBLE";
               const surfAfter = Number(lot.surfaceApresTravaux) || 0;
               const surfNow = Number(lot.surfaceActuelle) || 0;
               return (
@@ -321,7 +322,11 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                     )}
                     <div className="mt-auto pt-2 flex items-center justify-between gap-2">
                       <span className={`font-semibold ${sold ? "text-luxe/40 line-through" : "text-[#B89C6D]"}`}>{lotPrice(lot)}</span>
-                      <Link href={`/programmes/${p.slug || p.id}/lots/${lot.numero ?? i + 1}`} className="text-sm font-medium text-[#B89C6D] hover:underline whitespace-nowrap">Voir le lot →</Link>
+                      {disponible ? (
+                        <Link href={`/programmes/${p.slug || p.id}/lots/${lot.numero ?? i + 1}`} className="text-sm font-medium text-[#B89C6D] hover:underline whitespace-nowrap">Voir le lot →</Link>
+                      ) : (
+                        <span className="text-sm text-luxe/40 whitespace-nowrap">{st.label}</span>
+                      )}
                     </div>
                   </div>
                 </div>
