@@ -51,6 +51,7 @@ type AnalyticsStats = {
 export default function Page(){
   const [leads, setLeads] = useState<Lead[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
+  const [programs, setPrograms] = useState<any[]>([]);
   const [analyticsStats, setAnalyticsStats] = useState<AnalyticsStats | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -63,18 +64,21 @@ export default function Page(){
     Promise.all([
       fetch('/api/leads').then(r => r.json()),
       fetch('/api/properties').then(r => r.json()),
-      fetch('/api/analytics/stats').then(r => r.json())
+      fetch('/api/analytics/stats').then(r => r.json()),
+      fetch('/api/programs').then(r => r.json()).catch(() => [])
     ])
-      .then(([leadsData, propertiesData, analyticsData]) => {
+      .then(([leadsData, propertiesData, analyticsData, programsData]) => {
         setLeads(Array.isArray(leadsData) ? leadsData : []);
         setProperties(Array.isArray(propertiesData) ? propertiesData : []);
         setAnalyticsStats(analyticsData);
+        setPrograms(Array.isArray(programsData) ? programsData : []);
         setLoading(false);
       })
       .catch(() => {
         setLeads([]);
         setProperties([]);
         setAnalyticsStats(null);
+        setPrograms([]);
         setLoading(false);
       });
   }, []);
@@ -234,14 +238,80 @@ export default function Page(){
     };
   }, [properties, startDate, endDate]);
 
+  // Indicateurs « intelligents » et connectés (web ↔ leads ↔ biens ↔ programmes)
+  const smart = useMemo(() => {
+    const start = new Date(startDate); const end = new Date(endDate); end.setHours(23, 59, 59, 999);
+    const inPeriod = (s?: string) => { if (!s) return false; const d = new Date(s); return d >= start && d <= end; };
+    const isSold = (p: any) => p.status === 'SOLD' || p.sold === true;
+
+    // Biens
+    const sold = properties.filter(p => isSold(p) && (!p.soldDate || inPeriod(p.soldDate)));
+    const underOffer = properties.filter(p => p.status === 'UNDER_OFFER');
+    const available = properties.filter(p => !isSold(p) && p.status !== 'UNDER_OFFER' && (p as any).visible !== false);
+
+    const caSold = sold.reduce((s, p) => s + (p.finalSalePrice || p.price || 0), 0);
+    const commSold = sold.reduce((s, p) => s + (p.negotiatedCommission || p.commissionAmount || 0), 0);
+    const commUnderOffer = underOffer.reduce((s, p) => s + (p.negotiatedCommission || p.commissionAmount || 0), 0);
+    const stockValue = available.reduce((s, p) => s + (p.price || 0), 0);
+    const avgSalePrice = sold.length ? caSold / sold.length : 0;
+    const avgComm = sold.length ? commSold / sold.length : 0;
+    const commRate = caSold > 0 ? (commSold / caSold) * 100 : 0;
+    const totalBiens = available.length + underOffer.length + sold.length;
+    const commercialisation = totalBiens ? ((sold.length + underOffer.length) / totalBiens) * 100 : 0;
+
+    // Leads
+    const since = (days: number) => new Date(Date.now() - days * 86400000);
+    const leads30 = leads.filter(l => new Date(l.createdAt) >= since(30));
+    const qualifiedStatuses = ['qualified', 'estimation', 'mandate'];
+    const qualified = leads.filter(l => qualifiedStatuses.includes(l.status || ''));
+    const acheteurs = leads.filter(l => (l.category || 'immobilier') === 'immobilier' && ((l as any).role || 'ACHETEUR') === 'ACHETEUR').length;
+    const vendeurs = leads.filter(l => (l as any).role === 'VENDEUR').length;
+
+    // Connexions (taux de conversion)
+    const visits30 = analyticsStats?.last30days || 0;
+    const visitToLead = visits30 > 0 ? (leads30.length / visits30) * 100 : 0;
+    const leadToQualified = leads.length > 0 ? (qualified.length / leads.length) * 100 : 0;
+    const leadToSale = leads.length > 0 ? (sold.length / leads.length) * 100 : 0;
+    const leadsParBien = available.length > 0 ? leads30.length / available.length : 0;
+
+    // Tunnel connecté
+    const funnel = [
+      { label: 'Visites (30j)', value: visits30 },
+      { label: 'Leads (30j)', value: leads30.length },
+      { label: 'Qualifiés', value: qualified.length },
+      { label: 'Sous promesse', value: underOffer.length },
+      { label: 'Vendus (période)', value: sold.length },
+    ];
+
+    return {
+      soldCount: sold.length, underOfferCount: underOffer.length, availableCount: available.length,
+      caSold, commSold, commUnderOffer, stockValue, avgSalePrice, avgComm, commRate, commercialisation,
+      leads30: leads30.length, qualified: qualified.length, acheteurs, vendeurs,
+      visits30, visitToLead, leadToQualified, leadToSale, leadsParBien, funnel,
+    };
+  }, [leads, properties, analyticsStats, startDate, endDate]);
+
+  // KPI programmes de défiscalisation (lots)
+  const progKpi = useMemo(() => {
+    const lots = programs.flatMap((p: any) => Array.isArray(p.lots) ? p.lots : []);
+    const st = (l: any) => l.statut || 'DISPONIBLE';
+    const dispo = lots.filter((l: any) => st(l) === 'DISPONIBLE').length;
+    const vendu = lots.filter((l: any) => st(l) === 'VENDU').length;
+    const reserve = lots.filter((l: any) => st(l) === 'RESERVE' || st(l) === 'OPTION').length;
+    const caVendu = lots.filter((l: any) => st(l) === 'VENDU').reduce((s: number, l: any) => s + ((Number(l.prixPlateau) || 0) + (Number(l.prixTravaux) || 0)), 0);
+    const tauxCommercialisation = lots.length ? ((vendu + reserve) / lots.length) * 100 : 0;
+    return { nbProgrammes: programs.length, totalLots: lots.length, dispo, vendu, reserve, caVendu, tauxCommercialisation };
+  }, [programs]);
+
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', { 
-      style: 'currency', 
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
       currency: 'EUR',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount);
   };
+  const pct = (n: number) => `${n.toFixed(n >= 10 ? 0 : 1)} %`;
 
   return (
     <AdminShell title="Indicateurs">
@@ -286,6 +356,90 @@ export default function Page(){
               >
                 Année fiscale en cours
               </button>
+            </div>
+          </div>
+
+          {/* ===== VUE D'ENSEMBLE ===== */}
+          <h2 className="luxe text-2xl mb-4">Vue d&apos;ensemble</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+            <div className="card p-5 !bg-[#1F3B2C] text-white">
+              <div className="text-[11px] uppercase tracking-wide text-white/70">CA réalisé</div>
+              <div className="text-2xl font-semibold mt-1">{formatCurrency(smart.caSold)}</div>
+              <div className="text-xs text-white/60 mt-1">{smart.soldCount} vente{smart.soldCount > 1 ? 's' : ''}</div>
+            </div>
+            <div className="card p-5 !bg-[#B89C6D] text-white">
+              <div className="text-[11px] uppercase tracking-wide text-white/80">Commissions réalisées</div>
+              <div className="text-2xl font-semibold mt-1">{formatCurrency(smart.commSold)}</div>
+              <div className="text-xs text-white/70 mt-1">taux {pct(smart.commRate)}</div>
+            </div>
+            <div className="card p-5">
+              <div className="text-[11px] uppercase tracking-wide text-gray-500">Pipeline (sous promesse)</div>
+              <div className="text-2xl font-semibold mt-1 text-orange-600">{formatCurrency(smart.commUnderOffer)}</div>
+              <div className="text-xs text-gray-500 mt-1">{smart.underOfferCount} bien{smart.underOfferCount > 1 ? 's' : ''} à venir</div>
+            </div>
+            <div className="card p-5">
+              <div className="text-[11px] uppercase tracking-wide text-gray-500">Prix de vente moyen</div>
+              <div className="text-2xl font-semibold mt-1 text-gray-900">{formatCurrency(smart.avgSalePrice)}</div>
+              <div className="text-xs text-gray-500 mt-1">commission moy. {formatCurrency(smart.avgComm)}</div>
+            </div>
+            <div className="card p-5">
+              <div className="text-[11px] uppercase tracking-wide text-gray-500">Conv. visite → lead</div>
+              <div className="text-2xl font-semibold mt-1 text-blue-700">{pct(smart.visitToLead)}</div>
+              <div className="text-xs text-gray-500 mt-1">{smart.leads30} leads / {smart.visits30.toLocaleString('fr-FR')} visites (30j)</div>
+            </div>
+            <div className="card p-5">
+              <div className="text-[11px] uppercase tracking-wide text-gray-500">Conv. lead → vente</div>
+              <div className="text-2xl font-semibold mt-1 text-green-700">{pct(smart.leadToSale)}</div>
+              <div className="text-xs text-gray-500 mt-1">{pct(smart.leadToQualified)} qualifiés</div>
+            </div>
+          </div>
+
+          {/* ===== TUNNEL CONNECTÉ ===== */}
+          <div className="card p-6 mb-6">
+            <h3 className="luxe text-xl mb-1">Tunnel de conversion connecté</h3>
+            <p className="text-sm text-gray-500 mb-4">Du trafic web à la vente — chaque étape et son taux de passage.</p>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+              {smart.funnel.map((s, i) => {
+                const prev = i > 0 ? smart.funnel[i - 1].value : 0;
+                return (
+                  <div key={i} className="relative rounded-xl border p-4 text-center" style={{ background: `rgba(31,59,44,${0.05 + i * 0.05})` }}>
+                    <div className="text-2xl font-semibold text-[#1F3B2C]">{s.value.toLocaleString('fr-FR')}</div>
+                    <div className="text-xs text-gray-600 mt-1">{s.label}</div>
+                    {i > 0 && (
+                      <div className="absolute -left-2 top-1/2 -translate-y-1/2 hidden md:block text-[10px] font-semibold text-[#B89C6D] bg-white border rounded-full px-1.5 py-0.5">
+                        {prev > 0 ? pct((s.value / prev) * 100) : '—'}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ===== INDICATEURS CLÉS + CRM ===== */}
+          <div className="grid md:grid-cols-4 gap-4 mb-8">
+            <div className="card p-5">
+              <div className="text-[11px] uppercase tracking-wide text-gray-500">Valeur du portefeuille</div>
+              <div className="text-xl font-semibold mt-1 text-gray-900">{formatCurrency(smart.stockValue)}</div>
+              <div className="text-xs text-gray-500 mt-1">{smart.availableCount} bien{smart.availableCount > 1 ? 's' : ''} en vente</div>
+            </div>
+            <div className="card p-5">
+              <div className="text-[11px] uppercase tracking-wide text-gray-500">Taux de commercialisation</div>
+              <div className="text-xl font-semibold mt-1 text-gray-900">{pct(smart.commercialisation)}</div>
+              <div className="text-xs text-gray-500 mt-1">vendus + sous promesse / total</div>
+            </div>
+            <div className="card p-5">
+              <div className="text-[11px] uppercase tracking-wide text-gray-500">Demande / offre</div>
+              <div className="text-xl font-semibold mt-1 text-gray-900">{smart.leadsParBien.toFixed(1)}</div>
+              <div className="text-xs text-gray-500 mt-1">leads (30j) par bien en vente</div>
+            </div>
+            <div className="card p-5">
+              <div className="text-[11px] uppercase tracking-wide text-gray-500">Leads CRM</div>
+              <div className="mt-1 flex items-baseline gap-3">
+                <div><span className="text-xl font-semibold text-teal-700">{smart.acheteurs}</span><span className="text-xs text-gray-500 ml-1">acheteurs</span></div>
+                <div><span className="text-xl font-semibold text-amber-700">{smart.vendeurs}</span><span className="text-xs text-gray-500 ml-1">vendeurs</span></div>
+              </div>
+              <div className="text-xs text-gray-500 mt-1">{smart.vendeurs} mandat{smart.vendeurs > 1 ? 's' : ''} potentiel{smart.vendeurs > 1 ? 's' : ''}</div>
             </div>
           </div>
 
@@ -375,6 +529,25 @@ export default function Page(){
               </div>
             </div>
           </div>
+
+          {/* ===== PROGRAMMES DE DÉFISCALISATION ===== */}
+          {progKpi.totalLots > 0 && (
+            <div className="mb-8">
+              <h2 className="luxe text-2xl mb-4">Programmes de défiscalisation</h2>
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                <div className="card p-5"><div className="text-[11px] uppercase tracking-wide text-gray-500">Programmes</div><div className="text-2xl font-semibold mt-1">{progKpi.nbProgrammes}</div></div>
+                <div className="card p-5"><div className="text-[11px] uppercase tracking-wide text-gray-500">Lots</div><div className="text-2xl font-semibold mt-1">{progKpi.totalLots}</div></div>
+                <div className="card p-5"><div className="text-[11px] uppercase tracking-wide text-gray-500">Disponibles</div><div className="text-2xl font-semibold mt-1 text-emerald-700">{progKpi.dispo}</div></div>
+                <div className="card p-5"><div className="text-[11px] uppercase tracking-wide text-gray-500">Réservés / option</div><div className="text-2xl font-semibold mt-1 text-amber-700">{progKpi.reserve}</div></div>
+                <div className="card p-5"><div className="text-[11px] uppercase tracking-wide text-gray-500">Vendus</div><div className="text-2xl font-semibold mt-1 text-blue-700">{progKpi.vendu}</div></div>
+                <div className="card p-5"><div className="text-[11px] uppercase tracking-wide text-gray-500">Commercialisation</div><div className="text-2xl font-semibold mt-1">{pct(progKpi.tauxCommercialisation)}</div></div>
+              </div>
+              <div className="card p-5 mt-4 !bg-[#1F3B2C] text-white flex items-center justify-between">
+                <div className="text-sm text-white/80">Montant des lots vendus (prix FAI)</div>
+                <div className="text-2xl font-semibold">{formatCurrency(progKpi.caVendu)}</div>
+              </div>
+            </div>
+          )}
 
           {/* Statistiques Web */}
           {analyticsStats && (
