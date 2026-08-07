@@ -17,3 +17,4 @@ data/analytics.json
 tsconfig.tsbuildinfo
 skills-lock.json
 .claude/skills/
+data/uploads/
