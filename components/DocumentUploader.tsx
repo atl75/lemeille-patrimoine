@@ -7,9 +7,13 @@ type DocumentUploaderProps = {
   onChange: (document?: string) => void;
   label: string;
   accept?: string;
+  // Si true, le fichier est envoyé sur Cloudinary et seule l'URL est stockée
+  // (recommandé — évite d'alourdir la donnée avec du base64). Sinon base64.
+  uploadToCloud?: boolean;
 };
 
-export default function DocumentUploader({ document, onChange, label, accept = ".pdf" }: DocumentUploaderProps) {
+export default function DocumentUploader({ document, onChange, label, accept = ".pdf", uploadToCloud }: DocumentUploaderProps) {
+  const [uploading, setUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -52,20 +56,39 @@ export default function DocumentUploader({ document, onChange, label, accept = "
 
   const processFile = async (file: File) => {
     try {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        if (dataUrl) {
-          onChange(dataUrl);
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('read'));
+        reader.readAsDataURL(file);
+      });
+      if (uploadToCloud) {
+        setUploading(true);
+        try {
+          const res = await fetch('/api/upload-document', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ file: dataUrl }),
+          });
+          const data = await res.json();
+          if (res.ok && data.url) {
+            onChange(data.url);
+            setUploading(false);
+            return;
+          }
+          alert(data.error || "Échec de l'envoi du document");
+          setUploading(false);
+          return;
+        } catch {
+          setUploading(false);
+          alert("Échec de l'envoi du document");
+          return;
         }
-      };
-      reader.onerror = () => {
-        alert(`Erreur lors de la lecture du fichier ${file.name}`);
-      };
-      reader.readAsDataURL(file);
+      }
+      onChange(dataUrl);
     } catch (error) {
       console.error('Error processing file:', error);
-      alert(`Erreur lors du chargement du document: ${error}`);
+      alert(`Erreur lors du chargement du document`);
     }
   };
 
@@ -133,7 +156,7 @@ export default function DocumentUploader({ document, onChange, label, accept = "
               </button>
             </div>
             <p className="text-xs text-gray-400 mt-0.5">
-              Format PDF
+              {uploading ? "Envoi en cours…" : "Format PDF"}
             </p>
           </div>
         </div>

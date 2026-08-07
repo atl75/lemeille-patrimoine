@@ -27,3 +27,14 @@ export async function uploadPropertyImage(dataUri: string): Promise<string> {
   });
   return result.secure_url;
 }
+
+// Upload d'un document (PDF…) — resource_type "auto" pour conserver le bon
+// Content-Type (application/pdf), consultable dans un onglet.
+export async function uploadDocument(dataUri: string): Promise<string> {
+  ensureConfigured();
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder: "lemeille-patrimoine/documents",
+    resource_type: "auto",
+  });
+  return result.secure_url;
+}

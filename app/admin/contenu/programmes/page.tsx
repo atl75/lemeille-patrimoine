@@ -573,7 +573,7 @@ export default function Page() {
                       {lotDocs(i).map((d: any, di: number) => (
                         <div key={di} className="flex items-center gap-2">
                           <input value={d.name || ''} onChange={e => setLotDoc(i, di, 'name', e.target.value)} placeholder="Nom du document" className="w-52 px-2 py-1 text-xs border rounded" />
-                          <div className="flex-1"><DocumentUploader document={d.url} onChange={(url) => setLotDoc(i, di, 'url', url || '')} label="" /></div>
+                          <div className="flex-1"><DocumentUploader document={d.url} onChange={(url) => setLotDoc(i, di, 'url', url || '')} label="" uploadToCloud /></div>
                           <button type="button" onClick={() => rmLotDoc(i, di)} className="px-1 text-red-500">✕</button>
                         </div>
                       ))}
@@ -593,7 +593,7 @@ export default function Page() {
                 <div key={i} className="flex items-center gap-2">
                   <input value={d.name || ''} onChange={e => setDoc(i, 'name', e.target.value)} placeholder="Nom (ex : Plans de l'immeuble)" className="w-52 px-2 py-1 text-sm border rounded" />
                   <input value={d.subtitle || ''} onChange={e => setDoc(i, 'subtitle', e.target.value)} placeholder="Sous-titre (optionnel)" className="w-40 px-2 py-1 text-sm border rounded" />
-                  <div className="flex-1"><DocumentUploader document={d.url} onChange={(url) => setDoc(i, 'url', url || '')} label="" /></div>
+                  <div className="flex-1"><DocumentUploader document={d.url} onChange={(url) => setDoc(i, 'url', url || '')} label="" uploadToCloud /></div>
                   <button type="button" onClick={() => rmDoc(i)} className="px-1 text-red-500">✕</button>
                 </div>
               ))}

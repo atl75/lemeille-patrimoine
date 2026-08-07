@@ -231,8 +231,9 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                 const sold = (lot.statut || "DISPONIBLE") === "VENDU";
                 const surfAfter = Number(lot.surfaceApresTravaux) || 0;
                 const surfNow = Number(lot.surfaceActuelle) || 0;
-                return (
-                  <div key={i} className={`card overflow-hidden flex flex-col transition-all ${disponible ? "ring-2 ring-emerald-200 shadow-sm hover:shadow-lg hover:-translate-y-1" : "opacity-55"}`}>
+                const cls = `card overflow-hidden flex flex-col transition-all ${disponible ? "ring-2 ring-emerald-200 shadow-sm hover:shadow-lg hover:-translate-y-1 cursor-pointer" : "opacity-55"}`;
+                const inner = (
+                  <>
                     {lot.image && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={lot.image} alt={`Lot ${lot.numero || i + 1}`} className={`w-full h-44 object-cover ${!disponible ? "grayscale" : ""}`} />
@@ -253,16 +254,21 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                       {(lot.annexeDescription || lot.annexeSurface) && (
                         <div className="text-xs text-luxe/50">Annexe : {lot.annexeDescription || ""}{lot.annexeSurface ? ` (${lot.annexeSurface} m²)` : ""}</div>
                       )}
-                      <div className="mt-auto pt-2 flex items-center justify-between gap-2">
-                        <span className={`font-semibold ${sold ? "text-luxe/40 line-through" : disponible ? "text-[#B89C6D]" : "text-luxe/50"}`}>{lotPrice(lot)}</span>
-                        {disponible ? (
-                          <Link href={`/programmes/${p.slug || p.id}/lots/${lot.numero ?? i + 1}`} className="text-sm font-semibold text-emerald-700 hover:underline whitespace-nowrap">Voir le lot →</Link>
-                        ) : (
-                          <span className="text-sm text-luxe/40 whitespace-nowrap">{st.label}</span>
-                        )}
+                      <div className="mt-auto pt-3 border-t border-black/5 space-y-1 text-sm">
+                        <div className="flex items-center justify-between"><span className="text-luxe/60">Foncier</span><span className="text-luxe/80">{eur(lot.prixPlateau) || "—"}</span></div>
+                        <div className="flex items-center justify-between"><span className="text-luxe/60">Travaux</span><span className="text-luxe/80">{eur(lot.prixTravaux) || "—"}</span></div>
+                        <div className="flex items-center justify-between pt-1.5 border-t border-black/5">
+                          <span className="font-semibold text-luxe">Total</span>
+                          <span className={`font-semibold ${sold ? "text-luxe/40 line-through" : disponible ? "text-[#B89C6D]" : "text-luxe/50"}`}>{lotPrice(lot)}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </>
+                );
+                return disponible ? (
+                  <Link key={i} href={`/programmes/${p.slug || p.id}/lots/${lot.numero ?? i + 1}`} className={cls}>{inner}</Link>
+                ) : (
+                  <div key={i} className={cls}>{inner}</div>
                 );
               })}
             </div>
