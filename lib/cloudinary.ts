@@ -1,4 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
+import crypto from "crypto";
 
 let configured = false;
 
@@ -28,13 +29,20 @@ export async function uploadPropertyImage(dataUri: string): Promise<string> {
   return result.secure_url;
 }
 
-// Upload d'un document (PDF…) — resource_type "auto" pour conserver le bon
-// Content-Type (application/pdf), consultable dans un onglet.
+// Upload d'un document (PDF…). On utilise resource_type "raw" : contrairement
+// au type "image"/"auto", les fichiers "raw" ne sont PAS soumis au réglage
+// Cloudinary « Allow delivery of PDF and ZIP files » (désactivé par défaut, il
+// renvoie 401). On conserve l'extension d'origine dans le public_id pour un
+// Content-Type correct (application/pdf → consultable dans un onglet).
 export async function uploadDocument(dataUri: string): Promise<string> {
   ensureConfigured();
+  const mime = (dataUri.match(/^data:([^;]+)/) || [])[1] || "application/octet-stream";
+  const ext = mime === "application/pdf" ? "pdf" : (mime.split("/")[1] || "bin").replace("jpeg", "jpg");
+  const id = crypto.randomBytes(12).toString("hex");
   const result = await cloudinary.uploader.upload(dataUri, {
     folder: "lemeille-patrimoine/documents",
-    resource_type: "auto",
+    resource_type: "raw",
+    public_id: `${id}.${ext}`,
   });
   return result.secure_url;
 }
