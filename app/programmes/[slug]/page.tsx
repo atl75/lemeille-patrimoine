@@ -5,7 +5,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import ProgramSeoJsonLd from "@/components/ProgramSeoJsonLd";
 import ProjectionsGallery from "@/components/ProjectionsGallery";
 import { dispositifsOf, dispositifLabel } from "@/lib/dispositifs";
-import { Zap, Wrench, CalendarDays } from "lucide-react";
+import { Zap, Wrench, CalendarDays, ExternalLink } from "lucide-react";
 
 const ENERGY_COLORS: Record<string, string> = { A: "#2e7d32", B: "#558b2f", C: "#9e9d24", D: "#f9a825", E: "#fb8c00", F: "#f4511e", G: "#c62828" };
 const GES_COLORS: Record<string, string> = { A: "#8e6fc4", B: "#7e57c2", C: "#6f42b5", D: "#5e35b1", E: "#512da8", F: "#45279a", G: "#3a2185" };
@@ -116,6 +116,11 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           </div>
           <div className="mt-8 flex flex-wrap items-center gap-x-7 gap-y-4">
             <Link href={contactHref} className="btn btn-gold">Être recontacté</Link>
+            {p.externalUrl && /^https?:\/\//.test(p.externalUrl) && (
+              <a href={p.externalUrl} target="_blank" rel="noopener noreferrer" className="group inline-flex items-center gap-2 rounded-full border border-cream/40 px-4 py-2 text-sm font-medium text-cream hover:bg-cream/10 transition-colors">
+                <ExternalLink className="w-4 h-4" /> Site du programme
+              </a>
+            )}
             {lots.length > 0 && (
               <a href="#lots" className="group inline-flex items-center gap-1.5 font-medium text-cream/90 hover:text-cream transition-colors">
                 Voir les lots<span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
@@ -166,176 +171,6 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
         </section>
       )}
 
-      {/* CALENDRIER DU PROJET */}
-      {calendrier.length > 0 && (
-        <section className="container py-14">
-          <div className="text-center max-w-2xl mx-auto">
-            <h2 className="luxe text-3xl md:text-4xl text-luxe">Calendrier du projet</h2>
-            <div className="mt-3 h-px w-14 bg-gold/60 mx-auto" />
-            <p className="mt-4 text-luxe/60">Planning détaillé de la commercialisation à la livraison</p>
-          </div>
-          <div className="mt-10 relative">
-            <div className="absolute left-[11px] top-4 bottom-4 w-px bg-gold/30" aria-hidden />
-            <ol className="space-y-4">
-              {calendrier.map((etape: any, i: number) => (
-                <li key={i} className="relative pl-10">
-                  <span className="absolute left-0 top-4 h-6 w-6 rounded-full border-2 border-gold bg-cream flex items-center justify-center">
-                    <span className="h-2 w-2 rounded-full bg-gold" />
-                  </span>
-                  <div className="card p-5 flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <h3 className="luxe text-lg text-luxe">{etape.etape || etape.title}</h3>
-                      {etape.description && <p className="text-sm text-luxe/60 mt-0.5">{etape.description}</p>}
-                    </div>
-                    {etape.date && (
-                      <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#B89C6D] whitespace-nowrap">
-                        <CalendarDays className="w-4 h-4" /> {etape.date}
-                      </span>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
-      )}
-
-      {/* DPE CIBLE */}
-      {hasDpe && (
-        <section className="bg-white/50 border-y border-gold/20 py-14">
-          <div className="container">
-            <div className="text-center max-w-2xl mx-auto">
-              <h2 className="luxe text-3xl md:text-4xl text-luxe">DPE cible</h2>
-              <div className="mt-3 h-px w-14 bg-gold/60 mx-auto" />
-              <p className="mt-4 text-luxe/60">Performance énergétique optimisée après rénovation</p>
-            </div>
-            <div className="mt-10 grid md:grid-cols-2 gap-6">
-              <div className="card p-6">
-                <h3 className="luxe text-xl mb-4 flex items-center gap-2"><Zap className="w-5 h-5 text-gold" /> Performance énergétique</h3>
-                <dl className="divide-y divide-black/5">
-                  <div className="flex items-center justify-between py-3">
-                    <dt className="text-sm text-luxe/70">Classe énergétique cible</dt>
-                    <dd><DpeLetter c={p.dpe.classEnergy} kind="energy" /></dd>
-                  </div>
-                  {p.dpe.consumption && (
-                    <div className="flex items-center justify-between py-3">
-                      <dt className="text-sm text-luxe/70">Consommation estimée</dt>
-                      <dd className="text-sm font-medium text-luxe">{p.dpe.consumption}</dd>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between py-3">
-                    <dt className="text-sm text-luxe/70">Émissions de GES</dt>
-                    <dd><DpeLetter c={p.dpe.classGES} kind="ges" /></dd>
-                  </div>
-                  {p.dpe.emissions && (
-                    <div className="flex items-center justify-between py-3">
-                      <dt className="text-sm text-luxe/70">Émissions estimées</dt>
-                      <dd className="text-sm font-medium text-luxe">{p.dpe.emissions}</dd>
-                    </div>
-                  )}
-                </dl>
-              </div>
-              {equipements.length > 0 && (
-                <div className="card p-6">
-                  <h3 className="luxe text-xl mb-4 flex items-center gap-2"><Wrench className="w-5 h-5 text-gold" /> Équipements performants</h3>
-                  <ul className="space-y-4">
-                    {equipements.map((e: any, i: number) => (
-                      <li key={i} className="flex gap-3">
-                        <span className="text-gold mt-1.5 text-[10px]">●</span>
-                        <div>
-                          <div className="font-medium text-luxe">{e.title || e.titre}</div>
-                          {(e.subtitle || e.description) && <div className="text-sm text-luxe/55">{e.subtitle || e.description}</div>}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-            <p className="mt-6 text-xs text-luxe/45 text-center">Performance visée après travaux — valeurs indicatives, non contractuelles.</p>
-          </div>
-        </section>
-      )}
-
-      {/* AVANTAGES FISCAUX */}
-      {dispositifs.length > 0 && (
-        <section className="bg-white/50 border-y border-gold/20 py-14">
-          <div className="container">
-            <h2 className="luxe text-3xl md:text-4xl text-luxe">Avantages fiscaux</h2>
-            <div className="mt-3 h-px w-14 bg-gold/60" />
-            <p className="mt-4 max-w-2xl text-luxe/60">Ce programme est éligible aux dispositifs suivants. Le montage est vérifié et l&apos;accompagnement assuré jusqu&apos;à la mise en location.</p>
-            <div className={`mt-8 grid gap-6 ${dispositifs.length >= 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
-              {dispositifs.map(d => (
-                <div key={d.code} className="card p-6">
-                  <h3 className="luxe text-xl mb-1">{d.nom}</h3>
-                  <p className="text-sm font-medium text-[#B89C6D] mb-3">{d.accroche}</p>
-                  <p className="text-sm text-luxe/70 mb-4">{d.detail}</p>
-                  <ul className="space-y-1.5 text-sm text-luxe/80">
-                    {d.features.map((f, i) => <li key={i} className="flex gap-2"><span className="text-gold">•</span>{f}</li>)}
-                  </ul>
-                </div>
-              ))}
-            </div>
-            <p className="mt-6 text-xs text-luxe/50">Informations données à titre indicatif. Un conseiller affine selon votre situation fiscale.</p>
-          </div>
-        </section>
-      )}
-
-      {/* LES LOTS */}
-      <section id="lots" className="container py-14">
-        <h2 className="luxe text-3xl md:text-4xl text-luxe">Les lots</h2>
-        <div className="mt-3 h-px w-14 bg-gold/60" />
-        {lots.length === 0 ? (
-          <div className="card p-6 mt-6 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-luxe/70 max-w-xl">La grille des lots de ce programme est disponible sur demande. Contactez-nous pour recevoir les surfaces, prix et disponibilités à jour.</p>
-            <Link href={contactHref} className="btn btn-gold">Demander la grille</Link>
-          </div>
-        ) : (
-          <div className="mt-8 grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {lots.map((lot, i) => {
-              const st = STATUT[lot.statut || "DISPONIBLE"] || STATUT.DISPONIBLE;
-              const sold = (lot.statut || "DISPONIBLE") === "VENDU";
-              const disponible = (lot.statut || "DISPONIBLE") === "DISPONIBLE";
-              const surfAfter = Number(lot.surfaceApresTravaux) || 0;
-              const surfNow = Number(lot.surfaceActuelle) || 0;
-              return (
-                <div key={i} className={`card overflow-hidden flex flex-col ${sold ? "opacity-70" : ""}`}>
-                  {lot.image && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={lot.image} alt={`Lot ${lot.numero || i + 1}`} className={`w-full h-44 object-cover ${sold ? "grayscale" : ""}`} />
-                  )}
-                  <div className="p-5 flex flex-col gap-2 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="luxe text-lg">Lot {lot.numero ?? i + 1}{lot.type ? ` · ${lot.type}` : ""}</span>
-                      <span className={`text-xs rounded-full border px-2 py-0.5 whitespace-nowrap ${st.cls}`}>{st.label}</span>
-                    </div>
-                    <div className="text-sm text-luxe/60">
-                      {lot.etage ? `${lot.etage} étage` : ""}
-                      {surfAfter ? ` · ${surfNow ? `${surfNow} → ` : ""}${surfAfter} m²` : (surfNow ? ` · ${surfNow} m²` : "")}
-                    </div>
-                    {lot.dispositif && (
-                      <div className="text-xs font-medium text-[#B89C6D]">Éligible : {lot.dispositif}</div>
-                    )}
-                    {lot.description && <p className="text-sm text-luxe/70">{lot.description}</p>}
-                    {(lot.annexeDescription || lot.annexeSurface) && (
-                      <div className="text-xs text-luxe/50">Annexe : {lot.annexeDescription || ""}{lot.annexeSurface ? ` (${lot.annexeSurface} m²)` : ""}</div>
-                    )}
-                    <div className="mt-auto pt-2 flex items-center justify-between gap-2">
-                      <span className={`font-semibold ${sold ? "text-luxe/40 line-through" : "text-[#B89C6D]"}`}>{lotPrice(lot)}</span>
-                      {disponible ? (
-                        <Link href={`/programmes/${p.slug || p.id}/lots/${lot.numero ?? i + 1}`} className="text-sm font-medium text-[#B89C6D] hover:underline whitespace-nowrap">Voir le lot →</Link>
-                      ) : (
-                        <span className="text-sm text-luxe/40 whitespace-nowrap">{st.label}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
       {/* PROJECTIONS / PLANS */}
       {(p.virtualTourUrl || plans.length > 0) && (
         <section className="bg-white/50 border-y border-gold/20 py-14">
@@ -352,6 +187,176 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                 <ProjectionsGallery items={plans} />
               </div>
             )}
+          </div>
+        </section>
+      )}
+
+      {/* AVANTAGES FISCAUX */}
+      {dispositifs.length > 0 && (
+        <section className="container py-14">
+          <h2 className="luxe text-3xl md:text-4xl text-luxe">Avantages fiscaux</h2>
+          <div className="mt-3 h-px w-14 bg-gold/60" />
+          <p className="mt-4 max-w-2xl text-luxe/60">Ce programme est éligible aux dispositifs suivants. Le montage est vérifié et l&apos;accompagnement assuré jusqu&apos;à la mise en location.</p>
+          <div className={`mt-8 grid gap-6 ${dispositifs.length >= 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
+            {dispositifs.map(d => (
+              <div key={d.code} className="card p-6">
+                <h3 className="luxe text-xl mb-1">{d.nom}</h3>
+                <p className="text-sm font-medium text-[#B89C6D] mb-3">{d.accroche}</p>
+                <p className="text-sm text-luxe/70 mb-4">{d.detail}</p>
+                <ul className="space-y-1.5 text-sm text-luxe/80">
+                  {d.features.map((f, i) => <li key={i} className="flex gap-2"><span className="text-gold">•</span>{f}</li>)}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <p className="mt-6 text-xs text-luxe/50">Informations données à titre indicatif. Un conseiller affine selon votre situation fiscale.</p>
+        </section>
+      )}
+
+      {/* LES LOTS */}
+      <section id="lots" className="bg-white/50 border-y border-gold/20 py-14">
+        <div className="container">
+          <h2 className="luxe text-3xl md:text-4xl text-luxe">Les lots</h2>
+          <div className="mt-3 h-px w-14 bg-gold/60" />
+          {lots.length === 0 ? (
+            <div className="card p-6 mt-6 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-luxe/70 max-w-xl">La grille des lots de ce programme est disponible sur demande. Contactez-nous pour recevoir les surfaces, prix et disponibilités à jour.</p>
+              <Link href={contactHref} className="btn btn-gold">Demander la grille</Link>
+            </div>
+          ) : (
+            <div className="mt-8 grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {lots.map((lot, i) => {
+                const st = STATUT[lot.statut || "DISPONIBLE"] || STATUT.DISPONIBLE;
+                const disponible = (lot.statut || "DISPONIBLE") === "DISPONIBLE";
+                const sold = (lot.statut || "DISPONIBLE") === "VENDU";
+                const surfAfter = Number(lot.surfaceApresTravaux) || 0;
+                const surfNow = Number(lot.surfaceActuelle) || 0;
+                return (
+                  <div key={i} className={`card overflow-hidden flex flex-col transition-all ${disponible ? "ring-2 ring-emerald-200 shadow-sm hover:shadow-lg hover:-translate-y-1" : "opacity-55"}`}>
+                    {lot.image && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={lot.image} alt={`Lot ${lot.numero || i + 1}`} className={`w-full h-44 object-cover ${!disponible ? "grayscale" : ""}`} />
+                    )}
+                    <div className="p-5 flex flex-col gap-2 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="luxe text-lg">Lot {lot.numero ?? i + 1}{lot.type ? ` · ${lot.type}` : ""}</span>
+                        <span className={`text-xs rounded-full border px-2.5 py-0.5 whitespace-nowrap font-semibold ${st.cls}`}>{st.label}</span>
+                      </div>
+                      <div className="text-sm text-luxe/60">
+                        {lot.etage ? `${lot.etage} étage` : ""}
+                        {surfAfter ? ` · ${surfNow ? `${surfNow} → ` : ""}${surfAfter} m²` : (surfNow ? ` · ${surfNow} m²` : "")}
+                      </div>
+                      {lot.dispositif && (
+                        <div className="text-xs font-medium text-[#B89C6D]">Éligible : {lot.dispositif}</div>
+                      )}
+                      {lot.description && <p className="text-sm text-luxe/70">{lot.description}</p>}
+                      {(lot.annexeDescription || lot.annexeSurface) && (
+                        <div className="text-xs text-luxe/50">Annexe : {lot.annexeDescription || ""}{lot.annexeSurface ? ` (${lot.annexeSurface} m²)` : ""}</div>
+                      )}
+                      <div className="mt-auto pt-2 flex items-center justify-between gap-2">
+                        <span className={`font-semibold ${sold ? "text-luxe/40 line-through" : disponible ? "text-[#B89C6D]" : "text-luxe/50"}`}>{lotPrice(lot)}</span>
+                        {disponible ? (
+                          <Link href={`/programmes/${p.slug || p.id}/lots/${lot.numero ?? i + 1}`} className="text-sm font-semibold text-emerald-700 hover:underline whitespace-nowrap">Voir le lot →</Link>
+                        ) : (
+                          <span className="text-sm text-luxe/40 whitespace-nowrap">{st.label}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* DPE CIBLE */}
+      {hasDpe && (
+        <section className="container py-14">
+          <div className="text-center max-w-2xl mx-auto">
+            <h2 className="luxe text-3xl md:text-4xl text-luxe">DPE cible</h2>
+            <div className="mt-3 h-px w-14 bg-gold/60 mx-auto" />
+            <p className="mt-4 text-luxe/60">Performance énergétique optimisée après rénovation</p>
+          </div>
+          <div className="mt-10 grid md:grid-cols-2 gap-6">
+            <div className="card p-6">
+              <h3 className="luxe text-xl mb-4 flex items-center gap-2"><Zap className="w-5 h-5 text-gold" /> Performance énergétique</h3>
+              <dl className="divide-y divide-black/5">
+                <div className="flex items-center justify-between py-3">
+                  <dt className="text-sm text-luxe/70">Classe énergétique cible</dt>
+                  <dd><DpeLetter c={p.dpe.classEnergy} kind="energy" /></dd>
+                </div>
+                {p.dpe.consumption && (
+                  <div className="flex items-center justify-between py-3">
+                    <dt className="text-sm text-luxe/70">Consommation estimée</dt>
+                    <dd className="text-sm font-medium text-luxe">{p.dpe.consumption}</dd>
+                  </div>
+                )}
+                <div className="flex items-center justify-between py-3">
+                  <dt className="text-sm text-luxe/70">Émissions de GES</dt>
+                  <dd><DpeLetter c={p.dpe.classGES} kind="ges" /></dd>
+                </div>
+                {p.dpe.emissions && (
+                  <div className="flex items-center justify-between py-3">
+                    <dt className="text-sm text-luxe/70">Émissions estimées</dt>
+                    <dd className="text-sm font-medium text-luxe">{p.dpe.emissions}</dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+            {equipements.length > 0 && (
+              <div className="card p-6">
+                <h3 className="luxe text-xl mb-4 flex items-center gap-2"><Wrench className="w-5 h-5 text-gold" /> Équipements performants</h3>
+                <ul className="space-y-4">
+                  {equipements.map((e: any, i: number) => (
+                    <li key={i} className="flex gap-3">
+                      <span className="text-gold mt-1.5 text-[10px]">●</span>
+                      <div>
+                        <div className="font-medium text-luxe">{e.title || e.titre}</div>
+                        {(e.subtitle || e.description) && <div className="text-sm text-luxe/55">{e.subtitle || e.description}</div>}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+          <p className="mt-6 text-xs text-luxe/45 text-center">Performance visée après travaux — valeurs indicatives, non contractuelles.</p>
+        </section>
+      )}
+
+      {/* CALENDRIER DU PROJET */}
+      {calendrier.length > 0 && (
+        <section className="bg-white/50 border-y border-gold/20 py-14">
+          <div className="container">
+            <div className="text-center max-w-2xl mx-auto">
+              <h2 className="luxe text-3xl md:text-4xl text-luxe">Calendrier du projet</h2>
+              <div className="mt-3 h-px w-14 bg-gold/60 mx-auto" />
+              <p className="mt-4 text-luxe/60">Planning détaillé de la commercialisation à la livraison</p>
+            </div>
+            <div className="mt-10 relative">
+              <div className="absolute left-[11px] top-4 bottom-4 w-px bg-gold/30" aria-hidden />
+              <ol className="space-y-4">
+                {calendrier.map((etape: any, i: number) => (
+                  <li key={i} className="relative pl-10">
+                    <span className="absolute left-0 top-4 h-6 w-6 rounded-full border-2 border-gold bg-cream flex items-center justify-center">
+                      <span className="h-2 w-2 rounded-full bg-gold" />
+                    </span>
+                    <div className="card p-5 flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h3 className="luxe text-lg text-luxe">{etape.etape || etape.title}</h3>
+                        {etape.description && <p className="text-sm text-luxe/60 mt-0.5">{etape.description}</p>}
+                      </div>
+                      {etape.date && (
+                        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#B89C6D] whitespace-nowrap">
+                          <CalendarDays className="w-4 h-4" /> {etape.date}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
           </div>
         </section>
       )}
