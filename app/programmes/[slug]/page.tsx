@@ -259,7 +259,12 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                         <div className="flex items-center justify-between"><span className="text-luxe/60">Travaux</span><span className="text-luxe/80">{eur(lot.prixTravaux) || "—"}</span></div>
                         <div className="flex items-center justify-between pt-1.5 border-t border-black/5">
                           <span className="font-semibold text-luxe">Total</span>
-                          <span className={`font-semibold ${sold ? "text-luxe/40 line-through" : disponible ? "text-[#B89C6D]" : "text-luxe/50"}`}>{lotPrice(lot)}</span>
+                          {(() => {
+                            const hasPrice = ((Number(lot.prixPlateau) || 0) + (Number(lot.prixTravaux) || 0)) > 0;
+                            return (
+                              <span className={`font-semibold ${sold && hasPrice ? "text-luxe/40 line-through" : disponible ? "text-[#B89C6D]" : "text-luxe/50"}`}>{lotPrice(lot)}</span>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
