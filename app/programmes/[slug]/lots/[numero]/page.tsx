@@ -93,11 +93,15 @@ export default async function Page({ params }: { params: Promise<{ slug: string;
             <div className="w-full aspect-[4/3] rounded-2xl bg-gradient-to-br from-[#1F3B2C] to-[#2e5140] flex items-center justify-center text-cream/70 text-sm">Projection à venir</div>
           )}
           {lot.plan && (
-            <figure>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={lot.plan} alt={`Plan — Lot ${lot.numero ?? numero}`} className="w-full rounded-2xl object-contain bg-white border" />
-              <figcaption className="mt-2 text-center text-sm text-luxe/50">Plan du lot</figcaption>
-            </figure>
+            /\.pdf($|\?)/i.test(lot.plan) ? (
+              <DocumentLink name={`Plan — Lot ${lot.numero ?? numero}`} subtitle="PDF" url={lot.plan} />
+            ) : (
+              <figure>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={lot.plan} alt={`Plan — Lot ${lot.numero ?? numero}`} className="w-full rounded-2xl object-contain bg-white border" />
+                <figcaption className="mt-2 text-center text-sm text-luxe/50">Plan du lot</figcaption>
+              </figure>
+            )
           )}
         </div>
 

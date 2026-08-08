@@ -116,6 +116,29 @@ export default function Page() {
     } catch { alert("Échec de l'envoi de la photo"); return null; }
   };
 
+  // Upload d'un plan : PDF → volume persistant (/api/upload-document), image → Cloudinary.
+  const uploadPlan = async (file: File | undefined): Promise<string | null> => {
+    if (!file) return null;
+    if (file.type !== 'application/pdf') return uploadImage(file);
+    if (file.size > 22 * 1024 * 1024) { alert('Fichier trop volumineux (20 Mo max)'); return null; }
+    try {
+      const dataUri: string = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result));
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+      const res = await fetch('/api/upload-document', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file: dataUri }),
+      });
+      const data = await res.json();
+      if (res.ok && data.url) return data.url;
+      alert(data.error || "Échec de l'envoi du plan");
+      return null;
+    } catch { alert("Échec de l'envoi du plan"); return null; }
+  };
+
   const fetchPrograms = async () => {
     try {
       const res = await fetch('/api/programs');
@@ -559,12 +582,16 @@ export default function Page() {
                     <span className="text-xs opacity-60 ml-3">Plan :</span>
                     {lot.plan ? (
                       <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={lot.plan} alt="" className="w-20 h-14 object-contain rounded border bg-white" />
+                        {/\.pdf($|\?)/i.test(lot.plan) ? (
+                          <a href={lot.plan} target="_blank" rel="noopener noreferrer" className="text-xs text-[#B89C6D] underline">📄 Plan PDF</a>
+                        ) : (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={lot.plan} alt="" className="w-20 h-14 object-contain rounded border bg-white" />
+                        )}
                         <button type="button" onClick={() => setLot(i, 'plan', '')} className="text-xs text-red-500 hover:underline">Retirer</button>
                       </>
                     ) : (
-                      <input type="file" accept="image/*" onChange={async e => { const url = await uploadImage(e.target.files?.[0]); if (url) setLot(i, 'plan', url); }} className="text-xs w-28" />
+                      <input type="file" accept="image/*,application/pdf" onChange={async e => { const url = await uploadPlan(e.target.files?.[0]); if (url) setLot(i, 'plan', url); }} className="text-xs w-28" />
                     )}
                   </div>
                   <div className="mt-2">
