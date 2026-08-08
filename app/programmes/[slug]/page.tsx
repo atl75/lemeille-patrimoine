@@ -5,7 +5,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import ProgramSeoJsonLd from "@/components/ProgramSeoJsonLd";
 import ProjectionsGallery from "@/components/ProjectionsGallery";
 import { dispositifsOf, dispositifLabel } from "@/lib/dispositifs";
-import { Zap, Wrench, CalendarDays, ExternalLink } from "lucide-react";
+import { Zap, Wrench, CalendarDays, ExternalLink, Camera } from "lucide-react";
 
 const ENERGY_COLORS: Record<string, string> = { A: "#2e7d32", B: "#558b2f", C: "#9e9d24", D: "#f9a825", E: "#fb8c00", F: "#f4511e", G: "#c62828" };
 const GES_COLORS: Record<string, string> = { A: "#8e6fc4", B: "#7e57c2", C: "#6f42b5", D: "#5e35b1", E: "#512da8", F: "#45279a", G: "#3a2185" };
@@ -119,6 +119,11 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
             {p.externalUrl && /^https?:\/\//.test(p.externalUrl) && (
               <a href={p.externalUrl} target="_blank" rel="noopener noreferrer" className="group inline-flex items-center gap-2 rounded-full border border-cream/40 px-4 py-2 text-sm font-medium text-cream hover:bg-cream/10 transition-colors">
                 <ExternalLink className="w-4 h-4" /> Site du programme
+              </a>
+            )}
+            {p.suiviChantierUrl && /^https?:\/\//.test(p.suiviChantierUrl) && (
+              <a href={p.suiviChantierUrl} target="_blank" rel="noopener noreferrer" className="group inline-flex items-center gap-2 rounded-full border border-cream/40 px-4 py-2 text-sm font-medium text-cream hover:bg-cream/10 transition-colors">
+                <Camera className="w-4 h-4" /> Suivi de chantier
               </a>
             )}
             {lots.length > 0 && (
@@ -368,6 +373,20 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                 ))}
               </ol>
             </div>
+            {p.suiviChantierUrl && /^https?:\/\//.test(p.suiviChantierUrl) && (
+              <a href={p.suiviChantierUrl} target="_blank" rel="noopener noreferrer" className="group mt-10 card p-5 flex flex-wrap items-center justify-between gap-4 hover:shadow-lg transition-shadow">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gold/15 text-[#B89C6D]"><Camera className="w-5 h-5" /></span>
+                  <div>
+                    <div className="luxe text-lg text-luxe">Suivi de chantier en direct</div>
+                    <p className="text-sm text-luxe/60">Photos d&apos;avancement et planning mis à jour régulièrement</p>
+                  </div>
+                </div>
+                <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#B89C6D] whitespace-nowrap">
+                  Accéder au suivi <ExternalLink className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                </span>
+              </a>
+            )}
           </div>
         </section>
       )}
