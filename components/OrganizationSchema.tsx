@@ -98,7 +98,8 @@ export function OrganizationSchema() {
       }
     ],
     "sameAs": [
-      baseUrl
+      baseUrl,
+      "https://x.com/lempatrimoine"
     ],
     "hasOfferCatalog": {
       "@type": "OfferCatalog",
