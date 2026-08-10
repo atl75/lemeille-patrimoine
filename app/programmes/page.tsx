@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import Section from "@/components/Section";
@@ -72,8 +73,9 @@ export default async function Page(){
               return (
                 <Link key={p.id} className="card p-0 overflow-hidden hover:border-[#B89C6D] transition group" href={href}>
                   {img ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={img} alt={`Programme — ${p.title}`} className="w-full h-48 object-cover" />
+                    <div className="relative w-full h-48">
+                      <Image src={img} alt={`Programme — ${p.title}`} fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover" />
+                    </div>
                   ) : (
                     <div className="w-full h-48 bg-gradient-to-br from-[#1F3B2C] to-[#2e5140] flex items-center justify-center px-4 text-center">
                       <span className="text-cream/75 text-xs uppercase tracking-[0.22em]">{dispos || "Défiscalisation"}</span>

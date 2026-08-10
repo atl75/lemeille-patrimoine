@@ -1,6 +1,7 @@
 import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -117,8 +118,7 @@ export default async function Page() {
                 return (
                   <div key={p.id} className="card overflow-hidden">
                     <div className="relative h-48 bg-black/5">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={img} alt={p.title || "Bien vendu"} className="w-full h-full object-cover" />
+                      <Image src={img} alt={p.title || "Bien vendu"} fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover" />
                       <span className="absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#1F3B2C] text-white">
                         {badge}
                       </span>
