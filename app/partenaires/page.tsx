@@ -39,6 +39,13 @@ const PARTNERS: Partner[] = [
       "Optimise le financement de votre acquisition : analyse de votre capacité d'emprunt et négociation des meilleures conditions de prêt et d'assurance auprès de son réseau bancaire.",
     url: "https://fr.linkedin.com/in/joachim-boimard",
   },
+  {
+    name: "Fabien Keromnes",
+    role: "Conseiller en gestion de patrimoine",
+    description:
+      "Construit et pilote votre stratégie patrimoniale globale : bilan, allocation d'actifs, optimisation fiscale, préparation de la retraite et transmission. Un accompagnement sur mesure pour donner du sens et de la cohérence à vos investissements.",
+    url: "https://patrimoinedugolfe.fr",
+  },
 ];
 
 function initials(name: string) {
@@ -66,7 +73,7 @@ export default function Page() {
       <section className="container pb-6">
         <p className="opacity-85 leading-relaxed max-w-3xl">
           Un projet immobilier ou patrimonial réussi repose sur bien plus qu&apos;une transaction. Nous nous entourons de
-          partenaires reconnus — notaire, architecte, courtier — pour vous accompagner de bout en bout, avec la même
+          partenaires reconnus — notaire, architecte, courtier, conseiller en gestion de patrimoine — pour vous accompagner de bout en bout, avec la même
           exigence de qualité et de discrétion.
         </p>
       </section>
