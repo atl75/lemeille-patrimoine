@@ -38,7 +38,30 @@ export default async function Page(props: { params: Promise<{ slug: string }> })
   const a = await getArticle(slug);
   if (!a) return <main className="container py-12">Article introuvable.</main>;
 
-  const paragraphs: string[] = String(a.content || '').split(/\n+/).filter(Boolean);
+  // Rendu enrichi : "## " → H2, "### " → H3, "- " → liste à puces, sinon paragraphe.
+  const lines = String(a.content || '').split('\n');
+  const blocks: React.ReactNode[] = [];
+  let bullets: string[] = [];
+  const flushBullets = (key: string) => {
+    if (bullets.length) {
+      const items = bullets;
+      blocks.push(
+        <ul key={`ul-${key}`} className="list-disc pl-5 space-y-1.5 marker:text-[#B89C6D]">
+          {items.map((b, j) => <li key={j}>{b}</li>)}
+        </ul>
+      );
+      bullets = [];
+    }
+  };
+  lines.forEach((raw, i) => {
+    const line = raw.trim();
+    if (!line) { flushBullets(String(i)); return; }
+    if (line.startsWith('### ')) { flushBullets(String(i)); blocks.push(<h3 key={i} className="luxe text-lg text-luxe mt-5">{line.slice(4)}</h3>); }
+    else if (line.startsWith('## ')) { flushBullets(String(i)); blocks.push(<h2 key={i} className="luxe text-2xl text-luxe mt-7">{line.slice(3)}</h2>); }
+    else if (line.startsWith('- ')) { bullets.push(line.slice(2)); }
+    else { flushBullets(String(i)); blocks.push(<p key={i}>{line}</p>); }
+  });
+  flushBullets('end');
 
   return (
     <main>
@@ -62,8 +85,8 @@ export default async function Page(props: { params: Promise<{ slug: string }> })
             ))}
           </div>
         )}
-        <div className="card p-6 space-y-4">
-          {paragraphs.map((p, i) => <p key={i}>{p}</p>)}
+        <div className="card p-6 space-y-4 leading-relaxed">
+          {blocks}
         </div>
 
         <div className="mt-8 card p-6 flex flex-wrap items-center justify-between gap-3">
