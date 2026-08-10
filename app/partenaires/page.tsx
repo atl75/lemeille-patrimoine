@@ -46,6 +46,12 @@ const PARTNERS: Partner[] = [
       "Construit et pilote votre stratégie patrimoniale globale : bilan, allocation d'actifs, optimisation fiscale, préparation de la retraite et transmission. Un accompagnement sur mesure pour donner du sens et de la cohérence à vos investissements.",
     url: "https://patrimoinedugolfe.fr",
   },
+  {
+    name: "Stéphanie Hanot",
+    role: "Maîtrise d'ouvrage",
+    description:
+      "Pilote l'ensemble de la partie travaux : coordination des entreprises, suivi de chantier, respect des délais, des budgets et de la qualité d'exécution. Elle garantit la bonne réalisation des opérations, de la conception à la livraison.",
+  },
 ];
 
 function initials(name: string) {
