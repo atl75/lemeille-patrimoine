@@ -99,7 +99,8 @@ export function OrganizationSchema() {
     ],
     "sameAs": [
       baseUrl,
-      "https://x.com/lempatrimoine"
+      "https://x.com/lempatrimoine",
+      "https://www.youtube.com/channel/UCynpnLvgiGdgZH2OIDmYiYA"
     ],
     "hasOfferCatalog": {
       "@type": "OfferCatalog",

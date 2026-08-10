@@ -65,6 +65,18 @@ export function Footer() {
               </svg>
               @lempatrimoine
             </a>
+            <a
+              href="https://www.youtube.com/channel/UCynpnLvgiGdgZH2OIDmYiYA"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${link} inline-flex items-center gap-2`}
+              aria-label="La chaîne YouTube de Lemeille Patrimoine"
+            >
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true">
+                <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.6 15.6V8.4l6.3 3.6-6.3 3.6z" />
+              </svg>
+              Notre chaîne YouTube
+            </a>
           </div>
           <div className="mt-5 flex flex-col gap-2.5">
             {bureaux.map(b => (
