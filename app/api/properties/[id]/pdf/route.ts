@@ -22,6 +22,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const rule = rgb(0.86, 0.83, 0.77);       // filet clair
     const white = rgb(1, 1, 1);
 
+    // Barème DPE : échelles officielles A→G (énergie vert→rouge, GES violet)
+    const hexColor = (h: string) => rgb(parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255);
+    const DPE_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    const ENERGY_COLORS = ['#2e7d32', '#558b2f', '#9e9d24', '#f9a825', '#fb8c00', '#f4511e', '#c62828'];
+    const GES_COLORS = ['#8e6fc4', '#7e57c2', '#6f42b5', '#5e35b1', '#512da8', '#45279a', '#3a2185'];
+
     const PAGE_W = 595, PAGE_H = 842;
     const MARGIN = 50;
     const CONTENT_W = PAGE_W - MARGIN * 2;
@@ -93,6 +99,26 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       page.drawText(cleanText(label), { x: MARGIN, y, size: 9.5, font, color: lightText });
       page.drawText(cleanText(value), { x: MARGIN + 180, y, size: 10, font: fontBold, color: darkText });
       y -= 16;
+    };
+
+    // Dessine une échelle DPE A→G (7 cases colorées), la classe du bien encadrée.
+    const drawDpeScale = (label: string, colors: string[], value: any) => {
+      const cellH = 16, gap = 3;
+      const cellW = (CONTENT_W - gap * 6) / 7;
+      ensure(cellH + 20);
+      page.drawText(cleanText(label), { x: MARGIN, y, size: 9, font: fontBold, color: darkText });
+      y -= 13;
+      const active = String(value || '').toUpperCase();
+      for (let i = 0; i < 7; i++) {
+        const x = MARGIN + i * (cellW + gap);
+        page.drawRectangle({ x, y: y - cellH, width: cellW, height: cellH, color: hexColor(colors[i]) });
+        if (DPE_LETTERS[i] === active) {
+          page.drawRectangle({ x: x - 1.5, y: y - cellH - 1.5, width: cellW + 3, height: cellH + 3, borderColor: navy, borderWidth: 1.6 });
+        }
+        const lw = fontBold.widthOfTextAtSize(DPE_LETTERS[i], 9);
+        page.drawText(DPE_LETTERS[i], { x: x + (cellW - lw) / 2, y: y - cellH + 4.5, size: 9, font: fontBold, color: white });
+      }
+      y -= cellH + 8;
     };
 
     const paragraph = (text: string, size = 10) => {
@@ -239,7 +265,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     if (p.surface && p.price && !p.priceOnRequest) keyVal('Prix au m²', `${Math.round(Number(p.price) / Number(p.surface)).toLocaleString('fr-FR')} €/m²`);
     if (p.propertyTaxAmount) keyVal('Taxe foncière', `${Number(p.propertyTaxAmount).toLocaleString('fr-FR')} €/an`);
     if (p.coproChargesMonthly) keyVal('Charges de copropriété', `${Number(p.coproChargesMonthly).toLocaleString('fr-FR')} €/mois`);
-    keyVal('Référence du bien', id);
     y -= 8;
 
     // ---- Atouts ----
@@ -261,12 +286,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     // ---- DPE ----
     heading('DIAGNOSTIC DE PERFORMANCE ÉNERGÉTIQUE');
     if (p.dpe) {
-      keyVal('Classe énergie', p.dpe.classEnergy || '—');
-      keyVal('Classe GES', p.dpe.classGES || '—');
+      drawDpeScale('Classe énergie (consommation)', ENERGY_COLORS, p.dpe.classEnergy);
+      drawDpeScale('Classe climat (GES)', GES_COLORS, p.dpe.classGES);
+      y -= 2;
       if (p.dpe.consumptionKwh) keyVal('Consommation', `${p.dpe.consumptionKwh} kWh/m²/an`);
       if (p.dpe.emissionsKg) keyVal('Émissions', `${p.dpe.emissionsKg} kgCO2/m²/an`);
       if (p.dpe.date) keyVal('Date du diagnostic', p.dpe.date);
-      if (p.dpe.ref) keyVal('Référence DPE', p.dpe.ref);
     } else {
       keyVal('DPE', 'Non communiqué');
     }
