@@ -131,7 +131,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
                 {plans.map((plan, i) => (
                   isImageDocument(plan) ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img key={i} src={plan} alt={`Plan ${i + 1} — ${p.title}`} className="w-full h-auto rounded-xl border" />
+                    <img key={i} src={plan} alt={`Plan ${i + 1} — ${p.title}`} loading="lazy" decoding="async" className="w-full h-auto rounded-xl border" />
                   ) : (
                     <a key={i} href={plan} target="_blank" rel="noopener noreferrer" className="btn btn-gold inline-flex w-fit">
                       Consulter le plan {plans.length > 1 ? i + 1 : ''} (PDF)

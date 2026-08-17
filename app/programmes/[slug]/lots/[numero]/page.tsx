@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/Breadcrumb";
 import DocumentLink from "@/components/DocumentLink";
@@ -85,8 +86,9 @@ export default async function Page({ params }: { params: Promise<{ slug: string;
         <div className="space-y-6">
           {lot.image ? (
             <figure>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={lot.image} alt={`Projection intérieure — Lot ${lot.numero ?? numero}`} className="w-full rounded-2xl object-cover" />
+              <div className="relative w-full aspect-[3/2] rounded-2xl overflow-hidden">
+                <Image src={lot.image} alt={`Projection intérieure — Lot ${lot.numero ?? numero}`} fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
+              </div>
               <figcaption className="mt-2 text-center text-sm text-luxe/50">Projection intérieure — <span className="opacity-70">photo non contractuelle</span></figcaption>
             </figure>
           ) : (
@@ -98,7 +100,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string;
             ) : (
               <figure>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={lot.plan} alt={`Plan — Lot ${lot.numero ?? numero}`} className="w-full rounded-2xl object-contain bg-white border" />
+                <img src={lot.plan} alt={`Plan — Lot ${lot.numero ?? numero}`} loading="lazy" decoding="async" className="w-full rounded-2xl object-contain bg-white border" />
                 <figcaption className="mt-2 text-center text-sm text-luxe/50">Plan du lot</figcaption>
               </figure>
             )

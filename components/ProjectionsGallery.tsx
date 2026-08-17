@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { X, ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
 
 type Item = { image?: string; title?: string };
@@ -47,9 +48,8 @@ export default function ProjectionsGallery({ items }: { items: Item[] }) {
     <>
       {/* Lecteur / carrousel */}
       <div className="relative rounded-2xl overflow-hidden bg-black/5 group">
-        <button type="button" onClick={() => setOpen(true)} className="block w-full cursor-zoom-in" aria-label="Agrandir">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={cur.image} alt={cur.title || `Vue ${current + 1}`} className="w-full h-[300px] md:h-[460px] object-cover" />
+        <button type="button" onClick={() => setOpen(true)} className="relative block w-full h-[300px] md:h-[460px] cursor-zoom-in" aria-label="Agrandir">
+          <Image src={cur.image} alt={cur.title || `Vue ${current + 1}`} fill sizes="(max-width: 768px) 100vw, 66vw" className="object-cover" />
         </button>
 
         <span className="absolute top-3 right-3 flex items-center justify-center h-8 w-8 rounded-full bg-white/85 text-[#1F3B2C] opacity-0 group-hover:opacity-100 transition-opacity">
@@ -74,10 +74,9 @@ export default function ProjectionsGallery({ items }: { items: Item[] }) {
               type="button"
               onClick={() => setCurrent(i)}
               aria-label={`Voir ${im.title || `l'image ${i + 1}`}`}
-              className={`shrink-0 rounded-lg overflow-hidden border-2 transition ${i === current ? "border-gold" : "border-transparent opacity-60 hover:opacity-100"}`}
+              className={`relative h-14 w-20 shrink-0 rounded-lg overflow-hidden border-2 transition ${i === current ? "border-gold" : "border-transparent opacity-60 hover:opacity-100"}`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={im.image} alt="" className="h-14 w-20 object-cover" />
+              <Image src={im.image} alt="" fill sizes="80px" className="object-cover" />
             </button>
           ))}
         </div>

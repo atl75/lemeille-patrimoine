@@ -240,8 +240,9 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                 const inner = (
                   <>
                     {lot.image && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={lot.image} alt={`Lot ${lot.numero || i + 1}`} className={`w-full h-44 object-cover ${!disponible ? "grayscale" : ""}`} />
+                      <div className={`relative w-full h-44 ${!disponible ? "grayscale" : ""}`}>
+                        <Image src={lot.image} alt={`Lot ${lot.numero || i + 1}`} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
+                      </div>
                     )}
                     <div className="p-5 flex flex-col gap-2 flex-1">
                       <div className="flex items-center justify-between gap-2">
