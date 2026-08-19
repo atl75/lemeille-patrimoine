@@ -50,7 +50,16 @@ type Lead = {
   buyerCriteria?: { budgetMin?: number; budgetMax?: number; sector?: string; type?: string; roomsMin?: number; surfaceMin?: number };
   buyerSegment?: 'ANCIEN' | 'DEFISCALISATION';
   interestPropertyId?: string;
+  priority?: 'hot' | 'warm' | 'cold' | null;
 };
+
+// Priorisation / scoring des leads (cliquable, cycle none → chaud → tiède → froid).
+const PRIORITY_META: Record<string, { label: string; cls: string }> = {
+  hot: { label: '🔥 Chaud', cls: 'bg-red-100 border-red-300 text-red-700' },
+  warm: { label: '🌤️ Tiède', cls: 'bg-amber-100 border-amber-300 text-amber-700' },
+  cold: { label: '❄️ Froid', cls: 'bg-sky-100 border-sky-300 text-sky-700' },
+};
+const PRIORITY_CYCLE: (('hot' | 'warm' | 'cold' | null))[] = [null, 'hot', 'warm', 'cold'];
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -103,6 +112,20 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
   // Filtres de recherche
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'new' | 'contacted' | 'qualified' | 'closed'>('all');
+  const [filterPriority, setFilterPriority] = useState<'all' | 'hot' | 'warm' | 'cold'>('all');
+
+  // Change la priorité d'un lead (optimiste + PATCH).
+  const cyclePriority = async (lead: Lead) => {
+    const idx = PRIORITY_CYCLE.indexOf((lead.priority as any) ?? null);
+    const next = PRIORITY_CYCLE[(idx + 1) % PRIORITY_CYCLE.length];
+    setLeads(ls => ls.map(l => l.id === lead.id ? { ...l, priority: next } : l));
+    try {
+      await fetch(`/api/leads/${lead.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priority: next }),
+      });
+    } catch { fetchLeads(); }
+  };
   // Éléments du mandat saisis pour un vendeur (avant création du bien)
   const [mandatForm, setMandatForm] = useState({
     type: 'APPARTEMENT', rooms: '', surface: '', annexSurface: '', landSize: '', cadastre: '', address: '',
@@ -630,7 +653,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
     if ((l.category || 'immobilier') !== 'immobilier') return false;
     if ((l.role || 'ACHETEUR') !== role) return false;
     if (filterStatus !== 'all' && (l.status || 'new') !== filterStatus) return false;
-    if (filterStatus !== 'all' && (l.status || 'new') !== filterStatus) return false;
+    if (filterPriority !== 'all' && (l.priority || '') !== filterPriority) return false;
     if (q) {
       const hay = [l.firstName, l.lastName, l.email, l.phone, l.address, l.topic, l.message].filter(Boolean).join(' ').toLowerCase();
       if (!hay.includes(q)) return false;
@@ -698,7 +721,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
         </div>
 
         {/* Filtres de recherche */}
-        <div className="grid md:grid-cols-2 gap-3 border-t pt-4">
+        <div className="grid md:grid-cols-3 gap-3 border-t pt-4">
           <input
             type="text"
             value={search}
@@ -724,6 +747,12 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                 <option value="closed">Fermé</option>
               </>
             )}
+          </select>
+          <select value={filterPriority} onChange={e => setFilterPriority(e.target.value as any)} className="input" data-testid="filter-priority">
+            <option value="all">Toutes priorités</option>
+            <option value="hot">🔥 Chaud</option>
+            <option value="warm">🌤️ Tiède</option>
+            <option value="cold">❄️ Froid</option>
           </select>
         </div>
 
@@ -999,6 +1028,15 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                     <span className="pill text-xs opacity-60">
                       {lead.source || 'contact-form'}
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => cyclePriority(lead)}
+                      className={`pill text-xs font-semibold transition-colors ${lead.priority ? PRIORITY_META[lead.priority].cls : 'border-dashed opacity-60 hover:opacity-100'}`}
+                      data-testid={`priority-${lead.id}`}
+                      title="Cliquer pour changer la priorité (chaud / tiède / froid)"
+                    >
+                      {lead.priority ? PRIORITY_META[lead.priority].label : '± Priorité'}
+                    </button>
 
                     {/* Boutons d'action (spécifiques au rôle), Modifier et Supprimer */}
                     <div className="flex gap-2 ml-auto">
