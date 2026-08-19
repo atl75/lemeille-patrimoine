@@ -15,6 +15,28 @@ type Info = {
   error?: string;
 };
 
+// Défini au niveau module (et non dans le composant) : sinon il serait recréé à
+// chaque frappe, ce qui démonterait/remonterait tout le sous-arbre — le champ nom
+// perdrait le focus et le canvas de signature s'effacerait à chaque caractère.
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <main style={{ minHeight: "100vh", background: "#F4F1EB", padding: "24px 16px" }}>
+      <div style={{ maxWidth: 640, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
+          <div style={{ fontFamily: "Georgia, serif", fontSize: 26, color: "#1F3B2C", letterSpacing: 1 }}>Lemeille Patrimoine</div>
+          <div style={{ color: "#B89C6D", fontSize: 13, marginTop: 2 }}>Signature électronique du mandat de vente</div>
+        </div>
+        <div style={{ background: "#fff", borderRadius: 14, boxShadow: "0 2px 16px rgba(0,0,0,0.06)", padding: 24 }}>
+          {children}
+        </div>
+        <p style={{ textAlign: "center", color: "#8a8a8a", fontSize: 11, marginTop: 16 }}>
+          NOVUS CAPITAL SAS — CPI 7606 2024 000 000 038 — 50 rue de la Garenne, 76130 Mont-Saint-Aignan
+        </p>
+      </div>
+    </main>
+  );
+}
+
 export default function SignMandatPage() {
   const params = useParams<{ token: string }>();
   const token = params?.token as string;
@@ -48,7 +70,7 @@ export default function SignMandatPage() {
   const setupCanvas = (c: HTMLCanvasElement) => {
     const ctx = c.getContext("2d");
     if (!ctx) return;
-    ctx.lineWidth = 2.2;
+    ctx.lineWidth = 4;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.strokeStyle = "#1F3B2C";
@@ -117,23 +139,6 @@ export default function SignMandatPage() {
     }
   };
 
-  const Shell = ({ children }: { children: React.ReactNode }) => (
-    <main style={{ minHeight: "100vh", background: "#F4F1EB", padding: "24px 16px" }}>
-      <div style={{ maxWidth: 640, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 20 }}>
-          <div style={{ fontFamily: "Georgia, serif", fontSize: 26, color: "#1F3B2C", letterSpacing: 1 }}>Lemeille Patrimoine</div>
-          <div style={{ color: "#B89C6D", fontSize: 13, marginTop: 2 }}>Signature électronique du mandat de vente</div>
-        </div>
-        <div style={{ background: "#fff", borderRadius: 14, boxShadow: "0 2px 16px rgba(0,0,0,0.06)", padding: 24 }}>
-          {children}
-        </div>
-        <p style={{ textAlign: "center", color: "#8a8a8a", fontSize: 11, marginTop: 16 }}>
-          NOVUS CAPITAL SAS — CPI 7606 2024 000 000 038 — 50 rue de la Garenne, 76130 Mont-Saint-Aignan
-        </p>
-      </div>
-    </main>
-  );
-
   if (loading) return <Shell><p>Chargement…</p></Shell>;
   if (!info || info.error) return <Shell><p style={{ color: "#b00" }}>{info?.error || "Lien de signature invalide ou expiré."}</p></Shell>;
 
@@ -170,6 +175,8 @@ export default function SignMandatPage() {
 
       <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Votre nom et prénom</label>
       <input value={signerName} onChange={e => setSignerName(e.target.value)}
+        autoComplete="name" autoCapitalize="words"
+        placeholder="Prénom NOM"
         style={{ width: "100%", padding: "9px 12px", border: "1px solid #ccc", borderRadius: 8, marginBottom: 16, fontSize: 14 }} />
 
       <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
@@ -178,8 +185,8 @@ export default function SignMandatPage() {
       <div style={{ border: "1px dashed #bbb", borderRadius: 10, background: "#fafafa", position: "relative" }}>
         <canvas
           ref={canvasRef}
-          width={600}
-          height={200}
+          width={1200}
+          height={400}
           onPointerDown={start}
           onPointerMove={move}
           onPointerUp={end}
