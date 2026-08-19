@@ -114,6 +114,20 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
   const [filterStatus, setFilterStatus] = useState<'all' | 'new' | 'contacted' | 'qualified' | 'closed'>('all');
   const [filterPriority, setFilterPriority] = useState<'all' | 'hot' | 'warm' | 'cold'>('all');
 
+  const [view, setView] = useState<'list' | 'pipeline'>('list');
+  const [dragLeadId, setDragLeadId] = useState<string | null>(null);
+
+  const STATUS_LABELS: Record<string, string> = { new: 'Nouveau', contacted: 'Contacté', qualified: 'Qualifié', closed: 'Fermé', estimation: 'Estimation', mandate: 'Mandat pris' };
+  const pipelineCols = role === 'VENDEUR' ? ['new', 'contacted', 'estimation', 'mandate'] : ['new', 'contacted', 'qualified', 'closed'];
+
+  // Déplace un lead dans le pipeline (change son statut ; optimiste + PATCH).
+  const changeStatus = async (leadId: string, status: string) => {
+    setLeads(ls => ls.map(l => l.id === leadId ? { ...l, status } : l));
+    try {
+      await fetch(`/api/leads/${leadId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+    } catch { fetchLeads(); }
+  };
+
   // Change la priorité d'un lead (optimiste + PATCH).
   const cyclePriority = async (lead: Lead) => {
     const idx = PRIORITY_CYCLE.indexOf((lead.priority as any) ?? null);
@@ -710,14 +724,20 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
             </div>
           </div>
 
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="btn-gold flex items-center gap-2"
-            data-testid="button-add-lead"
-          >
-            {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-            {showForm ? 'Annuler' : 'Ajouter un lead'}
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-lg border overflow-hidden text-sm" role="group" aria-label="Vue">
+              <button type="button" onClick={() => setView('list')} className={`px-3 py-1.5 ${view === 'list' ? 'bg-[#1F3B2C] text-white' : 'bg-white hover:bg-black/5'}`} data-testid="view-list">Liste</button>
+              <button type="button" onClick={() => setView('pipeline')} className={`px-3 py-1.5 ${view === 'pipeline' ? 'bg-[#1F3B2C] text-white' : 'bg-white hover:bg-black/5'}`} data-testid="view-pipeline">Pipeline</button>
+            </div>
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="btn-gold flex items-center gap-2"
+              data-testid="button-add-lead"
+            >
+              {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              {showForm ? 'Annuler' : 'Ajouter un lead'}
+            </button>
+          </div>
         </div>
 
         {/* Filtres de recherche */}
@@ -979,14 +999,14 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
 
       {loading && <div className="card p-6">Chargement...</div>}
 
-      {!loading && filteredLeads.length === 0 && (
+      {!loading && view === 'list' && filteredLeads.length === 0 && (
         <div className="card p-6 opacity-70">
           {leads.length === 0 ? 'Aucun lead enregistré.' : 'Aucun lead ne correspond aux filtres.'}
           {leads.length > 0 && <span className="ml-2 opacity-70">({leads.length} au total)</span>}
         </div>
       )}
 
-      {!loading && filteredLeads.length > 0 && (
+      {!loading && view === 'list' && filteredLeads.length > 0 && (
         <div className="grid gap-4">
           {filteredLeads.map(lead => (
             <div
@@ -1519,6 +1539,51 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
               </div>
             </div>
           ))}
+        </div>
+      )}
+      {!loading && view === 'pipeline' && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-start" data-testid="pipeline-board">
+          {pipelineCols.map(col => {
+            const colLeads = filteredLeads.filter(l => (l.status || 'new') === col);
+            return (
+              <div
+                key={col}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => { e.preventDefault(); if (dragLeadId) changeStatus(dragLeadId, col); setDragLeadId(null); }}
+                className="rounded-xl border bg-black/[0.02] p-2 min-h-[140px]"
+              >
+                <div className="flex items-center justify-between px-2 py-1.5 mb-2 border-b">
+                  <span className="text-sm font-semibold">{STATUS_LABELS[col] || col}</span>
+                  <span className="text-xs opacity-60">{colLeads.length}</span>
+                </div>
+                <div className="space-y-2">
+                  {colLeads.map(lead => (
+                    <div
+                      key={lead.id}
+                      draggable
+                      onDragStart={() => setDragLeadId(lead.id)}
+                      onDragEnd={() => setDragLeadId(null)}
+                      className={`rounded-lg border bg-white p-3 shadow-sm cursor-grab active:cursor-grabbing ${dragLeadId === lead.id ? 'opacity-50' : ''}`}
+                      data-testid={`pipeline-card-${lead.id}`}
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className="font-medium text-sm truncate">{lead.firstName} {lead.lastName}</span>
+                        {lead.priority && <span className={`pill text-[10px] font-semibold shrink-0 ${PRIORITY_META[lead.priority].cls}`}>{PRIORITY_META[lead.priority].label}</span>}
+                      </div>
+                      <div className="text-xs opacity-70 truncate">{lead.email}</div>
+                      {lead.phone && <div className="text-xs opacity-70">{lead.phone}</div>}
+                      {lead.topic && <div className="text-xs opacity-60 truncate mt-1">🏷️ {lead.topic}</div>}
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-[10px] opacity-50">{formatDate(lead.createdAt)}</span>
+                        <button type="button" onClick={() => handleEditLead(lead)} className="text-[11px] underline opacity-70 hover:opacity-100">Ouvrir</button>
+                      </div>
+                    </div>
+                  ))}
+                  {colLeads.length === 0 && <div className="text-xs opacity-40 px-2 py-6 text-center">—</div>}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
       {dialog}
