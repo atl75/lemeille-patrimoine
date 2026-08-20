@@ -1,5 +1,6 @@
 import { eurosEnLettres } from '@/lib/enLettres';
 import { NOVUS_LOGO_BASE64 } from '@/lib/novusLogo';
+import { SIGNATURE_MANDATAIRE_B64 } from '@/lib/signatureMandataire';
 
 // Génère le PDF du mandat de vente à partir d'un bien (objet property).
 // Fonction pure : réutilisée par la route admin et par la page de signature
@@ -325,7 +326,20 @@ export async function buildMandatePdf(p: any): Promise<Uint8Array> {
   gap(6);
   para('Le Mandataire', { bold: true, justify: false, after: 2 });
   para('Signature précédée de la mention manuscrite « Bon pour acceptation de mandat »', { size: 8, color: grey, justify: false, after: 0 });
-  signline('Signature du Mandataire');
+  // Signature du mandataire (Arthur Lemeille) apposée automatiquement, au-dessus de la ligne.
+  {
+    const png = await pdfDoc.embedPng(Buffer.from(SIGNATURE_MANDATAIRE_B64, 'base64'));
+    const sw = 120;
+    const sh = sw * (png.height / png.width);
+    ensure(sh + 30);
+    gap(6);
+    page.drawImage(png, { x: M, y: y - sh, width: sw, height: sh });
+    y -= sh + 2;
+    page.drawLine({ start: { x: M, y }, end: { x: M + 240, y }, thickness: 0.7, color: rule });
+    y -= 11;
+    page.drawText(clean('Signature du Mandataire'), { x: M, y, size: 7.5, font, color: grey });
+    y -= 16;
+  }
   gap(8);
   para('Le(s) Mandant(s)', { bold: true, justify: false, after: 2 });
   kv('Nom en toutes lettres', mandantNom);
