@@ -38,8 +38,13 @@ export default function AddressAutocomplete({ value, onChange, placeholder, clas
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
+  const isFocusedRef = useRef(false);
 
+  // Synchronise depuis la valeur externe UNIQUEMENT quand le champ n'est pas en
+  // cours d'édition — sinon, avec onTextChange, chaque frappe met à jour le
+  // parent qui réécrase la saisie (curseur qui saute, caractères perdus).
   useEffect(() => {
+    if (isFocusedRef.current) return;
     setInputValue(value);
   }, [value]);
 
@@ -126,6 +131,8 @@ export default function AddressAutocomplete({ value, onChange, placeholder, clas
         className={className}
         value={inputValue}
         onChange={handleInputChange}
+        onFocus={() => { isFocusedRef.current = true; }}
+        onBlur={() => { isFocusedRef.current = false; }}
         placeholder={placeholder}
         autoComplete="off"
         data-testid="input-address-autocomplete"
