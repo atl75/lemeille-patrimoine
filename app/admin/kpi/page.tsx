@@ -35,24 +35,10 @@ type Property = {
   commissionPercentage?: number;
 };
 
-type AnalyticsStats = {
-  totalVisits: number;
-  last24h: number;
-  last7days: number;
-  last30days: number;
-  topPages: Array<{ page: string; count: number }>;
-  topReferrers: Array<{ source: string; count: number }>;
-  devices: { Mobile?: number; Desktop?: number };
-  topCountries: Array<{ country: string; count: number }>;
-  dailyStats: Array<{ date: string; count: number }>;
-  avgSessionTime: string;
-};
-
 export default function Page(){
   const [leads, setLeads] = useState<Lead[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [programs, setPrograms] = useState<any[]>([]);
-  const [analyticsStats, setAnalyticsStats] = useState<AnalyticsStats | null>(null);
   const [loading, setLoading] = useState(true);
   
   // Période fiscale par défaut : du 01/01 de l'année en cours à aujourd'hui
@@ -64,20 +50,17 @@ export default function Page(){
     Promise.all([
       fetch('/api/leads').then(r => r.json()),
       fetch('/api/properties').then(r => r.json()),
-      fetch('/api/analytics/stats').then(r => r.json()),
       fetch('/api/programs').then(r => r.json()).catch(() => [])
     ])
-      .then(([leadsData, propertiesData, analyticsData, programsData]) => {
+      .then(([leadsData, propertiesData, programsData]) => {
         setLeads(Array.isArray(leadsData) ? leadsData : []);
         setProperties(Array.isArray(propertiesData) ? propertiesData : []);
-        setAnalyticsStats(analyticsData);
         setPrograms(Array.isArray(programsData) ? programsData : []);
         setLoading(false);
       })
       .catch(() => {
         setLeads([]);
         setProperties([]);
-        setAnalyticsStats(null);
         setPrograms([]);
         setLoading(false);
       });
@@ -274,15 +257,12 @@ export default function Page(){
     const vendeurs = leads.filter(l => (l as any).role === 'VENDEUR').length;
 
     // Connexions (taux de conversion, honnêtes et bornés)
-    const visits30 = analyticsStats?.last30days || 0;
-    const visitToLead = visits30 > 0 ? (leads30.length / visits30) * 100 : 0;
     const leadToQualified = leads.length > 0 ? (qualified.length / leads.length) * 100 : 0;
     const closingRate = leads.length > 0 ? (closedLeads.length / leads.length) * 100 : 0;
     const leadsParBien = available.length > 0 ? leads30.length / available.length : 0;
 
-    // Tunnel connecté (web → CRM), fenêtre cohérente 30 jours.
+    // Tunnel CRM, fenêtre cohérente 30 jours. (Le trafic web est suivi dans Google Analytics.)
     const funnel = [
-      { label: 'Visites (30j)', value: visits30 },
       { label: 'Leads (30j)', value: leads30.length },
       { label: 'Contactés (30j)', value: leads30.filter(isContacted).length },
       { label: 'Qualifiés (30j)', value: leads30.filter(isQualified).length },
@@ -298,9 +278,9 @@ export default function Page(){
       leadsTotal: leads.length, leadsTracked,
       caSold, commSold, commUnderOffer, stockValue, avgSalePrice, avgComm, commRate, commercialisation,
       leads30: leads30.length, qualified: qualified.length, acheteurs, vendeurs,
-      visits30, visitToLead, leadToQualified, closingRate, leadsParBien, funnel,
+      leadToQualified, closingRate, leadsParBien, funnel,
     };
-  }, [leads, properties, analyticsStats, startDate, endDate]);
+  }, [leads, properties, startDate, endDate]);
 
   // KPI programmes de défiscalisation (lots)
   const progKpi = useMemo(() => {
@@ -394,9 +374,9 @@ export default function Page(){
               <div className="text-xs text-gray-500 mt-1">commission moy. {formatCurrency(smart.avgComm)}</div>
             </div>
             <div className="card p-5">
-              <div className="text-[11px] uppercase tracking-wide text-gray-500">Conv. visite → lead</div>
-              <div className="text-2xl font-semibold mt-1 text-blue-700">{pct(smart.visitToLead)}</div>
-              <div className="text-xs text-gray-500 mt-1">{smart.leads30} leads / {smart.visits30.toLocaleString('fr-FR')} visites (30j)</div>
+              <div className="text-[11px] uppercase tracking-wide text-gray-500">Nouveaux leads (30j)</div>
+              <div className="text-2xl font-semibold mt-1 text-blue-700">{smart.leads30}</div>
+              <div className="text-xs text-gray-500 mt-1">{smart.leadsParBien.toFixed(1)} lead / bien dispo</div>
             </div>
             <div className="card p-5">
               <div className="text-[11px] uppercase tracking-wide text-gray-500">Taux de closing (leads)</div>
@@ -588,137 +568,6 @@ export default function Page(){
             </div>
           )}
 
-          {/* Statistiques Web */}
-          {analyticsStats && (
-            <div className="mb-8">
-              <h2 className="luxe text-2xl mb-4">📊 Statistiques du site web</h2>
-              
-              {/* Cartes de visite */}
-              <div className="grid md:grid-cols-4 gap-4 mb-6">
-                <div className="card p-6 !bg-gradient-to-br !from-blue-500 !to-blue-600 text-white">
-                  <div className="text-sm text-white/90">Total de visites</div>
-                  <div className="text-3xl font-semibold mt-1">{analyticsStats.totalVisits.toLocaleString('fr-FR')}</div>
-                </div>
-                
-                <div className="card p-6">
-                  <div className="text-sm text-gray-600">Dernières 24h</div>
-                  <div className="text-3xl font-semibold mt-1 text-green-700">{analyticsStats.last24h}</div>
-                </div>
-                
-                <div className="card p-6">
-                  <div className="text-sm text-gray-600">7 derniers jours</div>
-                  <div className="text-3xl font-semibold mt-1 text-blue-700">{analyticsStats.last7days}</div>
-                </div>
-                
-                <div className="card p-6">
-                  <div className="text-sm text-gray-600">30 derniers jours</div>
-                  <div className="text-3xl font-semibold mt-1 text-purple-700">{analyticsStats.last30days}</div>
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4 mb-6">
-                {/* Pages les plus visitées */}
-                <div className="card p-6">
-                  <h3 className="luxe text-xl mb-4">📄 Pages les plus visitées</h3>
-                  <div className="space-y-2">
-                    {analyticsStats.topPages.length > 0 ? (
-                      analyticsStats.topPages.map((page, idx) => (
-                        <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                          <span className="text-sm text-gray-700 truncate flex-1">{page.page}</span>
-                          <span className="font-semibold text-gray-900 ml-2">{page.count}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-gray-500">Aucune donnée disponible</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Sources de trafic */}
-                <div className="card p-6">
-                  <h3 className="luxe text-xl mb-4">🌐 Sources de trafic</h3>
-                  <div className="space-y-2">
-                    {analyticsStats.topReferrers.length > 0 ? (
-                      analyticsStats.topReferrers.map((ref, idx) => (
-                        <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                          <span className="text-sm text-gray-700 truncate flex-1">{ref.source}</span>
-                          <span className="font-semibold text-gray-900 ml-2">{ref.count}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-gray-500">Aucune donnée disponible</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-3 gap-4 mb-6">
-                {/* Appareils */}
-                <div className="card p-6">
-                  <h3 className="luxe text-xl mb-4">📱 Appareils</h3>
-                  <div className="space-y-3">
-                    {analyticsStats.devices.Desktop !== undefined && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-700">🖥️ Desktop</span>
-                        <span className="font-semibold text-gray-900">{analyticsStats.devices.Desktop}</span>
-                      </div>
-                    )}
-                    {analyticsStats.devices.Mobile !== undefined && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-700">📱 Mobile</span>
-                        <span className="font-semibold text-gray-900">{analyticsStats.devices.Mobile}</span>
-                      </div>
-                    )}
-                    {!analyticsStats.devices.Desktop && !analyticsStats.devices.Mobile && (
-                      <p className="text-sm text-gray-500">Aucune donnée disponible</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Pays */}
-                <div className="card p-6 md:col-span-2">
-                  <h3 className="luxe text-xl mb-4">🌍 Pays des visiteurs</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {analyticsStats.topCountries.length > 0 ? (
-                      analyticsStats.topCountries.slice(0, 6).map((country, idx) => (
-                        <div key={idx} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                          <span className="text-sm text-gray-700">{country.country}</span>
-                          <span className="font-semibold text-gray-900">{country.count}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-gray-500 col-span-2">Aucune donnée disponible</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Graphique des visites journalières (derniers 30 jours) */}
-              {analyticsStats.dailyStats.length > 0 && (
-                <div className="card p-6 mb-6">
-                  <h3 className="luxe text-xl mb-4">📈 Évolution des visites (30 derniers jours)</h3>
-                  <div className="flex items-end gap-1 h-40">
-                    {analyticsStats.dailyStats.map((day, idx) => {
-                      const maxCount = Math.max(...analyticsStats.dailyStats.map(d => d.count));
-                      const height = maxCount > 0 ? (day.count / maxCount) * 100 : 0;
-                      return (
-                        <div key={idx} className="flex-1 flex flex-col items-center group relative">
-                          <div 
-                            className="w-full bg-blue-500 rounded-t hover:bg-blue-600 transition-colors"
-                            style={{ height: `${height}%` }}
-                            title={`${day.date}: ${day.count} visites`}
-                          />
-                          <div className="text-xs text-gray-500 mt-1 transform -rotate-45 origin-top-left hidden group-hover:block absolute -bottom-6">
-                            {new Date(day.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* KPI Leads */}
           <div className="mb-6">

@@ -36,26 +36,3 @@ export const trackEvent = (
     value: value,
   });
 };
-
-// Track page visit to our own backend for simple analytics
-export const trackVisit = async (page: string) => {
-  if (typeof window === 'undefined') return;
-  
-  try {
-    await fetch('/api/analytics/visit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        page,
-        referrer: document.referrer || '',
-        userAgent: navigator.userAgent,
-        timestamp: new Date().toISOString(),
-        screenWidth: window.screen.width,
-        screenHeight: window.screen.height
-      })
-    });
-  } catch (error) {
-    // Silently fail - analytics shouldn't break the app
-    console.debug('Analytics tracking failed:', error);
-  }
-};

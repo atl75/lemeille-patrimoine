@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
-import { trackPageView, trackVisit } from '@/lib/analytics';
+import { trackPageView } from '@/lib/analytics';
 
 export const useAnalytics = () => {
   const pathname = usePathname();
@@ -11,13 +11,9 @@ export const useAnalytics = () => {
   
   useEffect(() => {
     if (pathname !== prevPathnameRef.current) {
-      // Track with Google Analytics
+      // Suivi Google Analytics uniquement (l'analytics maison a été retiré).
       trackPageView(pathname);
-      
-      // Track with our own backend for dashboard stats
-      trackVisit(pathname);
-      
-      // Update refs
+
       prevPathnameRef.current = pathname;
       entryTimeRef.current = Date.now();
     }
