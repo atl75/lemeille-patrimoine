@@ -213,7 +213,10 @@ export async function buildMandatePdf(p: any): Promise<Uint8Array> {
   const mtype = p.mandateType || '';
   const charge = p.mandateHonorairesCharge || '';
   const occupe = p.occupancy === 'OCCUPE';
-  const eur = (n: number) => Math.round(n).toLocaleString('fr-FR') + ' EUR';
+  // toLocaleString('fr-FR') sépare les milliers par une espace fine insécable
+  // (U+202F), supprimée ensuite par le nettoyage hors Latin-1 → on la remplace
+  // par une espace normale (0x20) pour garder « 1 000 000 EUR ».
+  const eur = (n: number) => Math.round(n).toLocaleString('fr-FR').replace(/\s/g, ' ') + ' EUR';
   const mandantNom = isCompany
     ? clean(owner?.name || '')
     : owners.filter((o: any) => o?.type !== 'COMPANY').map((o: any) => [o.firstName, o.lastName].filter(Boolean).join(' ')).filter(Boolean).join(', ');
