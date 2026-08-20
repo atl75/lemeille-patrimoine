@@ -8,8 +8,13 @@ import { buildMandatePdf } from '@/lib/mandatPdf';
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   try {
     const { token } = await params;
-    const data = await readJSON('properties.json');
-    const p = data.find((x: any) => x.mandateSignToken && x.mandateSignToken === token);
+    // Cherche le jeton dans les mandats autonomes, puis (héritage) les biens.
+    const mandats = await readJSON('mandats.json');
+    let p = (Array.isArray(mandats) ? mandats : []).find((x: any) => x.mandateSignToken && x.mandateSignToken === token);
+    if (!p) {
+      const props = await readJSON('properties.json');
+      p = (Array.isArray(props) ? props : []).find((x: any) => x.mandateSignToken && x.mandateSignToken === token);
+    }
     if (!p) return NextResponse.json({ error: 'Lien invalide' }, { status: 404 });
 
     const bytes = await buildMandatePdf(p);
