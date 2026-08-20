@@ -1,7 +1,7 @@
 "use client";
 import AdminShell from "@/components/AdminShell";
 import Breadcrumb from "@/components/Breadcrumb";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Printer, FileText, PenLine, Trash2, Save } from "lucide-react";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 
@@ -43,6 +43,7 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [signingId, setSigningId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [signInfo, setSignInfo] = useState<Record<string, { link: string; emailed: boolean; email: string }>>({});
 
   const load = () => {
@@ -117,8 +118,8 @@ export default function Page() {
 
       <style>{`@media print {
         body * { visibility: hidden !important; }
-        #registre-print, #registre-print * { visibility: visible !important; }
-        #registre-print { position: absolute; left: 0; top: 0; width: 100%; }
+        #registre, #registre * { visibility: visible !important; }
+        #registre { position: absolute; left: 0; top: 0; width: 100%; }
         .no-print { display: none !important; }
       }`}</style>
 
@@ -155,159 +156,175 @@ export default function Page() {
         </div>
       )}
 
-      {/* Gestion — cartes éditables */}
-      <div className="space-y-3 no-print">
-        {mandats.map((m) => (
-          <div key={m.id} className="card p-4">
-            <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
-              <div>
-                <div className="text-xs opacity-60">Mandat N°</div>
-                <input value={m.mandateNumber || ''} onChange={e => patchLocal(m.id, { mandateNumber: e.target.value })} className="px-2 py-1 text-lg font-semibold border rounded w-40" />
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className={`pill text-xs font-semibold ${m.mandateSignStatus === 'SIGNED' ? 'bg-green-100 border-green-300 text-green-700' : m.mandateSignStatus === 'PENDING' ? 'bg-amber-100 border-amber-300 text-amber-700' : 'opacity-60'}`}>
-                  {m.mandateSignStatus === 'SIGNED' ? `✔ Signé${m.mandateSignature?.signedAt ? ' le ' + new Date(m.mandateSignature.signedAt).toLocaleDateString('fr-FR') : ''}` : m.mandateSignStatus === 'PENDING' ? 'En attente de signature' : 'Non envoyé'}
-                </span>
-                <button onClick={() => save(m)} disabled={savingId === m.id} className="btn-luxe text-xs flex items-center gap-1 disabled:opacity-60">
-                  <Save className="w-3.5 h-3.5" /> {savingId === m.id ? 'Enregistrement…' : 'Enregistrer'}
-                </button>
-                <a href={`/api/mandats/${m.id}/pdf`} target="_blank" rel="noopener noreferrer" title="Mandat PDF" className="p-1.5 text-[#B89C6D] hover:opacity-70"><FileText className="w-4 h-4" /></a>
-                {m.mandateSignStatus !== 'SIGNED' && (
-                  <button onClick={() => handleSign(m)} disabled={signingId === m.id} title="Générer le lien de signature" className="p-1.5 text-[#1F3B2C] hover:opacity-70 disabled:opacity-40"><PenLine className="w-4 h-4" /></button>
-                )}
-                <button onClick={() => remove(m)} title="Supprimer" className="p-1.5 text-red-600 hover:opacity-70"><Trash2 className="w-4 h-4" /></button>
-              </div>
-            </div>
-
-            <div className="text-sm font-medium text-[#1F3B2C] mb-2">{typeLabel(m)} — {m.map?.query || [m.city, String(m.region || '').replaceAll('_', ' ')].filter(Boolean).join(', ')}</div>
-
-            <div className="grid md:grid-cols-3 gap-3">
-              <div className="md:col-span-3">
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs opacity-60">Mandant(s)</label>
-                  <button type="button" onClick={() => addOwner(m)} className="text-xs text-[#B89C6D] hover:underline">+ Ajouter un mandant</button>
-                </div>
-                <div className="space-y-2">
-                  {(m.owners && m.owners.length ? m.owners : [{ type: 'INDIVIDUAL' } as Owner]).map((o, oi) => (
-                    <div key={oi} className="border rounded p-2 bg-black/[0.02]">
-                      <div className="flex items-center gap-3 mb-1 text-xs">
-                        <label className="flex items-center gap-1"><input type="radio" checked={o.type !== 'COMPANY'} onChange={() => setOwner(m, oi, { type: 'INDIVIDUAL', name: undefined })} /> Particulier</label>
-                        <label className="flex items-center gap-1"><input type="radio" checked={o.type === 'COMPANY'} onChange={() => setOwner(m, oi, { type: 'COMPANY' })} /> Société</label>
-                        {(m.owners?.length || 0) > 1 && <button type="button" onClick={() => removeOwner(m, oi)} className="ml-auto text-red-600 hover:underline">Retirer</button>}
-                      </div>
-                      {o.type === 'COMPANY' ? (
-                        <input placeholder="Raison sociale" value={o.name || ''} onChange={e => setOwner(m, oi, { name: e.target.value })} className={inputCls} />
-                      ) : (
-                        <div className="grid grid-cols-2 gap-1">
-                          <input placeholder="Prénom" value={o.firstName || ''} onChange={e => setOwner(m, oi, { firstName: e.target.value })} className={inputCls} />
-                          <input placeholder="Nom" value={o.lastName || ''} onChange={e => setOwner(m, oi, { lastName: e.target.value })} className={inputCls} />
-                        </div>
-                      )}
-                      <div className="mt-1">
-                        <AddressAutocomplete
-                          value={o.address || ''}
-                          onChange={(c) => setOwner(m, oi, { address: c.address })}
-                          onTextChange={(t) => setOwner(m, oi, { address: t })}
-                          placeholder="Adresse du mandant"
-                          className={inputCls}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs opacity-60 mb-1">Type de mandat</label>
-                <select value={m.mandateType || 'SIMPLE'} onChange={e => patchLocal(m.id, { mandateType: e.target.value as any })} className={inputCls}>
-                  <option value="SIMPLE">Simple</option>
-                  <option value="EXCLUSIF">Exclusif</option>
-                  <option value="SUCCES">Succès</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs opacity-60 mb-1">Occupation</label>
-                <select value={m.occupancy || 'LIBRE'} onChange={e => patchLocal(m.id, { occupancy: e.target.value })} className={inputCls}>
-                  <option value="LIBRE">Libre</option>
-                  <option value="OCCUPE">Loué (occupé)</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs opacity-60 mb-1">Honoraires à la charge de</label>
-                <select value={m.mandateHonorairesCharge || 'ACQUEREUR'} onChange={e => patchLocal(m.id, { mandateHonorairesCharge: e.target.value as any })} className={inputCls}>
-                  <option value="ACQUEREUR">Acquéreur</option>
-                  <option value="VENDEUR">Vendeur</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs opacity-60 mb-1">Prix net vendeur (€)</label>
-                <input inputMode="numeric" value={fmtNum(m.netSellerAmount)} onChange={e => { const v = e.target.value.replace(/[^\d]/g, ''); patchLocal(m.id, { netSellerAmount: v ? Number(v) : undefined }); }} className={inputCls} />
-              </div>
-              <div>
-                <label className="block text-xs opacity-60 mb-1">Prix FAI (€)</label>
-                <input inputMode="numeric" value={fmtNum(m.price)} onChange={e => { const v = e.target.value.replace(/[^\d]/g, ''); patchLocal(m.id, { price: v ? Number(v) : undefined }); }} className={inputCls} />
-              </div>
-              <div>
-                <label className="block text-xs opacity-60 mb-1">Honoraires (auto)</label>
-                <div className="px-2 py-1 text-sm bg-black/5 rounded">{eur((m.price || 0) - (m.netSellerAmount || 0))}</div>
-              </div>
-              <div>
-                <label className="block text-xs opacity-60 mb-1">Fait à</label>
-                <input value={m.mandatePlace || ''} onChange={e => patchLocal(m.id, { mandatePlace: e.target.value })} placeholder={m.city || 'Ville'} className={inputCls} />
-              </div>
-            </div>
-
-            {signInfo[m.id] && (
-              <div className="mt-3 p-2 bg-amber-50 rounded flex gap-2 items-center flex-wrap">
-                <span className="text-xs font-medium whitespace-nowrap">✍️ Lien de signature :</span>
-                <input readOnly value={signInfo[m.id].link} onFocus={e => e.currentTarget.select()} className="flex-1 min-w-[220px] px-2 py-1 text-xs border rounded bg-white" />
-                <button onClick={() => navigator.clipboard?.writeText(signInfo[m.id].link)} className="px-2 py-1 text-xs border rounded hover:bg-white">Copier</button>
-                {signInfo[m.id].emailed
-                  ? <span className="text-xs text-green-700 whitespace-nowrap">✉️ Envoyé à {signInfo[m.id].email}</span>
-                  : <span className="text-xs text-gray-500">{signInfo[m.id].email ? 'Email non envoyé — copiez le lien' : 'Aucun email du mandant — copiez le lien'}</span>}
-              </div>
-            )}
+      {!loading && mandats.length > 0 && (
+        <div id="registre" className="card p-0 overflow-hidden">
+          <div className="p-4 border-b hidden print:block">
+            <div className="text-lg font-semibold" style={{ color: '#1F3B2C' }}>NOVUS CAPITAL — Registre des mandats</div>
+            <div className="text-xs opacity-70">CPI 7606 2024 000 000 038 — 50 rue de la Garenne, 76130 Mont-Saint-Aignan</div>
           </div>
-        ))}
-      </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-[#1F3B2C] text-white text-left">
+                  <th className="px-3 py-2 font-semibold">N°</th>
+                  <th className="px-3 py-2 font-semibold">Date de signature</th>
+                  <th className="px-3 py-2 font-semibold">Mandant</th>
+                  <th className="px-3 py-2 font-semibold">Type</th>
+                  <th className="px-3 py-2 font-semibold">Désignation du bien</th>
+                  <th className="px-3 py-2 font-semibold text-right">Prix net vendeur</th>
+                  <th className="px-3 py-2 font-semibold text-right">Honoraires</th>
+                  <th className="px-3 py-2 font-semibold text-right">Prix FAI</th>
+                  <th className="px-3 py-2 font-semibold">Statut</th>
+                  <th className="px-3 py-2 font-semibold no-print">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mandats.map((m, i) => (
+                  <Fragment key={m.id}>
+                    <tr className={i % 2 ? 'bg-black/[0.03]' : ''} style={{ borderBottom: '1px solid #eee' }}>
+                      <td className="px-3 py-2 font-semibold whitespace-nowrap">{m.mandateNumber || '—'}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">{m.mandateSignature?.signedAt ? new Date(m.mandateSignature.signedAt).toLocaleDateString('fr-FR') : <span className="opacity-50">—</span>}</td>
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{mandantOf(m)}</div>
+                        <div className="text-xs opacity-60">{(m.owners || []).map(o => o.address).filter(Boolean).join(' ; ')}</div>
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">{m.mandateType === 'EXCLUSIF' ? 'Exclusif' : m.mandateType === 'SUCCES' ? 'Succès' : 'Simple'}</td>
+                      <td className="px-3 py-2">{typeLabel(m)} — {m.map?.query || [m.city, String(m.region || '').replaceAll('_', ' ')].filter(Boolean).join(', ')}</td>
+                      <td className="px-3 py-2 text-right whitespace-nowrap">{eur(m.netSellerAmount ?? m.price)}</td>
+                      <td className="px-3 py-2 text-right whitespace-nowrap">{eur((m.price || 0) - (m.netSellerAmount || 0))}</td>
+                      <td className="px-3 py-2 text-right whitespace-nowrap">{eur(m.price)}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        {m.mandateSignStatus === 'SIGNED' ? <span className="text-green-700 font-medium">✔ Signé</span> : m.mandateSignStatus === 'PENDING' ? <span className="text-amber-700">En attente</span> : <span className="opacity-50">Non envoyé</span>}
+                      </td>
+                      <td className="px-3 py-2 no-print">
+                        <div className="flex gap-2 items-center">
+                          <button onClick={() => setEditingId(editingId === m.id ? null : m.id)} className={`text-xs px-2 py-1 border rounded ${editingId === m.id ? 'bg-[#1F3B2C] text-white border-[#1F3B2C]' : 'hover:bg-black/5'}`} data-testid={`button-edit-${m.id}`}>
+                            {editingId === m.id ? 'Fermer' : 'Modifier'}
+                          </button>
+                          {m.mandateSignStatus !== 'SIGNED' && (
+                            <button onClick={() => handleSign(m)} disabled={signingId === m.id} title="Générer le lien de signature" className="p-1 text-[#1F3B2C] hover:opacity-70 disabled:opacity-40"><PenLine className="w-4 h-4" /></button>
+                          )}
+                          <a href={`/api/mandats/${m.id}/pdf`} target="_blank" rel="noopener noreferrer" title="Mandat PDF" className="p-1 text-[#B89C6D] hover:opacity-70"><FileText className="w-4 h-4" /></a>
+                          <button onClick={() => remove(m)} title="Supprimer" className="p-1 text-red-600 hover:opacity-70"><Trash2 className="w-4 h-4" /></button>
+                        </div>
+                      </td>
+                    </tr>
 
-      {/* Version imprimable — registre chronologique (loi Hoguet) */}
-      <div id="registre-print" className="hidden print:block">
-        <div className="mb-3">
-          <div className="text-lg font-semibold" style={{ color: '#1F3B2C' }}>NOVUS CAPITAL — Registre des mandats</div>
-          <div className="text-xs opacity-70">CPI 7606 2024 000 000 038 — 50 rue de la Garenne, 76130 Mont-Saint-Aignan</div>
+                    {signInfo[m.id] && (
+                      <tr className="no-print">
+                        <td colSpan={10} className="px-3 py-2 bg-amber-50" style={{ borderBottom: '1px solid #eee' }}>
+                          <div className="flex gap-2 items-center flex-wrap">
+                            <span className="text-xs font-medium whitespace-nowrap">✍️ Lien de signature :</span>
+                            <input readOnly value={signInfo[m.id].link} onFocus={e => e.currentTarget.select()} className="flex-1 min-w-[220px] px-2 py-1 text-xs border rounded bg-white" />
+                            <button onClick={() => navigator.clipboard?.writeText(signInfo[m.id].link)} className="px-2 py-1 text-xs border rounded hover:bg-white">Copier</button>
+                            {signInfo[m.id].emailed
+                              ? <span className="text-xs text-green-700 whitespace-nowrap">✉️ Envoyé à {signInfo[m.id].email}</span>
+                              : <span className="text-xs text-gray-500">{signInfo[m.id].email ? 'Email non envoyé — copiez le lien' : 'Aucun email du mandant — copiez le lien'}</span>}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+
+                    {editingId === m.id && (
+                      <tr className="no-print">
+                        <td colSpan={10} className="px-3 py-3 bg-black/[0.02]" style={{ borderBottom: '1px solid #eee' }}>
+                          <div className="grid md:grid-cols-3 gap-3">
+                            <div>
+                              <label className="block text-xs opacity-60 mb-1">N° de mandat</label>
+                              <input value={m.mandateNumber || ''} onChange={e => patchLocal(m.id, { mandateNumber: e.target.value })} className={inputCls} />
+                            </div>
+                            <div>
+                              <label className="block text-xs opacity-60 mb-1">Type de mandat</label>
+                              <select value={m.mandateType || 'SIMPLE'} onChange={e => patchLocal(m.id, { mandateType: e.target.value as any })} className={inputCls}>
+                                <option value="SIMPLE">Simple</option>
+                                <option value="EXCLUSIF">Exclusif</option>
+                                <option value="SUCCES">Succès</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-xs opacity-60 mb-1">Occupation</label>
+                              <select value={m.occupancy || 'LIBRE'} onChange={e => patchLocal(m.id, { occupancy: e.target.value })} className={inputCls}>
+                                <option value="LIBRE">Libre</option>
+                                <option value="OCCUPE">Loué (occupé)</option>
+                              </select>
+                            </div>
+                            <div className="md:col-span-3">
+                              <div className="flex items-center justify-between mb-1">
+                                <label className="text-xs opacity-60">Mandant(s)</label>
+                                <button type="button" onClick={() => addOwner(m)} className="text-xs text-[#B89C6D] hover:underline">+ Ajouter un mandant</button>
+                              </div>
+                              <div className="space-y-2">
+                                {(m.owners && m.owners.length ? m.owners : [{ type: 'INDIVIDUAL' } as Owner]).map((o, oi) => (
+                                  <div key={oi} className="border rounded p-2 bg-white">
+                                    <div className="flex items-center gap-3 mb-1 text-xs">
+                                      <label className="flex items-center gap-1"><input type="radio" checked={o.type !== 'COMPANY'} onChange={() => setOwner(m, oi, { type: 'INDIVIDUAL', name: undefined })} /> Particulier</label>
+                                      <label className="flex items-center gap-1"><input type="radio" checked={o.type === 'COMPANY'} onChange={() => setOwner(m, oi, { type: 'COMPANY' })} /> Société</label>
+                                      {(m.owners?.length || 0) > 1 && <button type="button" onClick={() => removeOwner(m, oi)} className="ml-auto text-red-600 hover:underline">Retirer</button>}
+                                    </div>
+                                    {o.type === 'COMPANY' ? (
+                                      <input placeholder="Raison sociale" value={o.name || ''} onChange={e => setOwner(m, oi, { name: e.target.value })} className={inputCls} />
+                                    ) : (
+                                      <div className="grid grid-cols-2 gap-1">
+                                        <input placeholder="Prénom" value={o.firstName || ''} onChange={e => setOwner(m, oi, { firstName: e.target.value })} className={inputCls} />
+                                        <input placeholder="Nom" value={o.lastName || ''} onChange={e => setOwner(m, oi, { lastName: e.target.value })} className={inputCls} />
+                                      </div>
+                                    )}
+                                    <div className="mt-1">
+                                      <AddressAutocomplete
+                                        value={o.address || ''}
+                                        onChange={(c) => setOwner(m, oi, { address: c.address })}
+                                        onTextChange={(t) => setOwner(m, oi, { address: t })}
+                                        placeholder="Adresse du mandant"
+                                        className={inputCls}
+                                      />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-xs opacity-60 mb-1">Honoraires à la charge de</label>
+                              <select value={m.mandateHonorairesCharge || 'ACQUEREUR'} onChange={e => patchLocal(m.id, { mandateHonorairesCharge: e.target.value as any })} className={inputCls}>
+                                <option value="ACQUEREUR">Acquéreur</option>
+                                <option value="VENDEUR">Vendeur</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-xs opacity-60 mb-1">Prix net vendeur (€)</label>
+                              <input inputMode="numeric" value={fmtNum(m.netSellerAmount)} onChange={e => { const v = e.target.value.replace(/[^\d]/g, ''); patchLocal(m.id, { netSellerAmount: v ? Number(v) : undefined }); }} className={inputCls} />
+                            </div>
+                            <div>
+                              <label className="block text-xs opacity-60 mb-1">Prix FAI (€)</label>
+                              <input inputMode="numeric" value={fmtNum(m.price)} onChange={e => { const v = e.target.value.replace(/[^\d]/g, ''); patchLocal(m.id, { price: v ? Number(v) : undefined }); }} className={inputCls} />
+                            </div>
+                            <div>
+                              <label className="block text-xs opacity-60 mb-1">Honoraires (auto)</label>
+                              <div className="px-2 py-1 text-sm bg-black/5 rounded">{eur((m.price || 0) - (m.netSellerAmount || 0))}</div>
+                            </div>
+                            <div>
+                              <label className="block text-xs opacity-60 mb-1">Fait à</label>
+                              <input value={m.mandatePlace || ''} onChange={e => patchLocal(m.id, { mandatePlace: e.target.value })} placeholder={m.city || 'Ville'} className={inputCls} />
+                            </div>
+                          </div>
+                          <div className="mt-3 flex gap-2">
+                            <button onClick={async () => { await save(m); setEditingId(null); }} disabled={savingId === m.id} className="btn-luxe text-sm flex items-center gap-1 disabled:opacity-60">
+                              <Save className="w-3.5 h-3.5" /> {savingId === m.id ? 'Enregistrement…' : 'Enregistrer'}
+                            </button>
+                            <button onClick={() => { load(); setEditingId(null); }} className="text-sm px-3 py-1.5 border rounded hover:bg-black/5">Annuler</button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="p-3 text-xs opacity-60 border-t hidden print:block">
+            Édité le {new Date().toLocaleDateString('fr-FR')} — {mandats.length} mandat(s) inscrit(s).
+          </div>
         </div>
-        <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="text-left" style={{ borderBottom: '2px solid #1F3B2C' }}>
-              <th className="px-2 py-1">N°</th>
-              <th className="px-2 py-1">Date signature</th>
-              <th className="px-2 py-1">Mandant</th>
-              <th className="px-2 py-1">Type</th>
-              <th className="px-2 py-1">Désignation du bien</th>
-              <th className="px-2 py-1 text-right">Net vendeur</th>
-              <th className="px-2 py-1 text-right">Honoraires</th>
-              <th className="px-2 py-1 text-right">Prix FAI</th>
-              <th className="px-2 py-1">Statut</th>
-            </tr>
-          </thead>
-          <tbody>
-            {mandats.map((m) => (
-              <tr key={m.id} style={{ borderBottom: '1px solid #ddd' }}>
-                <td className="px-2 py-1 font-semibold">{m.mandateNumber || '—'}</td>
-                <td className="px-2 py-1">{m.mandateSignature?.signedAt ? new Date(m.mandateSignature.signedAt).toLocaleDateString('fr-FR') : '—'}</td>
-                <td className="px-2 py-1">{mandantOf(m)}<br /><span className="text-xs opacity-60">{(m.owners || []).map(o => o.address).filter(Boolean).join(' ; ')}</span></td>
-                <td className="px-2 py-1">{m.mandateType === 'EXCLUSIF' ? 'Exclusif' : m.mandateType === 'SUCCES' ? 'Succès' : 'Simple'}</td>
-                <td className="px-2 py-1">{typeLabel(m)} — {m.map?.query || m.city}</td>
-                <td className="px-2 py-1 text-right">{eur(m.netSellerAmount ?? m.price)}</td>
-                <td className="px-2 py-1 text-right">{eur((m.price || 0) - (m.netSellerAmount || 0))}</td>
-                <td className="px-2 py-1 text-right">{eur(m.price)}</td>
-                <td className="px-2 py-1">{m.mandateSignStatus === 'SIGNED' ? 'Signé' : m.mandateSignStatus === 'PENDING' ? 'En attente' : '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="text-xs opacity-60 mt-3">Édité le {new Date().toLocaleDateString('fr-FR')} — {mandats.length} mandat(s) inscrit(s).</div>
-      </div>
+      )}
     </AdminShell>
   );
 }
