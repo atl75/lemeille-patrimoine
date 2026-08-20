@@ -3,6 +3,7 @@ import AdminShell from "@/components/AdminShell";
 import Breadcrumb from "@/components/Breadcrumb";
 import FeaturePicker from "@/components/FeaturePicker";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
+import NotaryAutocomplete from "@/components/NotaryAutocomplete";
 import GoogleMapsScript from "@/components/GoogleMapsScript";
 import ImageUploader from "@/components/ImageUploader";
 import DocumentUploader from "@/components/DocumentUploader";
@@ -1920,13 +1921,12 @@ export default function Page() {
                 <div className="p-2 bg-white border rounded text-xs">
                   <h4 className="font-medium text-xs mb-2">Vendeur</h4>
                   <div className="space-y-1">
-                    <input
-                      type="text"
+                    <NotaryAutocomplete
                       value={editing.sellerNotary?.officeName || ''}
-                      onChange={(e) => updateField('sellerNotary', { ...editing.sellerNotary, officeName: e.target.value })}
-                      className="w-full px-2 py-1 text-xs border rounded"
+                      onSelect={(n) => updateField('sellerNotary', { ...editing.sellerNotary, officeName: n.name })}
+                      onTextChange={(text) => updateField('sellerNotary', { ...editing.sellerNotary, officeName: text })}
                       placeholder="Office notarial"
-                      data-testid="input-seller-notary-office"
+                      className="w-full px-2 py-1 text-xs border rounded"
                     />
                     <input
                       type="text"
@@ -1971,13 +1971,12 @@ export default function Page() {
                     </button>
                   </div>
                   <div className="space-y-1">
-                    <input
-                      type="text"
+                    <NotaryAutocomplete
                       value={editing.buyerNotary?.officeName || ''}
-                      onChange={(e) => updateField('buyerNotary', { ...editing.buyerNotary, officeName: e.target.value })}
-                      className="w-full px-2 py-1 text-xs border rounded"
+                      onSelect={(n) => updateField('buyerNotary', { ...editing.buyerNotary, officeName: n.name })}
+                      onTextChange={(text) => updateField('buyerNotary', { ...editing.buyerNotary, officeName: text })}
                       placeholder="Office notarial"
-                      data-testid="input-buyer-notary-office"
+                      className="w-full px-2 py-1 text-xs border rounded"
                     />
                     <input
                       type="text"
