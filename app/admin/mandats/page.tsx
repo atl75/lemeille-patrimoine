@@ -3,6 +3,7 @@ import AdminShell from "@/components/AdminShell";
 import Breadcrumb from "@/components/Breadcrumb";
 import { useEffect, useMemo, useState } from "react";
 import { Printer, FileText, PenLine, Trash2, Save } from "lucide-react";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 type Owner = { type?: string; firstName?: string; lastName?: string; name?: string; address?: string; email?: string };
 type Mandat = {
@@ -29,12 +30,12 @@ type Mandat = {
   mandateSignerEmail?: string;
 };
 
-const eur = (n?: number) => (n || n === 0) ? Math.round(n as number).toLocaleString('fr-FR') + ' €' : '—';
+const eur = (n?: number) => (n || n === 0) ? Math.round(n as number).toLocaleString('fr-FR').replace(/[  ]/g, ' ') + ' €' : '—';
 const typeLabel = (m: Mandat) => (m.type === 'MAISON' ? 'Maison' : 'Appartement') + (m.rooms ? ` T${m.rooms}` : '');
 function mandantOf(m: Mandat): string {
-  const o = m.owners?.[0];
-  if (!o) return '—';
-  return o.type === 'COMPANY' ? (o.name || '—') : [o.firstName, o.lastName].filter(Boolean).join(' ') || '—';
+  const os = m.owners || [];
+  if (!os.length) return '—';
+  return os.map(o => o.type === 'COMPANY' ? (o.name || '') : [o.firstName, o.lastName].filter(Boolean).join(' ')).filter(Boolean).join(' ; ') || '—';
 }
 
 export default function Page() {
@@ -59,11 +60,14 @@ export default function Page() {
   const pending = mandats.filter(m => m.mandateSignStatus === 'PENDING').length;
 
   const patchLocal = (id: string, patch: Partial<Mandat>) => setItems(prev => prev.map(m => m.id === id ? { ...m, ...patch } : m));
-  const setOwner0 = (m: Mandat, patch: Partial<Owner>) => {
+  const setOwner = (m: Mandat, oi: number, patch: Partial<Owner>) => {
     const owners = [...(m.owners || [])];
-    owners[0] = { type: 'INDIVIDUAL', ...(owners[0] || {}), ...patch };
+    owners[oi] = { type: 'INDIVIDUAL', ...(owners[oi] || {}), ...patch };
     patchLocal(m.id, { owners });
   };
+  const addOwner = (m: Mandat) => patchLocal(m.id, { owners: [...(m.owners || []), { type: 'INDIVIDUAL' }] });
+  const removeOwner = (m: Mandat, oi: number) => patchLocal(m.id, { owners: (m.owners || []).filter((_, i) => i !== oi) });
+  const fmtNum = (n?: number) => (n || n === 0) ? Number(n).toLocaleString('fr-FR') : '';
 
   const save = async (m: Mandat) => {
     setSavingId(m.id);
@@ -178,20 +182,39 @@ export default function Page() {
             <div className="text-sm font-medium text-[#1F3B2C] mb-2">{typeLabel(m)} — {m.map?.query || [m.city, String(m.region || '').replaceAll('_', ' ')].filter(Boolean).join(', ')}</div>
 
             <div className="grid md:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs opacity-60 mb-1">Mandant (nom)</label>
-                {m.owners?.[0]?.type === 'COMPANY' ? (
-                  <input value={m.owners?.[0]?.name || ''} onChange={e => setOwner0(m, { name: e.target.value })} className={inputCls} />
-                ) : (
-                  <div className="flex gap-1">
-                    <input placeholder="Prénom" value={m.owners?.[0]?.firstName || ''} onChange={e => setOwner0(m, { firstName: e.target.value })} className={inputCls} />
-                    <input placeholder="Nom" value={m.owners?.[0]?.lastName || ''} onChange={e => setOwner0(m, { lastName: e.target.value })} className={inputCls} />
-                  </div>
-                )}
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-xs opacity-60 mb-1">Adresse du mandant</label>
-                <input value={m.owners?.[0]?.address || ''} onChange={e => setOwner0(m, { address: e.target.value })} className={inputCls} />
+              <div className="md:col-span-3">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs opacity-60">Mandant(s)</label>
+                  <button type="button" onClick={() => addOwner(m)} className="text-xs text-[#B89C6D] hover:underline">+ Ajouter un mandant</button>
+                </div>
+                <div className="space-y-2">
+                  {(m.owners && m.owners.length ? m.owners : [{ type: 'INDIVIDUAL' } as Owner]).map((o, oi) => (
+                    <div key={oi} className="border rounded p-2 bg-black/[0.02]">
+                      <div className="flex items-center gap-3 mb-1 text-xs">
+                        <label className="flex items-center gap-1"><input type="radio" checked={o.type !== 'COMPANY'} onChange={() => setOwner(m, oi, { type: 'INDIVIDUAL', name: undefined })} /> Particulier</label>
+                        <label className="flex items-center gap-1"><input type="radio" checked={o.type === 'COMPANY'} onChange={() => setOwner(m, oi, { type: 'COMPANY' })} /> Société</label>
+                        {(m.owners?.length || 0) > 1 && <button type="button" onClick={() => removeOwner(m, oi)} className="ml-auto text-red-600 hover:underline">Retirer</button>}
+                      </div>
+                      {o.type === 'COMPANY' ? (
+                        <input placeholder="Raison sociale" value={o.name || ''} onChange={e => setOwner(m, oi, { name: e.target.value })} className={inputCls} />
+                      ) : (
+                        <div className="grid grid-cols-2 gap-1">
+                          <input placeholder="Prénom" value={o.firstName || ''} onChange={e => setOwner(m, oi, { firstName: e.target.value })} className={inputCls} />
+                          <input placeholder="Nom" value={o.lastName || ''} onChange={e => setOwner(m, oi, { lastName: e.target.value })} className={inputCls} />
+                        </div>
+                      )}
+                      <div className="mt-1">
+                        <AddressAutocomplete
+                          value={o.address || ''}
+                          onChange={(c) => setOwner(m, oi, { address: c.address })}
+                          onTextChange={(t) => setOwner(m, oi, { address: t })}
+                          placeholder="Adresse du mandant"
+                          className={inputCls}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
               <div>
                 <label className="block text-xs opacity-60 mb-1">Type de mandat</label>
@@ -217,11 +240,11 @@ export default function Page() {
               </div>
               <div>
                 <label className="block text-xs opacity-60 mb-1">Prix net vendeur (€)</label>
-                <input type="number" value={m.netSellerAmount ?? ''} onChange={e => patchLocal(m.id, { netSellerAmount: e.target.value ? Number(e.target.value) : undefined })} className={inputCls} />
+                <input inputMode="numeric" value={fmtNum(m.netSellerAmount)} onChange={e => { const v = e.target.value.replace(/[^\d]/g, ''); patchLocal(m.id, { netSellerAmount: v ? Number(v) : undefined }); }} className={inputCls} />
               </div>
               <div>
                 <label className="block text-xs opacity-60 mb-1">Prix FAI (€)</label>
-                <input type="number" value={m.price ?? ''} onChange={e => patchLocal(m.id, { price: e.target.value ? Number(e.target.value) : undefined })} className={inputCls} />
+                <input inputMode="numeric" value={fmtNum(m.price)} onChange={e => { const v = e.target.value.replace(/[^\d]/g, ''); patchLocal(m.id, { price: v ? Number(v) : undefined }); }} className={inputCls} />
               </div>
               <div>
                 <label className="block text-xs opacity-60 mb-1">Honoraires (auto)</label>
@@ -272,7 +295,7 @@ export default function Page() {
               <tr key={m.id} style={{ borderBottom: '1px solid #ddd' }}>
                 <td className="px-2 py-1 font-semibold">{m.mandateNumber || '—'}</td>
                 <td className="px-2 py-1">{m.mandateSignature?.signedAt ? new Date(m.mandateSignature.signedAt).toLocaleDateString('fr-FR') : '—'}</td>
-                <td className="px-2 py-1">{mandantOf(m)}<br /><span className="text-xs opacity-60">{m.owners?.[0]?.address || ''}</span></td>
+                <td className="px-2 py-1">{mandantOf(m)}<br /><span className="text-xs opacity-60">{(m.owners || []).map(o => o.address).filter(Boolean).join(' ; ')}</span></td>
                 <td className="px-2 py-1">{m.mandateType === 'EXCLUSIF' ? 'Exclusif' : m.mandateType === 'SUCCES' ? 'Succès' : 'Simple'}</td>
                 <td className="px-2 py-1">{typeLabel(m)} — {m.map?.query || m.city}</td>
                 <td className="px-2 py-1 text-right">{eur(m.netSellerAmount ?? m.price)}</td>
