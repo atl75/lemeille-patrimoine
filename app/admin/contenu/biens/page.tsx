@@ -789,6 +789,20 @@ export default function Page() {
               </div>
 
               <div>
+                <label className="block text-xs font-medium mb-1">Occupation</label>
+                <select
+                  value={editing.occupancy || 'LIBRE'}
+                  onChange={e => updateField('occupancy', e.target.value)}
+                  className="w-full px-2 py-1.5 text-sm border rounded"
+                  data-testid="select-occupancy"
+                >
+                  <option value="LIBRE">Libre</option>
+                  <option value="OCCUPE">Loué (occupé)</option>
+                </select>
+                <p className="text-[11px] text-gray-500 mt-1">Repris automatiquement sur le mandat (bien libre / loué).</p>
+              </div>
+
+              <div>
                 <label className="block text-xs font-medium mb-1">Adresse</label>
                 <AddressAutocomplete
                   value={editing.map?.query || ''}
