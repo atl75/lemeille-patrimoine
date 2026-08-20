@@ -7,10 +7,44 @@ export async function readJSON(file: string) {
   const p = path.join(DATA_DIR, file);
   try { const raw = await fs.readFile(p, 'utf-8'); return JSON.parse(raw || '[]'); } catch { return []; }
 }
-export async function writeJSON(file: string, data: any) {
-  await ensureDataDir();
+
+// Sérialise les opérations d'écriture d'un même fichier (une file par fichier)
+// pour éviter les écritures entrelacées / les pertes en concurrence.
+const fileChains = new Map<string, Promise<unknown>>();
+function withFileLock<T>(file: string, fn: () => Promise<T>): Promise<T> {
+  const prev = fileChains.get(file) || Promise.resolve();
+  const run = prev.then(fn, fn);
+  fileChains.set(file, run.then(() => {}, () => {}));
+  return run;
+}
+
+// Écriture ATOMIQUE : on écrit dans un fichier temporaire puis on renomme.
+// Un renommage remplace le fichier en une seule opération → jamais de JSON
+// tronqué (donc plus de corruption possible sur crash/écriture partielle).
+async function atomicWrite(p: string, data: any) {
+  const tmp = `${p}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  await fs.writeFile(tmp, JSON.stringify(data, null, 2), 'utf-8');
+  await fs.rename(tmp, p);
+}
+
+export function writeJSON(file: string, data: any): Promise<void> {
   const p = path.join(DATA_DIR, file);
-  await fs.writeFile(p, JSON.stringify(data, null, 2), 'utf-8');
+  return withFileLock(file, async () => { await ensureDataDir(); await atomicWrite(p, data); });
+}
+
+// Lecture-modification-écriture ATOMIQUE (verrou + écriture atomique).
+// À utiliser pour toute écriture susceptible d'être concurrente (endpoints
+// publics : leads, abonnés, analytics…) : `mutate` reçoit la donnée à jour et
+// renvoie le tableau à écrire (ou modifie en place).
+export async function updateJSON<T = any>(file: string, mutate: (data: any[]) => T | Promise<T>): Promise<T> {
+  const p = path.join(DATA_DIR, file);
+  return withFileLock(file, async () => {
+    await ensureDataDir();
+    const data = await readJSON(file);
+    const result = await mutate(data);
+    await atomicWrite(p, Array.isArray(result) ? result : data);
+    return result;
+  });
 }
 export function uid(prefix = '') { return prefix + Math.random().toString(36).slice(2, 10); }
 

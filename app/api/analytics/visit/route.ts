@@ -1,28 +1,27 @@
 import { NextResponse } from 'next/server';
-import { readJSON, writeJSON, uid } from '@/lib/utils';
+import { uid, updateJSON } from '@/lib/utils';
+import { rateLimit, getClientIp } from '@/lib/rateLimit';
 
 export async function POST(req: Request) {
   try {
+    const ip = getClientIp(req);
+    const { allowed } = rateLimit(`visit:${ip}`, 60, 60 * 1000);
+    if (!allowed) return NextResponse.json({ success: false }, { status: 429 });
+
     const body = await req.json();
-    const visits = await readJSON('analytics.json');
-    
     const visit = {
       id: uid('V'),
-      page: body.page || '/',
-      referrer: body.referrer || '',
-      userAgent: body.userAgent || '',
+      page: String(body.page || '/').slice(0, 300),
+      referrer: String(body.referrer || '').slice(0, 300),
+      userAgent: String(body.userAgent || '').slice(0, 400),
       timestamp: body.timestamp || new Date().toISOString(),
-      screenWidth: body.screenWidth || 0,
-      screenHeight: body.screenHeight || 0,
-      // Extract useful info from user agent
+      screenWidth: Number(body.screenWidth) || 0,
+      screenHeight: Number(body.screenHeight) || 0,
       isMobile: /Mobile|Android|iPhone/i.test(body.userAgent || ''),
-      // Extract country from headers if available
-      country: req.headers.get('cf-ipcountry') || 'Unknown'
+      country: req.headers.get('cf-ipcountry') || 'Unknown',
     };
-    
-    visits.push(visit);
-    await writeJSON('analytics.json', visits);
-    
+    await updateJSON('analytics.json', (visits) => { visits.push(visit); return visits; });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Analytics error:', error);

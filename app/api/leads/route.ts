@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { readJSON, writeJSON, uid } from '@/lib/utils';
+import { readJSON, uid, updateJSON } from '@/lib/utils';
 import { Resend } from 'resend';
 import { isAdmin } from '@/lib/adminGuard';
+import { rateLimit, getClientIp } from '@/lib/rateLimit';
 
 export async function GET(req: Request){
   if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -171,10 +172,16 @@ function applyRole(payload: any) {
 }
 
 export async function POST(req: Request){
+  const ip = getClientIp(req);
+  const { allowed, retryAfterSeconds } = rateLimit(`leads:${ip}`, 8, 10 * 60 * 1000);
+  if (!allowed) {
+    return NextResponse.json({ error: 'Trop de demandes, réessayez dans quelques minutes.' }, { status: 429, headers: { 'Retry-After': String(retryAfterSeconds) } });
+  }
+
   const contentType = req.headers.get('content-type') || '';
-  
+
   let payload: any;
-  
+
   if (contentType.includes('application/json')) {
     // JSON from simulator/estimation
     const body = await req.json();
@@ -185,9 +192,7 @@ export async function POST(req: Request){
       ...body
     };
     applyRole(payload);
-    const data = await readJSON('leads.json');
-    data.push(payload);
-    await writeJSON('leads.json', data);
+    await updateJSON('leads.json', (data) => { data.push(payload); return data; });
     
     // Notifier par email selon la source du lead
     const notifySources = ['estimation-immobilier', 'simulateur-defiscalisation', 'guide-defiscalisation'];
@@ -235,9 +240,7 @@ export async function POST(req: Request){
       source: 'contact-form'
     };
     applyRole(payload);
-    const data = await readJSON('leads.json');
-    data.push(payload);
-    await writeJSON('leads.json', data);
+    await updateJSON('leads.json', (data) => { data.push(payload); return data; });
     
     // Envoyer l'email pour le formulaire de contact
     if (process.env.RESEND_API_KEY) {
