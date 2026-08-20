@@ -9,7 +9,11 @@ export async function GET(req: Request) {
   if (q.length < 2) return NextResponse.json({ results: [] });
 
   try {
-    const url = `https://recherche-entreprises.api.gouv.fr/search?q=${encodeURIComponent(q)}&activite_principale=69.10Z&per_page=15`;
+    // La recherche porte sur le NOM d'entreprise : on ajoute « notaire » (sauf
+    // s'il y est déjà) pour faire remonter les études, y compris sur une requête
+    // de type ville. Puis filtre strict sur les noms notariaux.
+    const qBiased = /notai/i.test(q) ? q : `${q} notaire`;
+    const url = `https://recherche-entreprises.api.gouv.fr/search?q=${encodeURIComponent(qBiased)}&activite_principale=69.10Z&per_page=20`;
     const res = await fetch(url, { headers: { Accept: 'application/json' } });
     if (!res.ok) return NextResponse.json({ results: [] });
     const data = await res.json();
@@ -29,11 +33,9 @@ export async function GET(req: Request) {
       }))
       .filter((c: any) => {
         const n = (c.name || '').toLowerCase();
-        if (!n) return false;
-        // On garde tout ce qui est explicitement notarial…
-        if (/notari|notaire/.test(n)) return true;
-        // …sinon on écarte les autres professions juridiques.
-        return !/avocat|barreau|huissier|commissaire de justice|conseil juridique|mandataire judiciaire|expertise/.test(n);
+        if (!n || !/notair|notari/.test(n)) return false;           // uniquement les études notariales
+        // Écarte les organismes institutionnels (pas des études).
+        return !/chambre|conseil r[ée]gional|conseil d[ée]partemental|conseil sup[ée]rieur|centre de m[ée]diation|m[ée]diation/.test(n);
       })
       .slice(0, 8);
 
