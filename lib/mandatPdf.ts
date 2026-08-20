@@ -313,7 +313,7 @@ export async function buildMandatePdf(p: any): Promise<Uint8Array> {
   sec('VI - Faculté de rétractation du mandant');
   para(retract);
   checkRow("Le Mandant demande que les prestations débutent avant l'expiration du délai de rétractation :", [
-    { label: 'Oui', checked: false },
+    { label: 'Oui', checked: true },
     { label: 'Non', checked: false },
   ]);
   para("Pour l'exécution du présent contrat, les parties font élection de domicile aux adresses indiquées en tête des présentes et s'engagent à informer l'autre partie de tout changement d'adresse.");
@@ -361,7 +361,8 @@ export async function buildMandatePdf(p: any): Promise<Uint8Array> {
   gap(6);
   para(retractRappel, { size: 7.5, color: grey });
 
-  // ------- Annexe : formulaire de rétractation -------
+  // ------- Annexe : formulaire de rétractation (sur une nouvelle page) -------
+  newPage();
   sec('Modèle de formulaire de rétractation');
   para('(Veuillez compléter et renvoyer le présent formulaire uniquement si vous souhaitez vous rétracter du contrat.)', { size: 8, color: grey, justify: false });
   para('À l\'attention de : NOVUS CAPITAL - 50 rue de la Garenne, 76130 Mont-Saint-Aignan', { justify: false });
