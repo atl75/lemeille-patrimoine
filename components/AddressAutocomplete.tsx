@@ -25,9 +25,12 @@ type Props = {
   onChange: (components: AddressComponents) => void;
   placeholder?: string;
   className?: string;
+  // Optionnel : remonte le texte brut à chaque frappe (pour conserver une saisie
+  // libre non issue d'une suggestion). onChange reste déclenché à la sélection.
+  onTextChange?: (text: string) => void;
 };
 
-export default function AddressAutocomplete({ value, onChange, placeholder, className }: Props) {
+export default function AddressAutocomplete({ value, onChange, placeholder, className, onTextChange }: Props) {
   const [inputValue, setInputValue] = useState(value);
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -75,6 +78,7 @@ export default function AddressAutocomplete({ value, onChange, placeholder, clas
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
+    onTextChange?.(newValue);
 
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);

@@ -1236,16 +1236,20 @@ export default function Page() {
 
                     <div className="mt-2">
                       <label className="block text-xs mb-1">Adresse</label>
-                      <input
-                        type="text"
+                      <AddressAutocomplete
                         value={owner.address || ''}
-                        onChange={(e) => {
+                        onChange={(components) => {
                           const newOwners = [...(editing.owners || [])];
-                          newOwners[index] = { ...owner, address: e.target.value };
+                          newOwners[index] = { ...owner, address: components.address };
                           updateField('owners', newOwners);
                         }}
+                        onTextChange={(text) => {
+                          const newOwners = [...(editing.owners || [])];
+                          newOwners[index] = { ...owner, address: text };
+                          updateField('owners', newOwners);
+                        }}
+                        placeholder="12 rue…, 76000 Rouen"
                         className="w-full px-2 py-1 text-xs border rounded"
-                        data-testid={`input-owner-address-${index}`}
                       />
                     </div>
                   </div>
