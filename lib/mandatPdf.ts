@@ -304,13 +304,10 @@ export async function buildMandatePdf(p: any): Promise<Uint8Array> {
 
   sec('V - Moyens de diffusion des annonces commerciales');
   checkList([
-    { label: 'Affiches vitrines', checked: true },
-    { label: 'Publicités dans la presse spécialisée et généraliste', checked: true },
-    { label: 'Flyers distribués en boîte aux lettres ou en mains propres', checked: true },
-    { label: 'Panneau à vendre', checked: true },
-    { label: 'Diffusion sur les réseaux sociaux', checked: true },
     { label: 'Sites internet du Cabinet Conseil', checked: true },
     { label: "Portails internet d'annonces immobilières", checked: true },
+    { label: 'Diffusion sur les réseaux sociaux', checked: true },
+    { label: 'Panneau à vendre', checked: true },
   ]);
 
   sec('VI - Faculté de rétractation du mandant');
