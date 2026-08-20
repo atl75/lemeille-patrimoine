@@ -1615,6 +1615,76 @@ export default function Page() {
             )}
           </div>
 
+          {/* Mandat — génération / mise à jour, inscrit au registre après enregistrement */}
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-2 pb-2 border-b">
+              <h3 className="font-semibold text-base">Mandat</h3>
+              {editing.mandateNumber && editing.id && (
+                <div className="flex items-center gap-3 text-xs">
+                  <a href={`/api/properties/${editing.id}/mandat/pdf`} target="_blank" rel="noopener noreferrer" className="text-[#B89C6D] underline">Mandat PDF</a>
+                  <a href="/admin/mandats" className="text-gray-500 underline">Registre des mandats</a>
+                </div>
+              )}
+            </div>
+
+            {!editing.mandateNumber ? (
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const now = new Date();
+                    const ym = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+                    const seq = properties.filter(p => (p.mandateNumber || '').startsWith(ym)).length + 1;
+                    setEditing({
+                      ...editing,
+                      mandateNumber: `${ym}-${String(seq).padStart(2, '0')}`,
+                      mandateType: editing.mandateType || 'SIMPLE',
+                      mandateHonorairesCharge: editing.mandateHonorairesCharge || 'ACQUEREUR',
+                      mandatePlace: editing.mandatePlace || editing.city || '',
+                      netSellerAmount: editing.netSellerAmount ?? editing.price,
+                    });
+                  }}
+                  className="btn-luxe text-sm"
+                  data-testid="button-generate-mandate"
+                >
+                  Générer un mandat
+                </button>
+                <span className="text-xs text-gray-500">Crée le n° de mandat ; il s&apos;inscrit au registre après enregistrement du bien.</span>
+              </div>
+            ) : (
+              <>
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs mb-1">N° de mandat</label>
+                    <input value={editing.mandateNumber || ''} onChange={e => updateField('mandateNumber', e.target.value)} className="w-full px-2 py-1.5 text-sm border rounded" data-testid="input-mandate-number" />
+                  </div>
+                  <div>
+                    <label className="block text-xs mb-1">Type de mandat</label>
+                    <select value={editing.mandateType || 'SIMPLE'} onChange={e => updateField('mandateType', e.target.value)} className="w-full px-2 py-1.5 text-sm border rounded">
+                      <option value="SIMPLE">Simple</option>
+                      <option value="EXCLUSIF">Exclusif</option>
+                      <option value="SUCCES">Succès</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs mb-1">Honoraires à la charge de</label>
+                    <select value={editing.mandateHonorairesCharge || 'ACQUEREUR'} onChange={e => updateField('mandateHonorairesCharge', e.target.value)} className="w-full px-2 py-1.5 text-sm border rounded">
+                      <option value="ACQUEREUR">Acquéreur</option>
+                      <option value="VENDEUR">Vendeur</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs mb-1">Fait à</label>
+                    <input value={editing.mandatePlace || ''} onChange={e => updateField('mandatePlace', e.target.value)} placeholder={editing.city || 'Ville'} className="w-full px-2 py-1.5 text-sm border rounded" />
+                  </div>
+                </div>
+                <p className="text-[11px] text-gray-500 mt-2">
+                  Mandat N° {editing.mandateNumber}. Le prix net vendeur / FAI et les honoraires se règlent dans le bloc « Finances » ci-dessus. Enregistrez le bien pour mettre à jour le registre — le mandat est aussi modifiable depuis le registre des mandats.
+                </p>
+              </>
+            )}
+          </div>
+
           {/* Description */}
           <div className="mb-3">
             <label className="block text-xs font-medium mb-1">Description</label>
