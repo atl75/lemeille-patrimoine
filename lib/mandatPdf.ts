@@ -371,6 +371,7 @@ export async function buildMandatePdf(p: any): Promise<Uint8Array> {
   kv('Nom du (des) mandant(s)', mandantNom);
   para('Commandé le : ...........................            Date : ...........................', { justify: false });
   para('Signature du (des) mandant(s) (uniquement en cas de notification du présent formulaire sur papier) :', { justify: false });
+  signline('Signature');
   para('(*) Rayez la mention inutile.', { size: 7.5, color: grey, justify: false });
   gap(8);
   sub('Médiation de la consommation');
