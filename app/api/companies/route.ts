@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAdmin } from '@/lib/adminGuard';
 
 // API pour rechercher des entreprises via l'API Recherche d'Entreprises (data.gouv.fr)
 // Documentation: https://recherche-entreprises.api.gouv.fr/docs/
 export async function GET(req: NextRequest) {
+  if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const searchParams = req.nextUrl.searchParams;
     const query = searchParams.get('q');

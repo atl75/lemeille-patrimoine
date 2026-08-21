@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as turf from '@turf/turf';
+import { isAdmin } from '@/lib/adminGuard';
 
 // API pour rechercher les parcelles cadastrales à partir d'une adresse
 export async function GET(req: NextRequest) {
+  if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const searchParams = req.nextUrl.searchParams;
     const address = searchParams.get('address');

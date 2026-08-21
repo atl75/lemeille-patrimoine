@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
+import { isAdmin } from '@/lib/adminGuard';
 
 // Recherche d'études notariales via le registre officiel des entreprises
 // (recherche-entreprises.api.gouv.fr), filtrée sur l'activité juridique 69.10Z
 // puis restreinte aux notaires (on écarte avocats / huissiers / etc.) pour ne
 // pas polluer la recherche. Il n'existe pas d'API publique dédiée aux notaires.
 export async function GET(req: Request) {
+  if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const q = (new URL(req.url).searchParams.get('q') || '').trim();
   if (q.length < 2) return NextResponse.json({ results: [] });
 

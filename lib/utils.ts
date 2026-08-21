@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+import crypto from 'crypto';
 const DATA_DIR = path.join(process.cwd(), 'data');
 async function ensureDataDir() { try { await fs.mkdir(DATA_DIR, { recursive: true }); } catch {} }
 export async function readJSON(file: string) {
@@ -46,7 +47,8 @@ export async function updateJSON<T = any>(file: string, mutate: (data: any[]) =>
     return result;
   });
 }
-export function uid(prefix = '') { return prefix + Math.random().toString(36).slice(2, 10); }
+// Identifiant non devinable (12 octets aléatoires cryptographiques → 24 hex).
+export function uid(prefix = '') { return prefix + crypto.randomBytes(12).toString('hex'); }
 
 export function getVideoEmbedUrl(url?: string): string | null {
   if (!url) return null;

@@ -38,11 +38,8 @@ async function verifySession(value: string | undefined): Promise<boolean> {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Protéger toutes les routes /admin/* sauf /admin/login, ainsi que
-  // l'outil de debug interne (expose la liste complète des biens)
-  const needsAuth =
-    (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) ||
-    pathname.startsWith('/debug-immobilier');
+  // Protéger toutes les routes /admin/* sauf /admin/login.
+  const needsAuth = pathname.startsWith('/admin') && !pathname.startsWith('/admin/login');
 
   if (needsAuth) {
     const adminCookie = request.cookies.get('lp_admin')?.value;
@@ -55,5 +52,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/debug-immobilier/:path*'],
+  matcher: ['/admin/:path*'],
 };
