@@ -4,7 +4,6 @@ export function Footer() {
   const year = new Date().getFullYear();
   const bureaux = [
     { label: "Rouen", detail: "35 rue Ganterie, 76000", q: "35+rue+Ganterie%2C+76000+Rouen", testid: "link-map-rouen" },
-    { label: "Fréjus", detail: "722 avenue Alfred de Musset, 83370", q: "722+avenue+Alfred+de+Musset%2C+83370+Fr%C3%A9jus", testid: "link-map-frejus" },
     { label: "Siège", detail: "50 rue de la Garenne, 76130 Mont-Saint-Aignan", q: "50+rue+de+la+Garenne%2C+76130+Mont-Saint-Aignan", testid: "link-map-siege" },
   ];
   const nav = [

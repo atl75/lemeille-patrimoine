@@ -12,7 +12,7 @@ import { propertyTypology } from "@/lib/propertyLabel";
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Biens immobiliers à Rouen & Plateau Nord | Lemeille Patrimoine',
+  title: 'Biens à vendre à Rouen | Lemeille Patrimoine',
   description: 'Maisons et appartements à vendre à Rouen, Mont-Saint-Aignan, Bois-Guillaume et Plateau Nord. Biens de caractère sélectionnés, accompagnement personnalisé.',
   alternates: {
     canonical: '/immobilier'

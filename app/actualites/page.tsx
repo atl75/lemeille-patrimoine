@@ -5,7 +5,7 @@ import Img from "@/components/Img";
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Actualités immobilières et patrimoniales | Lemeille Patrimoine",
+  title: "Actualités immobilières | Lemeille Patrimoine",
   description: "Analyses du marché immobilier rouennais, fiscalité (Malraux, Monument Historique, Déficit Foncier) et conseils patrimoniaux.",
   alternates: {
     canonical: '/actualites'

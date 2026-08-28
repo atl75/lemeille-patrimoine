@@ -57,13 +57,6 @@ export function OrganizationSchema() {
         "addressLocality": "Rouen",
         "postalCode": "76000",
         "addressCountry": "FR"
-      },
-      {
-        "@type": "PostalAddress",
-        "streetAddress": "722 avenue Alfred de Musset",
-        "addressLocality": "Fréjus",
-        "postalCode": "83370",
-        "addressCountry": "FR"
       }
     ],
     "areaServed": [
@@ -155,15 +148,6 @@ export function OrganizationSchema() {
         "address": {
           "@type": "PostalAddress",
           "addressLocality": "Rouen"
-        }
-      },
-      {
-        "@type": "GeoCoordinates",
-        "latitude": 43.4334,
-        "longitude": 6.7369,
-        "address": {
-          "@type": "PostalAddress",
-          "addressLocality": "Fréjus"
         }
       }
     ],

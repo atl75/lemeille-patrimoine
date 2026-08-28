@@ -12,7 +12,6 @@ const RDV_URL = process.env.NEXT_PUBLIC_RDV_URL || "";
 
 const OFFICES = [
   { name: "Rouen", line: "35 rue Ganterie, 76000", query: "35 rue Ganterie, 76000 Rouen", testid: "link-map-rouen" },
-  { name: "Fréjus", line: "722 avenue Alfred de Musset, 83370", query: "722 avenue Alfred de Musset, 83370 Fréjus", testid: "link-map-frejus" },
   { name: "Siège social — Mont-Saint-Aignan", line: "50 rue de la Garenne, 76130", query: "50 rue de la Garenne, 76130 Mont-Saint-Aignan", testid: "link-map-siege" },
 ];
 

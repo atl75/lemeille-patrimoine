@@ -6,7 +6,7 @@ import Section from "@/components/Section";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Capacité d'emprunt : simulateur & financement à Rouen | Lemeille Patrimoine",
+  title: "Capacité d'emprunt à Rouen | Lemeille Patrimoine",
   description:
     "Calculez votre capacité d'emprunt et votre budget d'achat immobilier à Rouen : mensualité maximale, montant empruntable, frais de notaire. Simulateur gratuit et mise en relation avec notre courtier partenaire.",
   alternates: { canonical: "/financement" },

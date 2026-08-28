@@ -23,7 +23,7 @@ export default function Page(){
         <h2 className="luxe text-2xl">Éditeur</h2>
         <p><strong>Lemeille Patrimoine</strong>, marque du groupe <strong>Novus Capital</strong> (SAS, SIREN 937 847 937).<br/>
         Siège social : 50 rue de la Garenne, 76130 Mont-Saint-Aignan.<br/>
-        Bureaux : 35 rue Ganterie, 76000 Rouen — 722 avenue Alfred de Musset, 83370 Saint-Aygulf.<br/>
+        Bureaux : 35 rue Ganterie, 76000 Rouen.<br/>
         Représentant légal : Arthur Lemeille.</p>
 
         <h2 className="luxe text-2xl mt-8">Carte professionnelle (transaction immobilière)</h2>

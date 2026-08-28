@@ -117,6 +117,7 @@ export default function CapaciteEmpruntSimulator({ propertyPrice }: Props = {}) 
     setSending(false);
   };
 
+  // Champs décimaux (taux, assurance) : saisie numérique classique.
   const num = (v: number | "", set: (n: number | "") => void, opts: { step?: string; min?: string } = {}) => ({
     type: "number" as const,
     className: "input",
@@ -124,6 +125,21 @@ export default function CapaciteEmpruntSimulator({ propertyPrice }: Props = {}) 
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => set(e.target.value === "" ? "" : Number(e.target.value)),
     onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select(),
     ...opts,
+  });
+
+  // Champs monétaires : affichage avec séparateurs de milliers (« 350 000 »).
+  // Un input type=number ne peut pas les afficher — on passe en texte numérique.
+  const fmt = (v: number | "") => (v === "" ? "" : Number(v).toLocaleString("fr-FR"));
+  const euro = (v: number | "", set: (n: number | "") => void) => ({
+    type: "text" as const,
+    inputMode: "numeric" as const,
+    className: "input",
+    value: fmt(v),
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      const digits = e.target.value.replace(/[^\d]/g, "");
+      set(digits === "" ? "" : Number(digits));
+    },
+    onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select(),
   });
 
   return (
@@ -135,23 +151,23 @@ export default function CapaciteEmpruntSimulator({ propertyPrice }: Props = {}) 
           {modeBien ? (
             <div>
               <label className="block text-sm mb-1">Prix du bien (€)</label>
-              <input {...num(prix, setPrix, { step: "1000", min: "0" })} />
+              <input {...euro(prix, setPrix)} />
               <p className="text-xs opacity-60 mt-1">Prérempli avec le prix affiché de ce bien.</p>
             </div>
           ) : (
             <div>
               <label className="block text-sm mb-1">Revenus nets du foyer (€/mois)</label>
-              <input {...num(revenus, setRevenus, { step: "100", min: "0" })} />
+              <input {...euro(revenus, setRevenus)} />
             </div>
           )}
           <div>
             <label className="block text-sm mb-1">Crédits en cours (€/mois)</label>
-            <input {...num(charges, setCharges, { step: "50", min: "0" })} />
+            <input {...euro(charges, setCharges)} />
             <p className="text-xs opacity-60 mt-1">Prêt auto, prêt conso, pension versée…</p>
           </div>
           <div>
             <label className="block text-sm mb-1">Apport disponible (€)</label>
-            <input {...num(apport, setApport, { step: "1000", min: "0" })} />
+            <input {...euro(apport, setApport)} />
           </div>
           <div>
             <label className="block text-sm mb-1">Durée du prêt : <strong>{duree} ans</strong></label>

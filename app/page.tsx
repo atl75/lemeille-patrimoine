@@ -9,7 +9,7 @@ import { getPropertyCards } from "@/lib/propertiesData";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Agence immobilière à Rouen & Plateau Nord | Lemeille Patrimoine",
+  title: "Agence immobilière à Rouen | Lemeille Patrimoine",
   description:
     "Agence immobilière à Rouen, Mont-Saint-Aignan, Bois-Guillaume et Plateau Nord. Vente de maisons et appartements de caractère, estimation gratuite, défiscalisation (Malraux, Monument Historique, Déficit Foncier).",
   alternates: { canonical: "/" },

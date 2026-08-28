@@ -7,7 +7,7 @@ import { getPropertyCards } from "@/lib/propertiesData";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Vendre son bien à Rouen — estimation gratuite | Lemeille Patrimoine",
+  title: "Vendre son bien à Rouen | Lemeille Patrimoine",
   description:
     "Vous vendez une maison ou un appartement à Rouen, Mont-Saint-Aignan, Bois-Guillaume ou sur le Plateau Nord ? Estimation gratuite, avis de valeur sous 3 jours, honoraires transparents et accompagnement jusqu'à la signature.",
   alternates: { canonical: "/vendre" },
