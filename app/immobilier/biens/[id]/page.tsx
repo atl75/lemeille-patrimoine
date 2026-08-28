@@ -130,12 +130,12 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
                     <img
                       key={i}
                       src={cldImg(plan, 1200)}
-                      {...(plan.startsWith('data:')
-                        ? {}
-                        : {
+                      {...(plan.includes('res.cloudinary.com')
+                        ? {
                             srcSet: `${cldImg(plan, 640)} 640w, ${cldImg(plan, 1200)} 1200w`,
                             sizes: '(max-width: 768px) 100vw, 66vw',
-                          })}
+                          }
+                        : {})}
                       alt={`Plan ${i + 1} — ${p.title}`}
                       loading="lazy"
                       decoding="async"
