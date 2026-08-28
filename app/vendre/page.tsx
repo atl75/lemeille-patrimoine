@@ -104,6 +104,7 @@ export default async function Page() {
             ["Des acquéreurs déjà qualifiés", "Nous présentons votre bien à un fichier d'acheteurs suivis, dont le budget et le financement sont vérifiés avant la visite."],
             ["Discrétion possible", "Vente off-market : votre bien n'est jamais publié, seuls des acquéreurs ciblés le découvrent."],
             ["Un dossier complet dès le départ", "Diagnostics, plans, règlement de copropriété, PV d'assemblée : réunis en amont pour éviter les surprises et accélérer le compromis."],
+            ["Photographie professionnelle incluse", "Boîtier hybride, objectif ultra grand-angle et prises de vue par drone — pas un smartphone. C'est ce qui déclenche les visites."],
             ["Suivi jusqu'à la signature", "Compte rendu après chaque visite, coordination avec les notaires et suivi du financement de l'acquéreur."],
           ].map(([t, d], i) => (
             <div key={i} className="card p-6">
@@ -111,6 +112,73 @@ export default async function Page() {
               <p className="opacity-80 text-sm leading-relaxed">{d}</p>
             </div>
           ))}
+        </div>
+      </Section>
+
+
+      {/* Photographie — différenciateur concret */}
+      <Section
+        title="La photo n'est pas un détail : c'est le premier filtre"
+        subtitle="Un acquéreur décide en quelques secondes, sur des images, s'il visite ou non votre bien."
+      >
+        <div className="grid md:grid-cols-2 gap-8 items-start">
+          <div>
+            <p className="opacity-85 leading-relaxed mb-4">
+              La quasi-totalité des acheteurs découvre un bien sur un écran avant de le voir en vrai. À ce
+              stade, ils n&apos;évaluent pas votre maison : ils évaluent <em>ses photos</em>. Un intérieur mal
+              cadré, une pièce qui paraît étroite, une lumière jaune ou un ciel brûlé, et le bien est écarté —
+              sans qu&apos;on sache jamais qu&apos;il l&apos;a été.
+            </p>
+            <p className="opacity-85 leading-relaxed mb-4">
+              C&apos;est pourquoi nous photographions avec du matériel professionnel plutôt qu&apos;avec un
+              téléphone. Trois différences concrètes :
+            </p>
+            <ul className="space-y-3 text-sm">
+              <li className="flex gap-2">
+                <span className="text-[#B89C6D] mt-0.5">✓</span>
+                <span><strong>Les pièces paraissent à leur vraie taille.</strong> Un objectif ultra grand-angle
+                embrasse une chambre entière depuis l&apos;encoignure, là où un téléphone oblige à reculer contre
+                un mur et déforme les perspectives.</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-[#B89C6D] mt-0.5">✓</span>
+                <span><strong>La lumière est fidèle.</strong> Un grand capteur gère les contre-jours : on voit à la
+                fois l&apos;intérieur et le paysage par la fenêtre, au lieu d&apos;un mur sombre ou d&apos;une
+                vitre blanche.</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-[#B89C6D] mt-0.5">✓</span>
+                <span><strong>Le bien est situé dans son environnement.</strong> Les prises de vue aériennes
+                montrent le terrain, l&apos;exposition, le calme et les alentours — ce qu&apos;aucune photo au sol
+                ne peut restituer.</span>
+              </li>
+            </ul>
+            <p className="opacity-85 leading-relaxed mt-4">
+              Ce travail est inclus dans notre mandat, sans supplément.
+            </p>
+          </div>
+
+          <div className="card p-6">
+            <div className="luxe text-xl mb-4">Notre matériel</div>
+            <ul className="space-y-4 text-sm">
+              {[
+                ["Boîtier Canon EOS R50", "Hybride APS-C 24 Mpx, autofocus Dual Pixel CMOS, rafale 15 im/s, vidéo 4K/30p."],
+                ["Objectif Canon RF-S 10-18 mm f/4,5-6,3 IS STM", "Ultra grand-angle stabilisé : restitue les volumes réels des pièces, même exiguës."],
+                ["Drone DJI Mini 3", "Vues aériennes : implantation du bien, terrain, exposition et environnement."],
+                ["Trépied K&F", "Poses longues et cadrages parfaitement d'aplomb — les lignes verticales restent droites."],
+                ["Photoshop & Luminar Neo", "Retouche mesurée : correction des perspectives, équilibrage de la lumière, ciels réalistes. Jamais de transformation du bien."],
+              ].map(([t, d], i) => (
+                <li key={i}>
+                  <div className="font-semibold text-[#1F3B2C]">{t}</div>
+                  <div className="opacity-75 mt-0.5">{d}</div>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs opacity-60 mt-5">
+              Nous retouchons la lumière et les perspectives, jamais la réalité du bien : une photo qui promet
+              ce que la visite ne tient produit des visites inutiles et des acquéreurs déçus.
+            </p>
+          </div>
         </div>
       </Section>
 

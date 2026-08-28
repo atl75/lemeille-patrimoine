@@ -146,6 +146,7 @@ export default async function Home() {
             ["Sélection de qualité","Biens vérifiés, diagnostics et potentiel de valorisation."],
             ["Conseil indépendant","Alignement d'intérêts, honoraires transparents."],
             ["Discrétion","Mandats off-market, confidentialité totale."],
+            ["Photographie professionnelle","Boîtier hybride, ultra grand-angle et drone — vos biens présentés comme ils le méritent."],
             ["Réseau d'experts rouennais","Notaires, banques, architectes et artisans de la région."],
             ["Réactivité","Retour sous 48h, suivi jusqu'à la signature."],
             ["Expertise locale","Connaissance fine de Rouen, du Plateau Nord et de ses quartiers."]
