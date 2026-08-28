@@ -99,7 +99,7 @@ export default async function Home() {
 
       {/* Bandeau de réassurance — signaux de confiance (SEO local + conversion) */}
       <section className="border-b border-black/5 bg-white/70">
-        <div className="container py-6 grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+        <div className="container py-7 grid grid-cols-2 md:grid-cols-5 gap-y-6 gap-x-4 text-center divide-y-0 md:divide-x md:divide-black/[0.06]">
           {[
             [soldCount > 0 ? `${soldCount} ventes réalisées` : "Rouen & Plateau Nord", soldCount > 0 ? "Biens vendus ou sous promesse" : "Bureaux à Rouen et Mont-Saint-Aignan"],
             ["8 ans d'expérience", "Master école de commerce"],
@@ -107,9 +107,9 @@ export default async function Home() {
             ["Réponse sous 48h", "Interlocuteur unique"],
             ["Estimation gratuite", "Avis de valeur sous 3 jours"],
           ].map(([t, s], i) => (
-            <div key={i}>
-              <div className="luxe text-base md:text-lg text-luxe">{t}</div>
-              <div className="text-xs opacity-70 mt-0.5">{s}</div>
+            <div key={i} className="px-2">
+              <div className="luxe text-lg md:text-xl text-luxe leading-tight">{t}</div>
+              <div className="text-[11px] uppercase tracking-[0.14em] text-luxe/45 mt-1.5">{s}</div>
             </div>
           ))}
         </div>

@@ -165,7 +165,7 @@ export default function Page(){
         </div>
 
         <div className="not-prose bg-[#1F3B2C] text-white rounded-lg p-8 my-8 text-center">
-          <h3 className="text-2xl luxe mb-3">Besoin d&apos;une estimation ?</h3>
+          <h3 className="text-2xl luxe text-cream mb-3">Besoin d&apos;une estimation ?</h3>
           <p className="mb-6 opacity-90">
             Obtenez une évaluation professionnelle de votre bien immobilier gratuitement et sans engagement.
           </p>

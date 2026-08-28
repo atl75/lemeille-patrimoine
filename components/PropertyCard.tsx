@@ -38,10 +38,10 @@ export default function PropertyCard({
     <>
       <Link
         href={`/immobilier/biens/${property.id}`}
-        className="group card p-0 overflow-hidden shadow-sm hover:border-[#B89C6D] hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+        className="group card p-0 overflow-hidden block"
         data-testid={`card-property-${property.id}`}
       >
-        <div className="relative overflow-hidden rounded-t-2xl">
+        <div className="relative overflow-hidden rounded-t-[8px]">
           <Img
             src={property.images?.[0] || "/logo.png"}
             alt={property.title}
@@ -49,7 +49,7 @@ export default function PropertyCard({
             height={600}
             sizes="(max-width: 768px) 100vw, 50vw"
             priority={priority}
-            className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-64 object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.04]"
           />
           <button
             type="button"
@@ -72,9 +72,9 @@ export default function PropertyCard({
             {property.landSize && property.type === "MAISON" && <span> · Terrain : {property.landSize} m²</span>}
           </div>
           {property.priceOnRequest ? (
-            <div className="mt-2 font-semibold text-[#B89C6D]">Nous consulter</div>
+            <div className="mt-3 luxe text-xl text-[#B89C6D]">Nous consulter</div>
           ) : property.price != null && (
-            <div className="mt-2 font-semibold text-[#B89C6D]">{Number(property.price).toLocaleString("fr-FR")} €</div>
+            <div className="mt-3 luxe text-xl text-[#B89C6D]">{Number(property.price).toLocaleString("fr-FR")} €</div>
           )}
           {property.dpe?.classEnergy && (
             <div className="mt-2 text-xs opacity-70">DPE : {property.dpe.classEnergy} · GES : {property.dpe.classGES}</div>

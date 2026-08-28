@@ -97,9 +97,29 @@ header .logo-group:hover .logo-text{ fill:var(--gold) !important; }
 header .logo-text{ transition: fill 0.3s ease; }
 
 /* Boutons */
-.btn{ @apply inline-flex items-center justify-center px-5 py-2 rounded-2xl font-medium; }
-.btn-gold{ background:var(--gold); color:#fff; }
-.btn-gold:hover{ filter:brightness(0.95); }
+.btn{
+  @apply inline-flex items-center justify-center font-medium;
+  padding: .7rem 1.5rem;
+  border-radius: 4px;
+  font-size: .95rem;
+  letter-spacing: .02em;
+  border: 1px solid rgba(31,59,44,.18);
+  background: transparent;
+  color: var(--luxe);
+  transition: background-color .3s ease, color .3s ease, border-color .3s ease, box-shadow .3s ease;
+}
+.btn:hover{ border-color: var(--luxe); background: rgba(31,59,44,.04); }
+.btn-gold{
+  background:var(--gold);
+  color:#fff;
+  border-color: var(--gold);
+}
+.btn-gold:hover{
+  background:#a88b5c;
+  border-color:#a88b5c;
+  color:#fff;
+  box-shadow: 0 8px 20px -10px rgba(184,156,109,.7);
+}
 
 /* Le "ghost" doit rester lisible sur fond sombre */
 .btn-ghost{
@@ -110,8 +130,43 @@ header .logo-text{ transition: fill 0.3s ease; }
 .btn-ghost:hover{ background:rgba(244,241,235,.08) !important; }
 
 /* Cartes et titres */
-.card{ @apply bg-white rounded-2xl border border-black/5 shadow-sm; }
-.luxe{ color:var(--luxe); font-family: Georgia, "Times New Roman", serif; }
+/* Cartes : bord fin, ombre très douce, légère élévation au survol.
+   Les angles sont resserrés (8px) : le très arrondi fait « application »,
+   pas « maison de caractère ». */
+.card{
+  @apply bg-white border border-black/[0.07];
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(20,30,25,.04);
+  transition: box-shadow .35s ease, border-color .35s ease, transform .35s ease;
+}
+.card:hover{
+  box-shadow: 0 10px 30px -12px rgba(20,30,25,.16);
+  border-color: rgba(184,156,109,.35);
+}
+
+/* Titres d'affichage : Playfair Display (déjà chargée par next/font).
+   Interlettrage légèrement resserré — le rendu classique des titres de luxe. */
+.luxe{
+  font-family: var(--font-playfair), Georgia, "Times New Roman", serif;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+/* Couleur en :where() → spécificité nulle : toute classe de couleur posée sur
+   l'élément (text-white, text-cream…) l'emporte, ce qui évite les titres
+   illisibles sur fond sombre. */
+:where(.luxe){ color:var(--luxe); }
+
+/* Sur-titre : petites capitales espacées, marqueur discret de haut de gamme. */
+.eyebrow{
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .22em;
+  color: var(--gold);
+}
+
+/* Filet doré sous les titres de section. */
+.rule-gold{ height:1px; width:44px; background:var(--gold); opacity:.75; }
 
 /* Utilitaires */
 .bg-luxe{ background-color:var(--luxe); }
@@ -119,10 +174,10 @@ header .logo-text{ transition: fill 0.3s ease; }
 .text-ink{ color:var(--ink); }
 
 /* Champs de formulaire */
-.input{ @apply w-full rounded-2xl border border-black/10 bg-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#B89C6D]/40; }
+.input{ @apply w-full border border-black/10 bg-white px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#B89C6D]/35 focus:border-[#B89C6D]/40; border-radius: 4px; transition: border-color .25s ease; }
 
 /* Petite pastille cliquable (optionnel) */
-.pill{ @apply inline-flex items-center gap-2 rounded-2xl border px-3 py-1 text-sm bg-white hover:border-[#B89C6D]; }
+.pill{ @apply inline-flex items-center gap-2 border px-3 py-1 text-sm bg-white hover:border-[#B89C6D]; border-radius: 999px; }
 
 /* Styles pour les checkboxes dans les pills */
 .pill input{ accent-color:#B89C6D; }
