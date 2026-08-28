@@ -25,7 +25,15 @@ function capitalEmpruntable(mens: number, tauxAnnuel: number, annees: number) {
   return (mens * (1 - Math.pow(1 + i, -n))) / i;
 }
 
-export default function CapaciteEmpruntSimulator() {
+type Props = {
+  /** Prix du bien : si fourni, le simulateur calcule la mensualité de CE bien
+   *  au lieu de la capacité d'emprunt à partir des revenus. */
+  propertyPrice?: number;
+};
+
+export default function CapaciteEmpruntSimulator({ propertyPrice }: Props = {}) {
+  const modeBien = typeof propertyPrice === "number" && propertyPrice > 0;
+  const [prix, setPrix] = useState<number | "">(propertyPrice ?? 0);
   const [revenus, setRevenus] = useState<number | "">(4000);
   const [charges, setCharges] = useState<number | "">(0);
   const [apport, setApport] = useState<number | "">(30000);
@@ -62,8 +70,22 @@ export default function CapaciteEmpruntSimulator() {
     const fraisNotaire = budget - prixBien;
     const coutTotalInterets = mensualite(capital, t, duree) * duree * 12 - capital;
 
-    return { mensMax, mensCredit, coutAssuranceMensuel, capital, budget, prixBien, fraisNotaire, coutTotalInterets };
-  }, [revenus, charges, apport, duree, taux, assurance]);
+    // Mode « fiche bien » : on part du prix affiché et on calcule la mensualité.
+    const px = Number(prix) || 0;
+    const fraisNotaireBien = px * 0.075;
+    const aEmprunter = Math.max(0, px + fraisNotaireBien - ap);
+    const mensCreditBien = mensualite(aEmprunter, t, duree);
+    const assMensBien = (aEmprunter * (ass / 100)) / 12;
+    const mensTotaleBien = mensCreditBien + assMensBien;
+    // Revenus nets nécessaires pour respecter la règle des 35 % (charges incluses).
+    const revenusNecessaires = (mensTotaleBien + ch) / 0.35;
+    const interetsBien = mensCreditBien * duree * 12 - aEmprunter;
+
+    return {
+      mensMax, mensCredit, coutAssuranceMensuel, capital, budget, prixBien, fraisNotaire, coutTotalInterets,
+      fraisNotaireBien, aEmprunter, mensCreditBien, assMensBien, mensTotaleBien, revenusNecessaires, interetsBien,
+    };
+  }, [revenus, charges, apport, duree, taux, assurance, prix]);
 
   const envoyer = async () => {
     setErreur("");
@@ -76,10 +98,12 @@ export default function CapaciteEmpruntSimulator() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          source: "simulateur-capacite-emprunt",
-          topic: "Capacité d'emprunt",
+          source: modeBien ? "simulateur-financement-bien" : "simulateur-capacite-emprunt",
+          topic: modeBien ? "Financement d'un bien" : "Capacité d'emprunt",
           firstName, lastName, email, phone,
-          message: `Simulation capacité d'emprunt — revenus ${eur(Number(revenus) || 0)}/mois, apport ${eur(Number(apport) || 0)}, ${duree} ans à ${taux} % → budget estimé ${eur(r.budget)}.`,
+          message: modeBien
+            ? `Simulation financement d'un bien à ${eur(Number(prix) || 0)} — apport ${eur(Number(apport) || 0)}, ${duree} ans à ${taux} % → mensualité estimée ${eur(r.mensTotaleBien)} (revenus nécessaires ${eur(r.revenusNecessaires)}/mois).`
+            : `Simulation capacité d'emprunt — revenus ${eur(Number(revenus) || 0)}/mois, apport ${eur(Number(apport) || 0)}, ${duree} ans à ${taux} % → budget estimé ${eur(r.budget)}.`,
           meta: {
             revenus: Number(revenus) || 0, charges: Number(charges) || 0, apport: Number(apport) || 0,
             duree, taux: Number(taux) || 0, assurance: Number(assurance) || 0,
@@ -106,12 +130,20 @@ export default function CapaciteEmpruntSimulator() {
     <div className="grid md:grid-cols-2 gap-6">
       {/* Saisie */}
       <div className="card p-6">
-        <div className="luxe text-lg mb-4">Votre situation</div>
+        <div className="luxe text-lg mb-4">{modeBien ? "Votre financement" : "Votre situation"}</div>
         <div className="space-y-3">
-          <div>
-            <label className="block text-sm mb-1">Revenus nets du foyer (€/mois)</label>
-            <input {...num(revenus, setRevenus, { step: "100", min: "0" })} />
-          </div>
+          {modeBien ? (
+            <div>
+              <label className="block text-sm mb-1">Prix du bien (€)</label>
+              <input {...num(prix, setPrix, { step: "1000", min: "0" })} />
+              <p className="text-xs opacity-60 mt-1">Prérempli avec le prix affiché de ce bien.</p>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm mb-1">Revenus nets du foyer (€/mois)</label>
+              <input {...num(revenus, setRevenus, { step: "100", min: "0" })} />
+            </div>
+          )}
           <div>
             <label className="block text-sm mb-1">Crédits en cours (€/mois)</label>
             <input {...num(charges, setCharges, { step: "50", min: "0" })} />
@@ -145,30 +177,50 @@ export default function CapaciteEmpruntSimulator() {
       {/* Résultat */}
       <div className="space-y-4">
         <div className="card p-6">
-          <div className="luxe text-lg mb-3">Votre capacité estimée</div>
-          <div className="text-3xl font-semibold text-[#1F3B2C]">{eur(r.budget)}</div>
-          <p className="text-sm opacity-70 mt-1">Budget total (emprunt + apport)</p>
+          <div className="luxe text-lg mb-3">{modeBien ? "Votre mensualité estimée" : "Votre capacité estimée"}</div>
+          <div className="text-3xl font-semibold text-[#1F3B2C]">{modeBien ? eur(r.mensTotaleBien) : eur(r.budget)}</div>
+          <p className="text-sm opacity-70 mt-1">{modeBien ? "Par mois, assurance comprise" : "Budget total (emprunt + apport)"}</p>
 
-          <div className="mt-4 space-y-2 text-sm">
-            <div className="flex justify-between border-b border-black/5 pb-1">
-              <span>Mensualité maximale</span><strong>{eur(r.mensMax)}</strong>
+          {modeBien ? (
+            <div className="mt-4 space-y-2 text-sm">
+              <div className="flex justify-between border-b border-black/5 pb-1">
+                <span>Frais de notaire (~7,5 %)</span><span>{eur(r.fraisNotaireBien)}</span>
+              </div>
+              <div className="flex justify-between border-b border-black/5 pb-1">
+                <span>Montant à emprunter</span><strong>{eur(r.aEmprunter)}</strong>
+              </div>
+              <div className="flex justify-between border-b border-black/5 pb-1">
+                <span>dont assurance (estimation)</span><span>{eur(r.assMensBien)} / mois</span>
+              </div>
+              <div className="flex justify-between border-b border-black/5 pb-1">
+                <span>Revenus nets nécessaires</span><strong>{eur(r.revenusNecessaires)} / mois</strong>
+              </div>
+              <div className="flex justify-between">
+                <span>Coût total des intérêts</span><span>{eur(r.interetsBien)}</span>
+              </div>
             </div>
-            <div className="flex justify-between border-b border-black/5 pb-1">
-              <span>dont assurance (estimation)</span><span>{eur(r.coutAssuranceMensuel)}</span>
+          ) : (
+            <div className="mt-4 space-y-2 text-sm">
+              <div className="flex justify-between border-b border-black/5 pb-1">
+                <span>Mensualité maximale</span><strong>{eur(r.mensMax)}</strong>
+              </div>
+              <div className="flex justify-between border-b border-black/5 pb-1">
+                <span>dont assurance (estimation)</span><span>{eur(r.coutAssuranceMensuel)}</span>
+              </div>
+              <div className="flex justify-between border-b border-black/5 pb-1">
+                <span>Montant empruntable</span><strong>{eur(r.capital)}</strong>
+              </div>
+              <div className="flex justify-between border-b border-black/5 pb-1">
+                <span>Prix du bien (hors frais)</span><span>{eur(r.prixBien)}</span>
+              </div>
+              <div className="flex justify-between border-b border-black/5 pb-1">
+                <span>Frais de notaire (~7,5 %)</span><span>{eur(r.fraisNotaire)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Coût total des intérêts</span><span>{eur(r.coutTotalInterets)}</span>
+              </div>
             </div>
-            <div className="flex justify-between border-b border-black/5 pb-1">
-              <span>Montant empruntable</span><strong>{eur(r.capital)}</strong>
-            </div>
-            <div className="flex justify-between border-b border-black/5 pb-1">
-              <span>Prix du bien (hors frais)</span><span>{eur(r.prixBien)}</span>
-            </div>
-            <div className="flex justify-between border-b border-black/5 pb-1">
-              <span>Frais de notaire (~7,5 %)</span><span>{eur(r.fraisNotaire)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Coût total des intérêts</span><span>{eur(r.coutTotalInterets)}</span>
-            </div>
-          </div>
+          )}
 
           <p className="text-xs opacity-60 mt-4">
             Estimation indicative fondée sur un taux d&apos;endettement maximal de 35 % (recommandation HCSF),

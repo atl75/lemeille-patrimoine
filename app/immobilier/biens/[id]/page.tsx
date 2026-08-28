@@ -7,6 +7,7 @@ import PropertySeoJsonLd from "@/components/PropertySeoJsonLd";
 import { getVideoEmbedUrl, isImageDocument } from "@/lib/utils";
 import { cldImg } from "@/lib/cldImg";
 import { propertyLabel, propertyTypology } from "@/lib/propertyLabel";
+import CapaciteEmpruntSimulator from "@/components/CapaciteEmpruntSimulator";
 import type { Metadata } from 'next';
 
 async function getProperty(id: string){
@@ -169,6 +170,23 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
           <a className="btn btn-gold text-center w-full" href={`/api/properties/${p.id}/pdf`} target="_blank" rel="noopener noreferrer">Consulter la fiche PDF</a>
         </div>
       </section>
+
+      {/* Financement : simulateur prérempli avec le prix de ce bien */}
+      {!p.priceOnRequest && Number(p.price) > 0 && (
+        <section className="container pb-14">
+          <h2 className="luxe text-2xl mb-1">Financer ce bien</h2>
+          <p className="text-sm opacity-70 mb-5">
+            Estimez la mensualité de ce bien selon votre apport et la durée du prêt. Ajustez le taux : seul un
+            courtier peut vous confirmer les conditions réellement accessibles.
+          </p>
+          <CapaciteEmpruntSimulator propertyPrice={Number(p.price)} />
+          <p className="text-xs opacity-60 mt-4">
+            Estimation indicative fondée sur un taux d&apos;endettement maximal de 35 % (recommandation HCSF).
+            Elle ne constitue ni une offre de prêt, ni un accord de financement.{' '}
+            <a href="/financement" className="underline">En savoir plus sur le financement</a>.
+          </p>
+        </section>
+      )}
     </main>
   );
 }
