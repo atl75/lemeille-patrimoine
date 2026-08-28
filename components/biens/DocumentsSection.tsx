@@ -55,6 +55,7 @@ export default function DocumentsSection({ editing, updateField, setEditing, ana
               label=""
               maxDocuments={6}
               accept=".pdf,.jpg,.jpeg,.png,.webp"
+              uploadToCloud
             />
           </div>
           {editing.type === 'APPARTEMENT' && (
@@ -69,7 +70,7 @@ export default function DocumentsSection({ editing, updateField, setEditing, ana
               </div>
               <div>
                 <label className="block mb-0.5 text-[10px] font-medium">PV AG</label>
-                <MultiDocumentUploader documents={editing.agMinutes || []} onChange={docs => updateField('agMinutes', docs)} label="" />
+                <MultiDocumentUploader documents={editing.agMinutes || []} onChange={docs => updateField('agMinutes', docs)} label="" uploadToCloud />
               </div>
             </>
           )}

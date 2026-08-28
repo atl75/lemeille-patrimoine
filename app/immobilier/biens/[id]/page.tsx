@@ -4,7 +4,8 @@ import DPECard from "@/components/DPECard";
 import MapEmbed from "@/components/MapEmbed";
 import PropertyGallery from "@/components/PropertyGallery";
 import PropertySeoJsonLd from "@/components/PropertySeoJsonLd";
-import { getVideoEmbedUrl, isImageDocument } from "@/lib/utils";
+import { getVideoInfo, isImageDocument } from "@/lib/utils";
+import VideoEmbed from "@/components/VideoEmbed";
 import { cldImg } from "@/lib/cldImg";
 import { propertyLabel, propertyTypology } from "@/lib/propertyLabel";
 import CapaciteEmpruntSimulator from "@/components/CapaciteEmpruntSimulator";
@@ -47,7 +48,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
   const p = await getProperty(params.id);
   if (!p) return <main className="container py-12">Bien introuvable.</main>;
   const imgs: string[] = Array.isArray(p.images) && p.images.length ? p.images : ['/logo.svg'];
-  const videoEmbedUrl = getVideoEmbedUrl(p.videoUrl);
+  const video = getVideoInfo(p.videoUrl);
   // Plans : plusieurs documents possibles (repli sur le plan unique hérité)
   const plans: string[] = Array.isArray(p.floorPlans) && p.floorPlans.length
     ? p.floorPlans
@@ -104,18 +105,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
         <div className="md:col-span-2">
           <PropertyGallery images={imgs} title={p.title} />
 
-          {videoEmbedUrl && (
+          {video && (
             <div className="card p-6 mt-6">
               <h2 className="luxe text-2xl mb-3">Visite en vidéo</h2>
-              <div className="relative w-full pt-[56.25%] rounded-xl overflow-hidden">
-                <iframe
-                  src={videoEmbedUrl}
-                  title={`Vidéo — ${p.title}`}
-                  className="absolute inset-0 w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
+              <VideoEmbed provider={video.provider} id={video.id} title={`Vidéo — ${p.title}`} />
             </div>
           )}
 
@@ -137,8 +130,12 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
                     <img
                       key={i}
                       src={cldImg(plan, 1200)}
-                      srcSet={`${cldImg(plan, 640)} 640w, ${cldImg(plan, 1200)} 1200w`}
-                      sizes="(max-width: 768px) 100vw, 66vw"
+                      {...(plan.startsWith('data:')
+                        ? {}
+                        : {
+                            srcSet: `${cldImg(plan, 640)} 640w, ${cldImg(plan, 1200)} 1200w`,
+                            sizes: '(max-width: 768px) 100vw, 66vw',
+                          })}
                       alt={`Plan ${i + 1} — ${p.title}`}
                       loading="lazy"
                       decoding="async"

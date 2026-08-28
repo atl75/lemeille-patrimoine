@@ -19,21 +19,28 @@ export default function Hero({
   secondary?: Btn;
   image?: string;
 }) {
+  // Certaines cibles (routes /api, liens externes, ouverture nouvel onglet) ne
+  // sont pas des pages Next : un <Link> déclencherait un prefetch RSC inutile —
+  // sur les fiches biens, le prefetch de la fiche PDF pesait ~890 Ko par page.
+  const isRoute = (href: string) => href.startsWith('/') && !href.startsWith('/api/');
+
+  const renderBtn = (b: Btn, className: string, children: React.ReactNode) => {
+    const blank = b.blank ? { target: "_blank", rel: "noopener noreferrer" } : {};
+    return isRoute(b.href) && !b.blank
+      ? <Link href={b.href} className={className}>{children}</Link>
+      : <a href={b.href} className={className} {...blank}>{children}</a>;
+  };
+
   const cta = (primary || secondary) && (
     <div className="mt-7 flex flex-wrap items-center gap-x-7 gap-y-3">
-      {primary && (
-        <Link href={primary.href} className="btn btn-gold" {...(primary.blank ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
-          {primary.label}
-        </Link>
-      )}
-      {secondary && (
-        <Link
-          href={secondary.href}
-          className={`group inline-flex items-center gap-1.5 font-medium transition-colors ${image ? "text-cream/90 hover:text-cream" : "text-luxe/70 hover:text-luxe"}`}
-        >
+      {primary && renderBtn(primary, "btn btn-gold", primary.label)}
+      {secondary && renderBtn(
+        secondary,
+        `group inline-flex items-center gap-1.5 font-medium transition-colors ${image ? "text-cream/90 hover:text-cream" : "text-luxe/70 hover:text-luxe"}`,
+        <>
           {secondary.label}
           <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
-        </Link>
+        </>
       )}
     </div>
   );

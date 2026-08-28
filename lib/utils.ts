@@ -50,26 +50,39 @@ export async function updateJSON<T = any>(file: string, mutate: (data: any[]) =>
 // Identifiant non devinable (12 octets aléatoires cryptographiques → 24 hex).
 export function uid(prefix = '') { return prefix + crypto.randomBytes(12).toString('hex'); }
 
-export function getVideoEmbedUrl(url?: string): string | null {
+export type VideoInfo = { provider: 'youtube' | 'vimeo'; id: string };
+
+// Identifie la vidéo (fournisseur + identifiant) à partir d'une URL publique.
+// La construction de l'iframe est déléguée à <VideoEmbed>, qui ne la charge
+// qu'au clic — voir components/VideoEmbed.tsx.
+export function getVideoInfo(url?: string): VideoInfo | null {
   if (!url) return null;
   try {
     const u = new URL(url);
     if (u.hostname.includes('youtube.com')) {
-      const id = u.searchParams.get('v');
-      return id ? `https://www.youtube.com/embed/${id}` : null;
+      const id = u.searchParams.get('v') || u.pathname.split('/').filter(Boolean).pop();
+      return id ? { provider: 'youtube', id } : null;
     }
     if (u.hostname.includes('youtu.be')) {
       const id = u.pathname.replace('/', '');
-      return id ? `https://www.youtube.com/embed/${id}` : null;
+      return id ? { provider: 'youtube', id } : null;
     }
     if (u.hostname.includes('vimeo.com')) {
       const id = u.pathname.split('/').filter(Boolean).pop();
-      return id ? `https://player.vimeo.com/video/${id}` : null;
+      return id ? { provider: 'vimeo', id } : null;
     }
     return null;
   } catch {
     return null;
   }
+}
+
+export function getVideoEmbedUrl(url?: string): string | null {
+  const v = getVideoInfo(url);
+  if (!v) return null;
+  return v.provider === 'youtube'
+    ? `https://www.youtube-nocookie.com/embed/${v.id}`
+    : `https://player.vimeo.com/video/${v.id}`;
 }
 
 export function isImageDocument(doc?: string): boolean {

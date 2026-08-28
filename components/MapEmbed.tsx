@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
+
 type MapEmbedProps = {
   query: string;
   zoom?: number;
@@ -15,6 +17,24 @@ export default function MapEmbed({
   height = '280px',
   hl = 'fr'
 }: MapEmbedProps) {
+  // Google Maps représente ~400 Ko de JavaScript tiers. L'attribut loading="lazy"
+  // ne suffit pas : les navigateurs le déclenchent très en amont. On n'insère
+  // l'iframe qu'à l'approche réelle du viewport, à hauteur réservée (aucun
+  // décalage de mise en page).
+  const holder = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (visible || !holder.current) return;
+    if (typeof IntersectionObserver === 'undefined') { setVisible(true); return; }
+    const io = new IntersectionObserver(
+      (entries) => { if (entries.some((e) => e.isIntersecting)) { setVisible(true); io.disconnect(); } },
+      { rootMargin: '200px' }
+    );
+    io.observe(holder.current);
+    return () => io.disconnect();
+  }, [visible]);
+
   if (!query) return null;
 
   // Confidentialité : sur les fiches biens on affiche une ZONE approximative,
@@ -26,14 +46,18 @@ export default function MapEmbed({
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 
   return (
-    <div className="card p-0 overflow-hidden relative group">
-      <iframe
-        title={`Secteur — ${query}`}
-        src={embedSrc}
-        style={{ border: 0, width: '100%', height }}
-        loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
-      />
+    <div ref={holder} className="card p-0 overflow-hidden relative group">
+      {visible ? (
+        <iframe
+          title={`Secteur — ${query}`}
+          src={embedSrc}
+          style={{ border: 0, width: '100%', height }}
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+        />
+      ) : (
+        <div style={{ width: '100%', height }} className="bg-[#EEF1EC]" aria-hidden />
+      )}
 
       {isArea && (
         <>

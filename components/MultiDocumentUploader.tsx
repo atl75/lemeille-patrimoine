@@ -8,6 +8,10 @@ type MultiDocumentUploaderProps = {
   label: string;
   maxDocuments?: number;
   accept?: string;
+  // Envoie le fichier sur le volume persistant (/api/upload-document) et ne
+  // conserve qu'une URL. Indispensable pour les documents affichés côté public
+  // (plans) : un data URI base64 serait réinjecté dans le HTML de la page.
+  uploadToCloud?: boolean;
 };
 
 export default function MultiDocumentUploader({ 
@@ -15,7 +19,8 @@ export default function MultiDocumentUploader({
   onChange, 
   label, 
   maxDocuments = 3,
-  accept = ".pdf" 
+  accept = ".pdf",
+  uploadToCloud = false,
 }: MultiDocumentUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -78,11 +83,26 @@ export default function MultiDocumentUploader({
     });
 
     try {
-      const newUrls = await Promise.all(promises);
-      onChange([...documents, ...newUrls]);
-    } catch (error) {
+      const dataUrls = await Promise.all(promises);
+      if (!uploadToCloud) {
+        onChange([...documents, ...dataUrls]);
+        return;
+      }
+      const uploaded: string[] = [];
+      for (const dataUrl of dataUrls) {
+        const res = await fetch('/api/upload-document', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file: dataUrl }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.url) throw new Error(data.error || "Échec de l'envoi du document");
+        uploaded.push(data.url);
+      }
+      onChange([...documents, ...uploaded]);
+    } catch (error: any) {
       console.error('Error processing files:', error);
-      alert(`Erreur lors du chargement de certains documents: ${error}`);
+      alert(`Erreur lors du chargement de certains documents: ${error?.message || error}`);
     }
   };
 

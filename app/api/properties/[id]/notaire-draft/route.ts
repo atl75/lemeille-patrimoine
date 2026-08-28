@@ -34,7 +34,12 @@ async function toAttachment(value: string | undefined, filename: string) {
       if (!m) return null;
       return { filename, mime: m[1] || 'application/octet-stream', base64: m[2] };
     }
-    const res = await fetch(value);
+    // Les documents envoyés via /api/upload-document sont référencés par une
+    // URL relative : la résoudre en absolu, fetch() côté serveur l'exige.
+    const url = value.startsWith('/')
+      ? `${process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT || '3000'}`}${value}`
+      : value;
+    const res = await fetch(url);
     if (!res.ok) return null;
     const mime = res.headers.get('content-type') || 'application/octet-stream';
     const base64 = Buffer.from(await res.arrayBuffer()).toString('base64');
