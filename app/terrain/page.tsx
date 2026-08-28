@@ -1,6 +1,10 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { propertyLabel } from "@/lib/propertyLabel";
+import dynamic from "next/dynamic";
+
+// pdf.js ne fonctionne que côté navigateur.
+const DocumentReader = dynamic(() => import("@/components/DocumentReader"), { ssr: false });
 
 type Prop = { id: string; title?: string; city?: string; price?: number; priceOnRequest?: boolean; type?: string; rooms?: number; surface?: number; sold?: boolean; status?: string; visible?: boolean };
 
@@ -57,6 +61,8 @@ export default function Page() {
   const [error, setError] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
+  // La signature n'est délivrée qu'une fois le document lu et validé.
+  const [documentRead, setDocumentRead] = useState(false);
 
   useEffect(() => {
     fetch("/api/properties").then(r => r.json()).then((d: Prop[]) => {
@@ -76,6 +82,14 @@ export default function Page() {
     if (type === "OFFRE" && !atAsking && !(Number(offerAmount) > 0)) { setError("Montant de l'offre requis."); return false; }
     return true;
   };
+
+  // Toute modification d'un champ entrant dans le document invalide la lecture :
+  // on ne doit jamais pouvoir lire une version puis en signer une autre.
+  useEffect(() => {
+    setDocumentRead(false);
+    setSignature(null);
+    setConsent(false);
+  }, [type, propertyId, firstName, lastName, email, phone, address, atAsking, offerAmount, sequestre, validityDays, financing]);
 
   const openPreview = async () => {
     setError("");
@@ -210,44 +224,49 @@ export default function Page() {
           </div>
         )}
 
-        {/* Aperçu avant signature */}
-        <button type="button" onClick={openPreview} disabled={previewing} className="w-full py-3 border-2 border-[#1F3B2C] text-[#1F3B2C] rounded-xl font-medium disabled:opacity-60">
-          {previewing ? "Chargement…" : "📄 Lire le document avant de signer"}
+        {/* Lecture obligatoire du document avant signature */}
+        <button type="button" onClick={openPreview} disabled={previewing} className="w-full py-3 border-2 border-[#1F3B2C] text-[#1F3B2C] rounded-xl font-medium disabled:opacity-60" data-testid="button-read-document">
+          {previewing ? "Chargement…" : documentRead ? "📄 Relire le document" : "📄 Lire le document avant de signer"}
         </button>
 
-        {/* Signature */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Signature du {type === "OFFRE" ? "l'acquéreur" : "visiteur"}</label>
-          <SignaturePad onChange={setSignature} />
-        </div>
+        {!documentRead ? (
+          <p className="text-xs text-gray-500 text-center" data-testid="text-signature-locked">
+            La signature sera disponible après lecture et validation du document.
+          </p>
+        ) : (
+          <>
+            <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-800" data-testid="text-document-read">
+              ✓ Document lu et approuvé par le {type === "OFFRE" ? "l'acquéreur" : "visiteur"}.
+            </div>
 
-        <label className="flex items-start gap-2 text-xs">
-          <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} className="mt-0.5" />
-          <span>Je reconnais avoir lu et accepté le contenu du document et j’appose ma signature électronique.</span>
-        </label>
+            <div>
+              <label className="block text-sm font-medium mb-1">Signature du {type === "OFFRE" ? "l'acquéreur" : "visiteur"}</label>
+              <SignaturePad onChange={setSignature} />
+            </div>
+
+            <label className="flex items-start gap-2 text-xs">
+              <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} className="mt-0.5" />
+              <span>Je reconnais avoir lu et accepté le contenu du document et j&rsquo;appose ma signature électronique.</span>
+            </label>
+          </>
+        )}
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <button onClick={submit} disabled={submitting} className="w-full py-4 bg-[#B89C6D] text-white rounded-xl font-medium disabled:opacity-60">
+        <button onClick={submit} disabled={submitting || !documentRead} className="w-full py-4 bg-[#B89C6D] text-white rounded-xl font-medium disabled:opacity-40">
           {submitting ? "Génération…" : `Signer & générer le ${type === "OFFRE" ? "l'offre" : "bon de visite"}`}
         </button>
       </div>
 
       {previewUrl && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex flex-col">
-          <div className="bg-[#1F3B2C] text-white px-4 py-3 flex items-center justify-between">
-            <span className="font-medium text-sm">Aperçu (non signé)</span>
-            <div className="flex items-center gap-2">
-              <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1.5 bg-white/20 rounded">Plein écran</a>
-              <button onClick={closePreview} className="text-xs px-3 py-1.5 bg-white/20 rounded">Fermer</button>
-            </div>
-          </div>
-          <iframe src={previewUrl} className="flex-1 w-full bg-white" title="Aperçu du document" />
-          <div className="bg-white p-3 text-center">
-            <button onClick={closePreview} className="w-full py-3 bg-[#B89C6D] text-white rounded-xl font-medium">J’ai lu — revenir signer</button>
-          </div>
-        </div>
+        <DocumentReader
+          url={previewUrl}
+          title={type === "OFFRE" ? "Offre d'achat (non signée)" : "Bon de visite (non signé)"}
+          onClose={closePreview}
+          onAcknowledge={() => { setDocumentRead(true); closePreview(); }}
+        />
       )}
+
     </main>
   );
 }

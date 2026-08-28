@@ -2,6 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import dynamic from "next/dynamic";
+
+// pdf.js ne fonctionne que côté navigateur.
+const DocumentReader = dynamic(() => import("@/components/DocumentReader"), { ssr: false });
 
 type Info = {
   status: string;
@@ -49,6 +53,9 @@ export default function SignMandatPage() {
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasDrawn, setHasDrawn] = useState(false);
+  // La signature n'est délivrée qu'après lecture complète et validation du mandat.
+  const [reading, setReading] = useState(false);
+  const [mandateRead, setMandateRead] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawing = useRef(false);
@@ -168,53 +175,75 @@ export default function SignMandatPage() {
       </p>
       <p style={{ color: "#555", fontSize: 14, marginBottom: 16 }}>Mandataire : NOVUS CAPITAL SAS (Arthur Lemeille).</p>
 
-      <a href={`/api/mandat/sign/${token}/pdf`} target="_blank" rel="noopener noreferrer"
-        style={{ display: "inline-block", marginBottom: 18, color: "#B89C6D", fontWeight: 600, textDecoration: "underline", fontSize: 14 }}>
-        📄 Lire le mandat complet avant de signer
-      </a>
+      <button type="button" onClick={() => setReading(true)}
+        style={{ display: "block", width: "100%", marginBottom: 18, padding: "12px", background: "#fff",
+                 border: "2px solid #1F3B2C", color: "#1F3B2C", borderRadius: 10, fontWeight: 600,
+                 fontSize: 14, cursor: "pointer" }}
+        data-testid="button-read-mandate">
+        📄 {mandateRead ? "Relire le mandat" : "Lire le mandat complet avant de signer"}
+      </button>
 
-      <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Votre nom et prénom</label>
-      <input value={signerName} onChange={e => setSignerName(e.target.value)}
-        autoComplete="name" autoCapitalize="words"
-        placeholder="Prénom NOM"
-        style={{ width: "100%", padding: "9px 12px", border: "1px solid #ccc", borderRadius: 8, marginBottom: 16, fontSize: 14 }} />
+      {!mandateRead && (
+        <p style={{ fontSize: 13, color: "#777", textAlign: "center", marginBottom: 4 }} data-testid="text-signature-locked">
+          La signature sera disponible après lecture et validation du mandat.
+        </p>
+      )}
 
-      <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
-        Votre signature <span style={{ fontWeight: 400, color: "#888" }}>(tracez avec la souris ou le doigt)</span>
-      </label>
-      <div style={{ border: "1px dashed #bbb", borderRadius: 10, background: "#fafafa", position: "relative" }}>
-        <canvas
-          ref={canvasRef}
-          width={1200}
-          height={400}
-          onPointerDown={start}
-          onPointerMove={move}
-          onPointerUp={end}
-          onPointerLeave={end}
-          style={{ width: "100%", height: 200, touchAction: "none", cursor: "crosshair", display: "block" }}
-        />
-        {!hasDrawn && (
-          <span style={{ position: "absolute", top: 90, left: 0, right: 0, textAlign: "center", color: "#bbb", fontSize: 14, pointerEvents: "none" }}>
-            Signez ici
-          </span>
-        )}
-      </div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, marginBottom: 16 }}>
-        <span style={{ fontSize: 12, color: "#777" }}>Mention : « Bon pour mandat »</span>
-        <button type="button" onClick={clearCanvas} style={{ fontSize: 13, color: "#B89C6D", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>Effacer</button>
-      </div>
+      {mandateRead && (
+        <>
+        <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Votre nom et prénom</label>
+        <input value={signerName} onChange={e => setSignerName(e.target.value)}
+          autoComplete="name" autoCapitalize="words"
+          placeholder="Prénom NOM"
+          style={{ width: "100%", padding: "9px 12px", border: "1px solid #ccc", borderRadius: 8, marginBottom: 16, fontSize: 14 }} />
 
-      <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: "#444", marginBottom: 18 }}>
-        <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} style={{ marginTop: 3 }} />
-        <span>{"Je reconnais avoir pris connaissance de l'intégralité du mandat de vente et j'accepte ses termes. Je consens à le signer par voie électronique (signature électronique simple, eIDAS). Ma signature, la date, l'heure et mon adresse IP seront conservées comme preuve."}</span>
-      </label>
+        <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
+          Votre signature <span style={{ fontWeight: 400, color: "#888" }}>(tracez avec la souris ou le doigt)</span>
+        </label>
+        <div style={{ border: "1px dashed #bbb", borderRadius: 10, background: "#fafafa", position: "relative" }}>
+          <canvas
+            ref={canvasRef}
+            width={1200}
+            height={400}
+            onPointerDown={start}
+            onPointerMove={move}
+            onPointerUp={end}
+            onPointerLeave={end}
+            style={{ width: "100%", height: 200, touchAction: "none", cursor: "crosshair", display: "block" }}
+          />
+          {!hasDrawn && (
+            <span style={{ position: "absolute", top: 90, left: 0, right: 0, textAlign: "center", color: "#bbb", fontSize: 14, pointerEvents: "none" }}>
+              Signez ici
+            </span>
+          )}
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, marginBottom: 16 }}>
+          <span style={{ fontSize: 12, color: "#777" }}>Mention : « Bon pour mandat »</span>
+          <button type="button" onClick={clearCanvas} style={{ fontSize: 13, color: "#B89C6D", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>Effacer</button>
+        </div>
+
+        <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: "#444", marginBottom: 18 }}>
+          <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} style={{ marginTop: 3 }} />
+          <span>{"Je reconnais avoir pris connaissance de l'intégralité du mandat de vente et j'accepte ses termes. Je consens à le signer par voie électronique (signature électronique simple, eIDAS). Ma signature, la date, l'heure et mon adresse IP seront conservées comme preuve."}</span>
+        </label>
+        </>
+      )}
 
       {error && <p style={{ color: "#b00", fontSize: 13, marginBottom: 12 }}>{error}</p>}
 
-      <button type="button" onClick={submit} disabled={submitting}
-        style={{ width: "100%", padding: "12px", background: "#B89C6D", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: submitting ? "default" : "pointer", opacity: submitting ? 0.7 : 1 }}>
+      <button type="button" onClick={submit} disabled={submitting || !mandateRead}
+        style={{ width: "100%", padding: "12px", background: "#B89C6D", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: submitting || !mandateRead ? "default" : "pointer", opacity: submitting || !mandateRead ? 0.45 : 1 }}>
         {submitting ? "Signature en cours…" : "Signer le mandat"}
       </button>
+      {reading && (
+        <DocumentReader
+          url={`/api/mandat/sign/${token}/pdf`}
+          title={`Mandat de vente${info.mandateNumber ? ` — N° ${info.mandateNumber}` : ""}`}
+          onClose={() => setReading(false)}
+          onAcknowledge={() => { setMandateRead(true); setReading(false); }}
+          acknowledgeLabel="Je reconnais avoir lu et pris connaissance de l'intégralité du mandat de vente."
+        />
+      )}
     </Shell>
   );
 }
