@@ -33,6 +33,7 @@ const STATIC_PATHS = [
   '/immobilier',
   '/immobilier/estimation',
   '/vendre',
+  '/financement',
   '/programmes',
   '/actualites',
   '/contact',

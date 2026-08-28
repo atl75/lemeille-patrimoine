@@ -27,6 +27,7 @@ export function Header(){
         <nav className="hidden md:flex items-center gap-4 text-sm">
           <Link href="/immobilier" data-testid="link-immobilier">Nos Biens</Link>
           <Link href="/vendre" data-testid="link-vendre">Vendre</Link>
+          <Link href="/financement" data-testid="link-financement">Financement</Link>
           <Link href="/programmes" data-testid="link-programmes">Défiscalisation</Link>
           <Link href="/actualites" data-testid="link-actualites">Actualités</Link>
           <Link href="/contact" data-testid="link-contact">Contact</Link>
@@ -66,6 +67,14 @@ export function Header(){
               data-testid="link-mobile-vendre"
             >
               Vendre
+            </Link>
+            <Link
+              href="/financement"
+              className="py-2 text-base border-b border-black/5"
+              onClick={() => setMobileMenuOpen(false)}
+              data-testid="link-mobile-financement"
+            >
+              Financement
             </Link>
             <Link
               href="/programmes"

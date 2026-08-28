@@ -9,6 +9,7 @@ export function Footer() {
   ];
   const nav = [
     { href: "/vendre", label: "Vendre son bien" },
+    { href: "/financement", label: "Capacité d'emprunt" },
     { href: "/references", label: "Références" },
     { href: "/partenaires", label: "Partenaires" },
     { href: "/faq", label: "FAQ" },
