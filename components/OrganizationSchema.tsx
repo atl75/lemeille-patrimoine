@@ -14,7 +14,7 @@ export function OrganizationSchema() {
       "height": 200
     },
     "image": `${baseUrl}/og-image.jpg`,
-    "description": "Agence immobilière à Rouen, Mont-Saint-Aignan, Bois-Guillaume et sur l'ensemble du Plateau Nord : vente de maisons et appartements de caractère, estimation gratuite et défiscalisation (Malraux, Monument Historique, Déficit Foncier). Également présents à Paris et sur la Côte d'Azur.",
+    "description": "Agence immobilière à Rouen, Mont-Saint-Aignan, Bois-Guillaume et sur l'ensemble du Plateau Nord : vente de maisons et appartements de caractère, estimation gratuite et défiscalisation (Malraux, Monument Historique, Déficit Foncier).",
     "priceRange": "€€€€",
     "founder": {
       "@type": "Person",
@@ -181,7 +181,7 @@ export function OrganizationSchema() {
           "itemOffered": {
             "@type": "Service",
             "name": "Transaction d'immobilier de caractère",
-            "description": "Achat et vente de propriétés d'exception à Paris, Normandie et Côte d'Azur"
+            "description": "Achat et vente de maisons et appartements de caractère à Rouen et sur le Plateau Nord"
           }
         },
         {

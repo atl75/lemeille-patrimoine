@@ -18,13 +18,8 @@ const SECTOR_SLUGS = [
   'bihorel',
   'isneauville',
   'mesnil-esnard-franqueville',
-  // Zones complémentaires
-  'paris-rive-gauche',
-  'paris-ouest',
-  'paris-centre-historique',
-  'saint-aygulf-frejus',
-  'sainte-maxime-golfe-saint-tropez',
-  'esterel-arriere-pays',
+  // Les secteurs hors Rouen (Paris, Côte d'Azur) restent accessibles mais ne
+  // sont plus déclarés au sitemap : le site est positionné sur Rouen.
 ];
 
 // Pages statiques indexables (hors /admin, /debug-immobilier, /avis désactivé).

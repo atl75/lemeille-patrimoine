@@ -27,9 +27,6 @@ export function Footer() {
     { href: "/secteurs/bihorel", label: "Bihorel" },
     { href: "/secteurs/isneauville", label: "Isneauville" },
     { href: "/secteurs/mesnil-esnard-franqueville", label: "Le Mesnil-Esnard & Franqueville" },
-    // Zones complémentaires, regroupées : le site est centré sur Rouen.
-    { href: "/immobilier?sector=paris", label: "Paris & Île-de-France" },
-    { href: "/immobilier?sector=cote-azur", label: "Côte d'Azur" },
   ];
 
   const heading = "text-[11px] font-semibold uppercase tracking-[0.18em] text-luxe/45 mb-4";
@@ -42,7 +39,7 @@ export function Footer() {
         <div className="md:col-span-4">
           <div className="luxe text-lg text-luxe">Lemeille Patrimoine</div>
           <p className="mt-2 text-luxe/55 leading-relaxed max-w-xs">
-            Immobilier de caractère à Paris, en Normandie et sur la Côte d&apos;Azur.
+            Agence immobilière à Rouen, Mont-Saint-Aignan et Bois-Guillaume.
           </p>
           <p className="mt-4 text-xs leading-relaxed text-luxe/40">
             Marque du groupe Novus Capital · SIREN 937 847 937<br />

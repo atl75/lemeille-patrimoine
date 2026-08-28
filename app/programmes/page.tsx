@@ -10,7 +10,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Défiscalisation immobilière — Malraux, Monument Historique | Lemeille Patrimoine',
-  description: "Réduisez votre imposition grâce à l'immobilier de caractère : Loi Malraux, Monument Historique, Déficit Foncier. Sélection d'opérations et accompagnement sur mesure à Paris, en Normandie et sur la Côte d'Azur.",
+  description: "Réduisez votre imposition grâce à l'immobilier de caractère : Loi Malraux, Monument Historique, Déficit Foncier. Sélection d'opérations et accompagnement sur mesure à Rouen et en Normandie.",
   alternates: {
     canonical: '/programmes'
   },

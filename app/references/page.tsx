@@ -8,7 +8,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Nos références & ventes | Lemeille Patrimoine",
   description:
-    "Découvrez nos dernières ventes et références — le reflet de notre savoir-faire dans l'immobilier de caractère à Paris, en Normandie et sur la Côte d'Azur.",
+    "Découvrez nos dernières ventes et références — le reflet de notre savoir-faire dans l'immobilier de caractère à Rouen et sur le Plateau Nord.",
   alternates: { canonical: "/references" },
 };
 
@@ -95,8 +95,8 @@ export default async function Page() {
           <div className="card p-8 text-center">
             <h2 className="luxe text-2xl mb-2">Notre savoir-faire à votre service</h2>
             <p className="opacity-80 max-w-2xl mx-auto">
-              Nous accompagnons nos clients dans l&apos;achat, la vente et la défiscalisation de biens de caractère à Paris,
-              en Normandie et sur la Côte d&apos;Azur. Confiez-nous votre projet — nous mettons notre réseau et notre exigence
+              Nous accompagnons nos clients dans l&apos;achat, la vente et la défiscalisation de biens de caractère à Rouen
+              et sur le Plateau Nord. Confiez-nous votre projet — nous mettons notre réseau et notre exigence
               au service de sa réussite.
             </p>
             <div className="mt-6">

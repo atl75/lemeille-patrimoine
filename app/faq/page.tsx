@@ -27,7 +27,7 @@ const FAQ: Cat[] = [
       },
       {
         q: "Sur quels secteurs intervenez-vous ?",
-        a: "Nous intervenons à Paris, en Normandie (Rouen, Mont-Saint-Aignan, Bois-Guillaume) et sur la Côte d'Azur (Fréjus, Sainte-Maxime, golfe de Saint-Tropez, Estérel).",
+        a: "Notre activité est centrée sur Rouen et sa métropole : Rouen centre et rive gauche, Mont-Saint-Aignan, Bois-Guillaume, Bihorel, Isneauville, Le Mesnil-Esnard et Franqueville-Saint-Pierre. Nous accompagnons également certains clients sur d'autres régions, à leur demande.",
       },
     ],
   },

@@ -6,7 +6,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: "Actualités immobilières et patrimoniales | Lemeille Patrimoine",
-  description: "Analyses de marché, fiscalité (Malraux, Monument Historique, Déficit Foncier) et conseils patrimoniaux à Paris, en Normandie et sur la Côte d'Azur.",
+  description: "Analyses du marché immobilier rouennais, fiscalité (Malraux, Monument Historique, Déficit Foncier) et conseils patrimoniaux.",
   alternates: {
     canonical: '/actualites'
   },
@@ -33,7 +33,7 @@ export default async function Page(){
     <main>
       <Hero
         title="Actualités"
-        subtitle="Marché immobilier, fiscalité et stratégie patrimoniale — Paris, Normandie, Côte d'Azur."
+        subtitle="Marché immobilier rouennais, fiscalité et stratégie patrimoniale."
       />
       <section className="container py-6">
         <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Actualités"}]} />

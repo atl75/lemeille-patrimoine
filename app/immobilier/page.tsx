@@ -253,7 +253,7 @@ export default async function Page({ searchParams }: {
         title={isSoldView ? "Biens vendus" : "Nos biens"}
         subtitle={isSoldView 
           ? "Nos dernières ventes — référence de marché et savoir-faire." 
-          : sector ? "Filtré par secteur" : "Sélection d'appartements et maisons dans l'ancien — Paris, Normandie, Côte d'Azur."}
+          : sector ? "Filtré par secteur" : "Maisons et appartements de caractère à Rouen, sur le Plateau Nord et dans la métropole."}
         primary={{ label: sector ? "Réinitialiser le filtre" : "Nous contacter", href: sector ? "/immobilier" : "/contact" }}
       />
 

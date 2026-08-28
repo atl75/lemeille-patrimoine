@@ -78,7 +78,7 @@ export default async function Home() {
           <p className="mt-6 max-w-xl text-base md:text-lg text-cream/90 leading-relaxed">
             Lemeille Patrimoine — votre agence immobilière à Rouen, Mont-Saint-Aignan, Bois-Guillaume et sur
             l&apos;ensemble du Plateau Nord. Vente de maisons et appartements de caractère, estimation gratuite
-            et défiscalisation sur mesure. Également actifs à Paris et sur la Côte d&apos;Azur.
+            et défiscalisation sur mesure.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-x-7 gap-y-4">
             <Link href="/immobilier" className="btn btn-gold" data-testid="button-immobilier">
@@ -182,7 +182,7 @@ export default async function Home() {
           {[
             ["Rouen centre & rive droite","Vieux-Marché, Cathédrale, Jardin des Plantes • Appartements de caractère, immeubles anciens, hôtels particuliers.","/secteurs/rouen-centre"],
             ["Plateau Nord","Mont-Saint-Aignan, Bois-Guillaume, Bihorel, Isneauville • Maisons familiales, terrains arborés, secteurs prisés.","/secteurs/mont-saint-aignan-bois-guillaume"],
-            ["Paris & Côte d'Azur","En complément de la Normandie : accompagnement à Paris et sur le littoral varois.","/immobilier"]
+            ["Rive gauche & Plateau Est","Saint-Sever, Grammont, Le Mesnil-Esnard, Franqueville • Prix d'entrée accessibles et bons rendements locatifs.","/secteurs/rouen-rive-gauche"]
           ].map(([t,s,href],i)=>(
             <Link key={i} href={href} className="card p-6 block hover:border-[#B89C6D] transition" data-testid={`link-sector-${i}`}>
               <div className="luxe text-xl mb-2">{t}</div>
