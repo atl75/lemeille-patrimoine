@@ -142,9 +142,11 @@ export default async function Page() {
               </li>
               <li className="flex gap-2">
                 <span className="text-[#B89C6D] mt-0.5">✓</span>
-                <span><strong>La lumière est fidèle.</strong> Un grand capteur gère les contre-jours : on voit à la
-                fois l&apos;intérieur et le paysage par la fenêtre, au lieu d&apos;un mur sombre ou d&apos;une
-                vitre blanche.</span>
+                <span><strong>La lumière est fidèle, grâce au bracketing.</strong> Chaque pièce est
+                photographiée en plusieurs expositions — une pour les zones sombres, une pour la lumière des
+                fenêtres — puis fusionnées. Résultat : on voit à la fois l&apos;intérieur <em>et</em> le
+                paysage au dehors, au lieu d&apos;un mur noir ou d&apos;une vitre blanche. C&apos;est
+                précisément ce qu&apos;un téléphone ne sait pas faire dans une pièce à fort contre-jour.</span>
               </li>
               <li className="flex gap-2">
                 <span className="text-[#B89C6D] mt-0.5">✓</span>
@@ -159,14 +161,16 @@ export default async function Page() {
           </div>
 
           <div className="card p-6">
-            <div className="luxe text-xl mb-4">Notre matériel</div>
+            <div className="luxe text-xl mb-1">Notre matériel et notre méthode</div>
+            <p className="text-xs opacity-70 mb-4">Le matériel ne suffit pas : c&apos;est la technique de prise de vue qui fait la différence.</p>
             <ul className="space-y-4 text-sm">
               {[
                 ["Boîtier Canon EOS R50", "Hybride APS-C 24 Mpx, autofocus Dual Pixel CMOS, rafale 15 im/s, vidéo 4K/30p."],
                 ["Objectif Canon RF-S 10-18 mm f/4,5-6,3 IS STM", "Ultra grand-angle stabilisé : restitue les volumes réels des pièces, même exiguës."],
                 ["Drone DJI Mini 3", "Vues aériennes : implantation du bien, terrain, exposition et environnement."],
                 ["Trépied K&F", "Poses longues et cadrages parfaitement d'aplomb — les lignes verticales restent droites."],
-                ["Photoshop & Luminar Neo", "Retouche mesurée : correction des perspectives, équilibrage de la lumière, ciels réalistes. Jamais de transformation du bien."],
+                ["Prise de vue en bracketing", "Plusieurs expositions par cadrage, fusionnées ensuite : les intérieurs et les vues par les fenêtres sont nets et lisibles sur la même image."],
+                ["Photoshop & Luminar Neo", "Fusion des expositions et retouche mesurée : correction des perspectives, équilibrage de la lumière, ciels réalistes. Jamais de transformation du bien."],
               ].map(([t, d], i) => (
                 <li key={i}>
                   <div className="font-semibold text-[#1F3B2C]">{t}</div>
