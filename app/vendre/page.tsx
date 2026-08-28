@@ -142,11 +142,12 @@ export default async function Page() {
               </li>
               <li className="flex gap-2">
                 <span className="text-[#B89C6D] mt-0.5">✓</span>
-                <span><strong>La lumière est fidèle, grâce au bracketing.</strong> Chaque pièce est
-                photographiée en plusieurs expositions — une pour les zones sombres, une pour la lumière des
-                fenêtres — puis fusionnées. Résultat : on voit à la fois l&apos;intérieur <em>et</em> le
-                paysage au dehors, au lieu d&apos;un mur noir ou d&apos;une vitre blanche. C&apos;est
-                précisément ce qu&apos;un téléphone ne sait pas faire dans une pièce à fort contre-jour.</span>
+                <span><strong>La lumière est fidèle, grâce au bracketing.</strong> Chaque cadrage est
+                photographié en trois expositions — une standard, une sous-exposée pour préserver la lumière
+                des fenêtres, une surexposée pour révéler les zones d&apos;ombre — puis fusionnées en une
+                seule image. Résultat : on voit à la fois l&apos;intérieur <em>et</em> le paysage au dehors,
+                au lieu d&apos;un mur noir ou d&apos;une vitre blanche. C&apos;est précisément ce
+                qu&apos;un téléphone ne sait pas faire dans une pièce à fort contre-jour.</span>
               </li>
               <li className="flex gap-2">
                 <span className="text-[#B89C6D] mt-0.5">✓</span>
@@ -169,7 +170,7 @@ export default async function Page() {
                 ["Objectif Canon RF-S 10-18 mm f/4,5-6,3 IS STM", "Ultra grand-angle stabilisé : restitue les volumes réels des pièces, même exiguës."],
                 ["Drone DJI Mini 3", "Vues aériennes : implantation du bien, terrain, exposition et environnement."],
                 ["Trépied K&F", "Poses longues et cadrages parfaitement d'aplomb — les lignes verticales restent droites."],
-                ["Prise de vue en bracketing", "Plusieurs expositions par cadrage, fusionnées ensuite : les intérieurs et les vues par les fenêtres sont nets et lisibles sur la même image."],
+                ["Prise de vue en bracketing", "Trois expositions par cadrage — standard, sous-exposée, surexposée — fusionnées ensuite : intérieurs et vues par les fenêtres restent nets et lisibles sur la même image."],
                 ["Photoshop & Luminar Neo", "Fusion des expositions et retouche mesurée : correction des perspectives, équilibrage de la lumière, ciels réalistes. Jamais de transformation du bien."],
               ].map(([t, d], i) => (
                 <li key={i}>

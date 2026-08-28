@@ -27,12 +27,9 @@ export function Footer() {
     { href: "/secteurs/bihorel", label: "Bihorel" },
     { href: "/secteurs/isneauville", label: "Isneauville" },
     { href: "/secteurs/mesnil-esnard-franqueville", label: "Le Mesnil-Esnard & Franqueville" },
-    { href: "/secteurs/paris-rive-gauche", label: "Paris Rive gauche" },
-    { href: "/secteurs/paris-ouest", label: "Paris Ouest" },
-    { href: "/secteurs/paris-centre-historique", label: "Paris Centre historique" },
-    { href: "/secteurs/saint-aygulf-frejus", label: "Saint-Aygulf & Fréjus" },
-    { href: "/secteurs/sainte-maxime-golfe-saint-tropez", label: "Sainte-Maxime & Golfe de Saint-Tropez" },
-    { href: "/secteurs/esterel-arriere-pays", label: "Estérel & arrière-pays" },
+    // Zones complémentaires, regroupées : le site est centré sur Rouen.
+    { href: "/immobilier?sector=paris", label: "Paris & Île-de-France" },
+    { href: "/immobilier?sector=cote-azur", label: "Côte d'Azur" },
   ];
 
   const heading = "text-[11px] font-semibold uppercase tracking-[0.18em] text-luxe/45 mb-4";
