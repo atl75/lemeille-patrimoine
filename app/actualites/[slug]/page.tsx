@@ -39,6 +39,11 @@ export default async function Page(props: { params: Promise<{ slug: string }> })
   if (!a) return <main className="container py-12">Article introuvable.</main>;
 
   // Rendu enrichi : "## " → H2, "### " → H3, "- " → liste à puces, sinon paragraphe.
+  // Le gras **texte** est également interprété à l'intérieur des lignes.
+  const inline = (text: string): React.ReactNode => {
+    const parts = text.split(/\*\*([^*]+)\*\*/g);
+    return parts.map((part, i) => (i % 2 === 1 ? <strong key={i}>{part}</strong> : part));
+  };
   const lines = String(a.content || '').split('\n');
   const blocks: React.ReactNode[] = [];
   let bullets: string[] = [];
@@ -47,7 +52,7 @@ export default async function Page(props: { params: Promise<{ slug: string }> })
       const items = bullets;
       blocks.push(
         <ul key={`ul-${key}`} className="list-disc pl-5 space-y-1.5 marker:text-[#B89C6D]">
-          {items.map((b, j) => <li key={j}>{b}</li>)}
+          {items.map((b, j) => <li key={j}>{inline(b)}</li>)}
         </ul>
       );
       bullets = [];
@@ -56,10 +61,10 @@ export default async function Page(props: { params: Promise<{ slug: string }> })
   lines.forEach((raw, i) => {
     const line = raw.trim();
     if (!line) { flushBullets(String(i)); return; }
-    if (line.startsWith('### ')) { flushBullets(String(i)); blocks.push(<h3 key={i} className="luxe text-lg text-luxe mt-5">{line.slice(4)}</h3>); }
-    else if (line.startsWith('## ')) { flushBullets(String(i)); blocks.push(<h2 key={i} className="luxe text-2xl text-luxe mt-7">{line.slice(3)}</h2>); }
+    if (line.startsWith('### ')) { flushBullets(String(i)); blocks.push(<h3 key={i} className="luxe text-lg text-luxe mt-5">{inline(line.slice(4))}</h3>); }
+    else if (line.startsWith('## ')) { flushBullets(String(i)); blocks.push(<h2 key={i} className="luxe text-2xl text-luxe mt-7">{inline(line.slice(3))}</h2>); }
     else if (line.startsWith('- ')) { bullets.push(line.slice(2)); }
-    else { flushBullets(String(i)); blocks.push(<p key={i}>{line}</p>); }
+    else { flushBullets(String(i)); blocks.push(<p key={i}>{inline(line)}</p>); }
   });
   flushBullets('end');
 
