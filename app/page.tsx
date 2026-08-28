@@ -21,8 +21,10 @@ export const metadata: Metadata = {
   },
 };
 
-// ISR : régénérée au plus toutes les 5 min (+ revalidation immédiate à l'édition d'un bien).
-export const revalidate = 300;
+// Rendu à la requête : les biens sont lus depuis le volume monté au démarrage
+// (bucket GCS). En prérendu statique, ce volume n'existe pas encore au build et
+// la page serait figée sans aucun bien pendant toute la fenêtre de revalidation.
+export const dynamic = 'force-dynamic';
 
 async function getFeatured() {
   try {

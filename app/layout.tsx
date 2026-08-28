@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     images: ['/og-image.jpg?v=4'],
   },
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://lemeillepatrimoine.com'),
-  // PWA installable (écran d'accueil iPhone/Android) pour la webapp /app.
+  // PWA installable (écran d'accueil iPhone/Android) pour la webapp /terrain.
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, title: 'LP Terrain', statusBarStyle: 'black-translucent' },
   icons: { apple: '/logo.png' },

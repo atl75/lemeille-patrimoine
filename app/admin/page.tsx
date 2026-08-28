@@ -104,7 +104,7 @@ export default async function Page(){
             <h3 className="luxe text-xl">Répertoire</h3>
             <p className="opacity-80 mt-2">Vendeurs, acquéreurs et notaires — contacts et biens liés.</p>
           </Link>
-          <Link className="card p-6 hover:border-[#B89C6D]" href="/app" data-testid="link-terrain">
+          <Link className="card p-6 hover:border-[#B89C6D]" href="/terrain" data-testid="link-terrain">
             <h3 className="luxe text-xl">Documents terrain 📱</h3>
             <p className="opacity-80 mt-2">Bon de visite / offre d’achat signés — webapp mobile (à ajouter à l’écran d’accueil).</p>
           </Link>

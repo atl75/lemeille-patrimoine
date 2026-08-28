@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Lemeille Patrimoine — Terrain',
     short_name: 'LP Terrain',
     description: "Bons de visite et offres d'achat signés sur le terrain.",
-    start_url: '/app',
+    start_url: '/terrain',
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
