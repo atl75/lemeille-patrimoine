@@ -3,6 +3,7 @@ import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import PropertyCard from "@/components/PropertyCard";
 import { getPropertyCards } from "@/lib/propertiesData";
+import { notFound } from "next/navigation";
 
 // ISR : régénérée au plus toutes les 5 min (+ revalidation immédiate à l'édition d'un bien).
 export const revalidate = 300;
@@ -171,7 +172,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   const { slug } = await params;
   const sector = SECTORS[slug];
   if(!sector){
-    return <main className="container py-12">Secteur introuvable.</main>;
+    notFound();
   }
   const all = await getPropertyCards();
   const items = all.filter((p:any)=>matchesSector(p, sector));

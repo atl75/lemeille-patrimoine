@@ -43,7 +43,7 @@ async function getProgram(slug: string): Promise<any | null> {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const p = await getProgram(slug);
-  if (!p) return { title: "Programme — Lemeille Patrimoine" };
+  if (!p || p.visible === false) notFound();
   const dispo = dispositifsOf(p).map(d => d.nom).join(", ");
   return {
     title: `${p.title} — ${p.city} | Défiscalisation ${dispo} | Lemeille Patrimoine`,

@@ -3,6 +3,7 @@ import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import Img from "@/components/Img";
 import ArticleSeoJsonLd from "@/components/ArticleSeoJsonLd";
+import { notFound } from "next/navigation";
 import type { Metadata } from 'next';
 
 async function getArticle(slug: string) {
@@ -36,7 +37,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
 export default async function Page(props: { params: Promise<{ slug: string }> }) {
   const { slug } = await props.params;
   const a = await getArticle(slug);
-  if (!a) return <main className="container py-12">Article introuvable.</main>;
+  if (!a) notFound();
 
   // Rendu enrichi : "## " → H2, "### " → H3, "- " → liste à puces, sinon paragraphe.
   // Le gras **texte** est également interprété à l'intérieur des lignes.

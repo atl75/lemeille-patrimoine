@@ -48,7 +48,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug, numero } = await params;
   const p = await getProgram(slug);
   const lot = p && findLot(p, numero);
-  if (!p || !lot) return { title: "Lot — Lemeille Patrimoine" };
+  if (!p || p.visible === false || !lot) notFound();
   const title = `Lot ${lot.numero ?? numero}${lot.type ? " – " + lot.type : ""} — ${p.title} | Lemeille Patrimoine`;
   return { title, description: `Lot ${lot.numero ?? numero} du programme ${p.title} à ${p.city}.`, alternates: { canonical: `/programmes/${p.slug || p.id}/lots/${numero}` } };
 }

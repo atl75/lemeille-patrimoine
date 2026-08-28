@@ -9,6 +9,7 @@ import VideoEmbed from "@/components/VideoEmbed";
 import { cldImg } from "@/lib/cldImg";
 import { propertyLabel, propertyTypology } from "@/lib/propertyLabel";
 import CapaciteEmpruntSimulator from "@/components/CapaciteEmpruntSimulator";
+import { notFound } from "next/navigation";
 import type { Metadata } from 'next';
 
 async function getProperty(id: string){
@@ -20,7 +21,9 @@ async function getProperty(id: string){
 export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await props.params;
   const p = await getProperty(id);
-  if (!p) return { title: "Bien introuvable | Lemeille Patrimoine" };
+  // Le 404 doit être levé ici : sur une route dynamique, generateMetadata
+  // s'exécute avant le composant et fige déjà le statut de la réponse.
+  if (!p) notFound();
 
   const region = p.region ? String(p.region).replaceAll('_', ' ') : '';
   const title = `${propertyLabel(p, { withPrice: false })}${region ? `, ${region}` : ''} | Lemeille Patrimoine`;
@@ -46,7 +49,10 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
 export default async function Page(props: { params: Promise<{ id: string }> }){
   const params = await props.params;
   const p = await getProperty(params.id);
-  if (!p) return <main className="container py-12">Bien introuvable.</main>;
+  // Bien inexistant ou masqué : vrai 404 (l'API renvoie déjà 404 sur
+  // visible === false). Un 200 « Bien introuvable » serait indexé par Google
+  // comme une page valide — un « soft 404 » pénalisé au référencement.
+  if (!p) notFound();
   const imgs: string[] = Array.isArray(p.images) && p.images.length ? p.images : ['/logo.svg'];
   const video = getVideoInfo(p.videoUrl);
   // Plans : plusieurs documents possibles (repli sur le plan unique hérité)
