@@ -89,8 +89,9 @@ export default async function Home() {
 
       {/* Bandeau de réassurance — signaux de confiance (SEO local + conversion) */}
       <section className="border-b border-black/5 bg-white/70">
-        <div className="container py-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        <div className="container py-6 grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
           {[
+            ["8 ans d'expérience", "Master école de commerce"],
             ["Carte T", "CPI 7606 2024 000 000 038"],
             ["Réponse sous 48h", "Interlocuteur unique"],
             ["Estimation gratuite", "Avis de valeur sous 3 jours"],
@@ -251,7 +252,7 @@ export default async function Home() {
           <div className="order-1 md:order-2">
             <h3 className="luxe text-2xl md:text-3xl mb-4 text-luxe">Arthur Lemeille</h3>
             <p className="text-gray-700 leading-relaxed mb-4">
-              <strong>Arthur Lemeille</strong> est le fondateur de Lemeille Patrimoine. Il débute sa carrière par trois années de conseil en supply chain et logistique, qui lui transmettent le sens de la précision et la rigueur des processus. Il poursuit avec trois ans de développement commercial au sein d&apos;une start-up, où il cultive le goût du terrain, de la relation et de la négociation. Il choisit ensuite de se consacrer à l&apos;immobilier de caractère et à la défiscalisation immobilière.
+              <strong>Arthur Lemeille</strong> est le fondateur de Lemeille Patrimoine. Formé en école de commerce — <strong>Bachelor à NEOMA Business School (Rouen)</strong> puis <strong>Master à KEDGE Business School (Bordeaux)</strong> — il totalise aujourd&apos;hui <strong>huit années d&apos;expérience commerciale</strong>. Il débute sa carrière par trois années de conseil en supply chain et logistique, qui lui transmettent le sens de la précision et la rigueur des processus. Il poursuit par le développement commercial au sein d&apos;une start-up, où il cultive le goût du terrain, de la relation et de la négociation. Il choisit ensuite de se consacrer à l&apos;immobilier de caractère et à la défiscalisation immobilière, de retour sur ses terres rouennaises.
             </p>
             <p className="text-gray-700 leading-relaxed mb-4">
               De ce double parcours naît une approche à la fois humaine et rigoureuse, à la croisée de la <em>transaction et de l&apos;optimisation fiscale</em>. Arthur accompagne chaque client de bout en bout — écoute, analyse, action et suivi — avec la même exigence : rester <strong>proactif, actif et réactif</strong> à chaque étape.

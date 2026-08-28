@@ -16,6 +16,21 @@ export function OrganizationSchema() {
     "image": `${baseUrl}/og-image.jpg`,
     "description": "Agence immobilière à Rouen, Mont-Saint-Aignan, Bois-Guillaume et sur l'ensemble du Plateau Nord : vente de maisons et appartements de caractère, estimation gratuite et défiscalisation (Malraux, Monument Historique, Déficit Foncier). Également présents à Paris et sur la Côte d'Azur.",
     "priceRange": "€€€€",
+    "founder": {
+      "@type": "Person",
+      "name": "Arthur Lemeille",
+      "jobTitle": "Agent immobilier — fondateur",
+      "worksFor": { "@type": "Organization", "name": "Lemeille Patrimoine" },
+      "alumniOf": [
+        { "@type": "CollegeOrUniversity", "name": "NEOMA Business School", "address": { "@type": "PostalAddress", "addressLocality": "Rouen", "addressCountry": "FR" } },
+        { "@type": "CollegeOrUniversity", "name": "KEDGE Business School", "address": { "@type": "PostalAddress", "addressLocality": "Bordeaux", "addressCountry": "FR" } }
+      ],
+      "knowsAbout": ["Transaction immobilière", "Immobilier de caractère", "Défiscalisation immobilière", "Loi Malraux", "Monument Historique", "Déficit foncier", "Marché immobilier de Rouen"],
+      "hasCredential": [
+        { "@type": "EducationalOccupationalCredential", "credentialCategory": "Carte professionnelle", "name": "CPI 7606 2024 000 000 038 — Transactions sur immeubles et fonds de commerce (CCI Rouen Métropole)" },
+        { "@type": "EducationalOccupationalCredential", "credentialCategory": "Master", "name": "Master en école de commerce (KEDGE Business School)" }
+      ]
+    },
     "telephone": "+33687157259",
     "email": "arthur.lemeille@lemeillepatrimoine.com",
     "contactPoint": [
