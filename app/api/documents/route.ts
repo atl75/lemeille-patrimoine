@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
     financing: b.financing === 'CREDIT' ? 'CREDIT' : 'COMPTANT',
     place: b.place || p.city || '',
     dateStr,
+    owner: b.owner?.name || b.owner?.email ? { name: b.owner?.name || '', email: b.owner?.email || '' } : undefined,
     signature: { dataUrl: b.signature.dataUrl, mention: (b.signature.mention || (type === 'OFFRE' ? 'Bon pour offre' : 'Lu et approuvé')).toString().slice(0, 120), signedAt: now.toISOString(), ip },
   };
 
@@ -98,6 +99,10 @@ export async function POST(req: NextRequest) {
     client: b.client || {}, offerAmount: docData.offerAmount, atAskingPrice: docData.atAskingPrice,
     sequestreAmount: docData.sequestreAmount, validityDays: docData.validityDays, financing: docData.financing,
     signedAt: now.toISOString(), pdf: pdfDataUrl,
+    owner: docData.owner,
+    // Conservé pour régénérer le PDF lorsque le vendeur accepte l'offre.
+    docData,
+    ownerSignStatus: type === 'OFFRE' && docData.owner?.email ? 'PENDING' : undefined,
   };
   await updateJSON(FILE, (data: any[]) => { (Array.isArray(data) ? data : []).push(record); return Array.isArray(data) ? data : [record]; });
 

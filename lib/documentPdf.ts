@@ -15,6 +15,10 @@ export type DocData = {
   place?: string;
   dateStr?: string;
   signature?: { dataUrl?: string; mention?: string; signedAt?: string; ip?: string };
+  // Offre d'achat : le vendeur accepte (ou non) l'offre. L'acceptation est un
+  // acte juridique distinct de la signature de l'acquéreur, d'où un bloc dédié.
+  owner?: { name?: string; email?: string };
+  ownerSignature?: { dataUrl?: string; mention?: string; signedAt?: string; ip?: string };
 };
 
 // Génère un PDF « Bon de visite » ou « Offre d'achat » signé (une page A4).
@@ -28,11 +32,11 @@ export async function buildDocumentPdf(d: DocData): Promise<Uint8Array> {
 
   const navy = rgb(0.122, 0.231, 0.173), gold = rgb(0.722, 0.612, 0.427), dark = rgb(0.13, 0.13, 0.13), grey = rgb(0.42, 0.42, 0.42), rule = rgb(0.8, 0.8, 0.8), white = rgb(1, 1, 1);
   const PW = 595, PH = 842, M = 52, CW = PW - M * 2;
-  const clean = (t: any) => String(t ?? '').replace(/[   ​⁠]/g, ' ').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/€/g, 'EUR').replace(/²/g, '2').replace(/œ/g, 'oe').replace(/[^\x00-\xFF]/g, '');
-  const page = pdfDoc.addPage([PW, PH]);
+  const clean = (t: any) => String(t ?? '').replace(/[   ​⁠]/g, ' ').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/[^\x00-\xFF€œŒ]/g, '');
+  let page = pdfDoc.addPage([PW, PH]);
   let y = PH;
 
-  const eur = (n?: number) => (n || n === 0) ? Math.round(Number(n)).toLocaleString('fr-FR').replace(/\s/g, ' ') + ' EUR' : '..........';
+  const eur = (n?: number) => (n || n === 0) ? Math.round(Number(n)).toLocaleString('fr-FR').replace(/\s/g, ' ') + ' €' : '..........';
   const wrapLines = (text: string, size: number, maxW: number, f: any = font) => {
     const out: string[] = [];
     for (const src of clean(text).split('\n')) {
@@ -77,7 +81,7 @@ export async function buildDocumentPdf(d: DocData): Promise<Uint8Array> {
   const p = d.property || {};
   const typeLabel = ((p.type || 'APPARTEMENT') === 'MAISON' ? 'Maison' : 'Appartement') + (p.rooms ? ` T${p.rooms}` : '');
   const address = p.address || [p.city, String(p.region || '').replaceAll('_', ' ')].filter(Boolean).join(', ');
-  y -= 4; kv('Bien concerné', `${typeLabel}${p.surface ? ` - ${p.surface} m2` : ''}`);
+  y -= 4; kv('Bien concerné', `${typeLabel}${p.surface ? ` - ${p.surface} m²` : ''}`);
   kv('Adresse du bien', address);
   if (p.cadastralReference) kv('Référence cadastrale', p.cadastralReference);
   if (!isOffre && p.price) kv('Prix affiché', `${eur(p.price)} (FAI)`);
@@ -93,11 +97,11 @@ export async function buildDocumentPdf(d: DocData): Promise<Uint8Array> {
     const days = Number(d.validityDays) > 0 ? Number(d.validityDays) : 10;
     const seq = Number(d.sequestreAmount) > 0 ? Number(d.sequestreAmount) : 0;
     const isCredit = d.financing === 'CREDIT';
-    kv('Financement', isCredit ? 'Recours a un pret immobilier (credit)' : 'Paiement comptant (sans recours a un pret)');
-    kv('Sequestre propose', seq > 0 ? eur(seq) : 'Aucun sequestre verse a ce stade');
-    kv("Validite de l'offre", `${days} jours a compter de la signature`);
+    kv('Financement', isCredit ? 'Recours à un prêt immobilier (crédit)' : 'Paiement comptant (sans recours à un prêt)');
+    kv('Séquestre proposé', seq > 0 ? eur(seq) : 'Aucun séquestre versé à ce stade');
+    kv("Validité de l'offre", `${days} jours à compter de la signature`);
     y -= 2;
-    para(`Cette offre est valable ${days} jour(s) a compter de sa signature. Elle est faite sous reserve de l'accord du vendeur${isCredit ? " et de l'obtention d'un pret immobilier (condition suspensive au sens de l'article L.313-41 du Code de la consommation)" : ", l'acquereur declarant financer l'acquisition sans recours a un pret"}. La vente ne sera definitivement formee qu'apres acceptation ecrite du vendeur, signature d'un compromis et respect du delai de retractation legal de l'acquereur (article L.271-1 du CCH).${seq > 0 ? ` Un sequestre de ${eur(seq)} sera verse entre les mains du notaire lors de la signature du compromis.` : " Aucune somme n'est versee a l'appui de la presente offre."}`, { size: 9, after: 6 });
+    para(`Cette offre est valable ${days} jour(s) à compter de sa signature. Elle est faite sous réserve de l'accord du vendeur${isCredit ? " et de l'obtention d'un prêt immobilier (condition suspensive au sens de l'article L.313-41 du Code de la consommation)" : ", l'acquéreur déclarant financer l'acquisition sans recours à un prêt"}. La vente ne sera définitivement formée qu'après acceptation écrite du vendeur, signature d'un compromis et respect du délai de rétractation légal de l'acquéreur (article L.271-1 du CCH).${seq > 0 ? ` Un séquestre de ${eur(seq)} sera versé entre les mains du notaire lors de la signature du compromis.` : " Aucune somme n'est versée à l'appui de la présente offre."}`, { size: 9, after: 6 });
   } else {
     para(`Je soussigné(e) ${clientName}, reconnais avoir visité ce jour, en compagnie du cabinet NOVUS CAPITAL (Lemeille Patrimoine), le bien immobilier désigné ci-dessus.`, { after: 6 });
     para("Je reconnais que ce bien m'a été présenté par le cabinet et m'engage à ne pas traiter directement ou indirectement, ni par personne interposée, avec le propriétaire, sans le concours du cabinet, pendant une durée de 24 mois. À défaut, je serais redevable envers le cabinet d'une indemnité égale au montant des honoraires convenus. Le présent bon ne vaut ni offre ni engagement d'achat.", { size: 9, after: 6 });
@@ -136,6 +140,33 @@ export async function buildDocumentPdf(d: DocData): Promise<Uint8Array> {
     } catch { page.drawLine({ start: { x: cx, y: sigTop - 60 }, end: { x: cx + colW, y: sigTop - 60 }, thickness: 0.7, color: rule }); }
   } else {
     page.drawLine({ start: { x: cx, y: sigTop - 60 }, end: { x: cx + colW, y: sigTop - 60 }, thickness: 0.7, color: rule });
+  }
+
+  // ---- Acceptation du vendeur (offre d'achat uniquement) ----
+  const osig = d.ownerSignature;
+  if (isOffre && osig?.dataUrl && /^data:image\/png;base64,/.test(osig.dataUrl)) {
+    let ay = sigTop - 90;
+    // Pas assez de place en pied de page : l'acceptation passe sur une 2e page.
+    if (ay < 150) { page = pdfDoc.addPage([PW, PH]); ay = PH - 90; }
+
+    page.drawRectangle({ x: M, y: ay - 96, width: CW, height: 104, borderColor: gold, borderWidth: 0.8, color: white });
+    page.drawText(clean("ACCEPTATION DU VENDEUR"), { x: M + 12, y: ay - 4, size: 9, font: fontBold, color: gold });
+    page.drawText(
+      clean(`Je soussigné(e) ${d.owner?.name || '..........'}, propriétaire du bien désigné ci-dessus, déclare accepter l'offre d'achat`),
+      { x: M + 12, y: ay - 20, size: 8.5, font, color: dark });
+    page.drawText(clean("aux prix et conditions qui y sont énoncés."), { x: M + 12, y: ay - 31, size: 8.5, font, color: dark });
+
+    try {
+      const img = await pdfDoc.embedPng(Buffer.from(osig.dataUrl.split(',')[1], 'base64'));
+      const dim = img.scale(1); const sc = Math.min(160 / dim.width, 40 / dim.height, 1);
+      page.drawImage(img, { x: M + 12, y: ay - 78, width: dim.width * sc, height: dim.height * sc });
+    } catch { /* signature illisible */ }
+    page.drawLine({ start: { x: M + 12, y: ay - 82 }, end: { x: M + 12 + 200, y: ay - 82 }, thickness: 0.7, color: rule });
+
+    let owhen = osig.signedAt; try { owhen = new Date(osig.signedAt || '').toLocaleString('fr-FR'); } catch { /* brut */ }
+    page.drawText(
+      clean(`Signé électroniquement le ${owhen}${osig.ip ? ` - IP ${osig.ip}` : ''} - Mention : « ${osig.mention || "Bon pour acceptation"} » - Signature électronique simple (eIDAS).`),
+      { x: M + 12, y: ay - 92, size: 6.5, font, color: grey });
   }
 
   // ---- Pied ----

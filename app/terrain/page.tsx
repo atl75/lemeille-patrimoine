@@ -63,6 +63,12 @@ export default function Page() {
   const [previewing, setPreviewing] = useState(false);
   // La signature n'est délivrée qu'une fois le document lu et validé.
   const [documentRead, setDocumentRead] = useState(false);
+  // Offre d'achat : le propriétaire accepte à distance, avec le même parcours
+  // de lecture puis signature.
+  const [ownerName, setOwnerName] = useState("");
+  const [ownerEmail, setOwnerEmail] = useState("");
+  const [ownerSent, setOwnerSent] = useState<string | null>(null);
+  const [sendingOwner, setSendingOwner] = useState(false);
 
   useEffect(() => {
     fetch("/api/properties").then(r => r.json()).then((d: Prop[]) => {
@@ -133,6 +139,7 @@ export default function Page() {
           sequestreAmount: type === "OFFRE" && sequestre ? Number(sequestre) : undefined,
           validityDays: type === "OFFRE" && validityDays ? Number(validityDays) : undefined,
           financing: type === "OFFRE" ? financing : undefined,
+          owner: type === "OFFRE" && (ownerName || ownerEmail) ? { name: ownerName.trim(), email: ownerEmail.trim() } : undefined,
           signature: { dataUrl: signature, mention: type === "OFFRE" ? "Bon pour offre" : "Lu et approuvé" },
         }),
       });
@@ -143,7 +150,23 @@ export default function Page() {
     setSubmitting(false);
   };
 
-  const reset = () => { setDone(null); setSignature(null); setConsent(false); setFirstName(""); setLastName(""); setEmail(""); setPhone(""); setAddress(""); setOfferAmount(""); setAtAsking(true); setSequestre(""); setValidityDays("10"); setFinancing("CREDIT"); };
+  const reset = () => { setDone(null); setOwnerName(""); setOwnerEmail(""); setOwnerSent(null); setSignature(null); setConsent(false); setFirstName(""); setLastName(""); setEmail(""); setPhone(""); setAddress(""); setOfferAmount(""); setAtAsking(true); setSequestre(""); setValidityDays("10"); setFinancing("CREDIT"); };
+
+  const sendToOwner = async () => {
+    if (!done) return;
+    setError("");
+    setSendingOwner(true);
+    try {
+      const res = await fetch(`/api/documents/${done.id}/owner-request`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: ownerName.trim(), email: ownerEmail.trim() }),
+      });
+      const d = await res.json();
+      if (res.ok) setOwnerSent(d.sentTo);
+      else setError(d.error || "Envoi impossible.");
+    } catch { setError("Erreur réseau."); }
+    setSendingOwner(false);
+  };
 
   if (done) {
     return (
@@ -153,6 +176,32 @@ export default function Page() {
         <p className="text-sm opacity-70 mb-2">N° {done.number}</p>
         <p className="text-sm mb-6">{done.emailed ? `✉️ Copie envoyée à ${email}` : (email ? "✉️ Envoi de l’email non effectué" : "Aucun email client renseigné")}</p>
         <a href={`/api/documents/${done.id}/pdf`} target="_blank" rel="noopener noreferrer" className="w-full max-w-xs px-4 py-3 bg-[#1F3B2C] text-white rounded-lg mb-3">Ouvrir le PDF signé</a>
+
+        {type === "OFFRE" && (
+          <div className="w-full max-w-xs mb-3 rounded-xl border border-[#B89C6D]/40 bg-white p-3 text-left">
+            <p className="mb-2 text-sm font-medium text-[#1F3B2C]">Acceptation par le propriétaire</p>
+            {ownerSent ? (
+              <p className="text-xs text-emerald-700" data-testid="text-owner-sent">
+                ✓ Demande envoyée à {ownerSent}. Il lira l&rsquo;offre puis la signera électroniquement ; vous recevrez une copie.
+              </p>
+            ) : (
+              <>
+                <input className={inCls + " mb-2"} value={ownerName} onChange={e => setOwnerName(e.target.value)} placeholder="Nom du propriétaire" data-testid="input-owner-name" />
+                <input className={inCls + " mb-2"} type="email" inputMode="email" autoCapitalize="none" value={ownerEmail} onChange={e => setOwnerEmail(e.target.value)} placeholder="Email du propriétaire" data-testid="input-owner-email" />
+                <button onClick={sendToOwner} disabled={sendingOwner || !ownerEmail.trim()}
+                  className="w-full rounded-lg bg-[#B89C6D] py-2.5 text-sm font-medium text-white disabled:opacity-40"
+                  data-testid="button-send-owner">
+                  {sendingOwner ? "Envoi…" : "Envoyer pour acceptation"}
+                </button>
+                <p className="mt-2 text-[11px] leading-snug text-gray-500">
+                  Le propriétaire recevra un lien personnel : lecture complète de l&rsquo;offre, case de validation, puis signature électronique.
+                </p>
+              </>
+            )}
+          </div>
+        )}
+
+        {error && <p className="mb-3 max-w-xs text-sm text-red-600">{error}</p>}
         <button onClick={reset} className="w-full max-w-xs px-4 py-3 border border-[#B89C6D] text-[#B89C6D] rounded-lg">Nouveau document</button>
       </main>
     );
