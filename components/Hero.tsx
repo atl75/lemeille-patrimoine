@@ -65,7 +65,7 @@ export default function Hero({
       <div className="container py-14 md:py-20">
         <h1 className="text-4xl md:text-5xl luxe text-luxe leading-tight">{title}</h1>
         <div className="mt-4 h-px w-14 bg-gold/60" />
-        {subtitle && <p className="mt-5 max-w-2xl text-luxe/60 leading-relaxed">{subtitle}</p>}
+        {subtitle && <p className="mt-5 max-w-2xl text-luxe/70 leading-relaxed">{subtitle}</p>}
         {cta}
       </div>
     </section>

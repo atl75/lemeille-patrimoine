@@ -12,7 +12,7 @@ const GES_COLORS: Record<string, string> = { A: "#8e6fc4", B: "#7e57c2", C: "#6f
 
 function DpeLetter({ c, kind }: { c?: string; kind: "energy" | "ges" }) {
   const letter = String(c || "").toUpperCase();
-  if (!letter) return <span className="text-luxe/40">—</span>;
+  if (!letter) return <span className="text-luxe/70">—</span>;
   const color = (kind === "energy" ? ENERGY_COLORS : GES_COLORS)[letter] || "#9ca3af";
   return (
     <span className="inline-flex items-center justify-center min-w-[2rem] h-8 px-2 rounded-md text-white font-bold text-sm" style={{ background: color }}>
@@ -201,7 +201,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
         <section className="container py-14">
           <h2 className="luxe text-3xl md:text-4xl text-luxe">Avantages fiscaux</h2>
           <div className="mt-3 h-px w-14 bg-gold/60" />
-          <p className="mt-4 max-w-2xl text-luxe/60">Ce programme est éligible aux dispositifs suivants. Le montage est vérifié et l&apos;accompagnement assuré jusqu&apos;à la mise en location.</p>
+          <p className="mt-4 max-w-2xl text-luxe/70">Ce programme est éligible aux dispositifs suivants. Le montage est vérifié et l&apos;accompagnement assuré jusqu&apos;à la mise en location.</p>
           <div className={`mt-8 grid gap-6 ${dispositifs.length >= 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
             {dispositifs.map(d => (
               <div key={d.code} className="card p-6">
@@ -214,7 +214,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
               </div>
             ))}
           </div>
-          <p className="mt-6 text-xs text-luxe/50">Informations données à titre indicatif. Un conseiller affine selon votre situation fiscale.</p>
+          <p className="mt-6 text-xs text-luxe/70">Informations données à titre indicatif. Un conseiller affine selon votre situation fiscale.</p>
         </section>
       )}
 
@@ -249,7 +249,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                         <span className="luxe text-lg">Lot {lot.numero ?? i + 1}{lot.type ? ` · ${lot.type}` : ""}</span>
                         <span className={`text-xs rounded-full border px-2.5 py-0.5 whitespace-nowrap font-semibold ${st.cls}`}>{st.label}</span>
                       </div>
-                      <div className="text-sm text-luxe/60">
+                      <div className="text-sm text-luxe/70">
                         {lot.etage ? `${lot.etage} étage` : ""}
                         {surfAfter ? ` · ${surfNow ? `${surfNow} → ` : ""}${surfAfter} m²` : (surfNow ? ` · ${surfNow} m²` : "")}
                       </div>
@@ -258,17 +258,17 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                       )}
                       {lot.description && <p className="text-sm text-luxe/70">{lot.description}</p>}
                       {(lot.annexeDescription || lot.annexeSurface) && (
-                        <div className="text-xs text-luxe/50">Annexe : {lot.annexeDescription || ""}{lot.annexeSurface ? ` (${lot.annexeSurface} m²)` : ""}</div>
+                        <div className="text-xs text-luxe/70">Annexe : {lot.annexeDescription || ""}{lot.annexeSurface ? ` (${lot.annexeSurface} m²)` : ""}</div>
                       )}
                       <div className="mt-auto pt-3 border-t border-black/5 space-y-1 text-sm">
-                        <div className="flex items-center justify-between"><span className="text-luxe/60">Foncier</span><span className="text-luxe/80">{eur(lot.prixPlateau) || "—"}</span></div>
-                        <div className="flex items-center justify-between"><span className="text-luxe/60">Travaux</span><span className="text-luxe/80">{eur(lot.prixTravaux) || "—"}</span></div>
+                        <div className="flex items-center justify-between"><span className="text-luxe/70">Foncier</span><span className="text-luxe/80">{eur(lot.prixPlateau) || "—"}</span></div>
+                        <div className="flex items-center justify-between"><span className="text-luxe/70">Travaux</span><span className="text-luxe/80">{eur(lot.prixTravaux) || "—"}</span></div>
                         <div className="flex items-center justify-between pt-1.5 border-t border-black/5">
                           <span className="font-semibold text-luxe">Total</span>
                           {(() => {
                             const hasPrice = ((Number(lot.prixPlateau) || 0) + (Number(lot.prixTravaux) || 0)) > 0;
                             return (
-                              <span className={`font-semibold ${sold && hasPrice ? "text-luxe/40 line-through" : disponible ? "text-[#B89C6D]" : "text-luxe/50"}`}>{lotPrice(lot)}</span>
+                              <span className={`font-semibold ${sold && hasPrice ? "text-luxe/70 line-through" : disponible ? "text-[#B89C6D]" : "text-luxe/70"}`}>{lotPrice(lot)}</span>
                             );
                           })()}
                         </div>
@@ -293,7 +293,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           <div className="text-center max-w-2xl mx-auto">
             <h2 className="luxe text-3xl md:text-4xl text-luxe">DPE cible</h2>
             <div className="mt-3 h-px w-14 bg-gold/60 mx-auto" />
-            <p className="mt-4 text-luxe/60">Performance énergétique optimisée après rénovation</p>
+            <p className="mt-4 text-luxe/70">Performance énergétique optimisée après rénovation</p>
           </div>
           <div className="mt-10 grid md:grid-cols-2 gap-6">
             <div className="card p-6">
@@ -330,7 +330,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                       <span className="text-gold mt-1.5 text-[10px]">●</span>
                       <div>
                         <div className="font-medium text-luxe">{e.title || e.titre}</div>
-                        {(e.subtitle || e.description) && <div className="text-sm text-luxe/55">{e.subtitle || e.description}</div>}
+                        {(e.subtitle || e.description) && <div className="text-sm text-luxe/70">{e.subtitle || e.description}</div>}
                       </div>
                     </li>
                   ))}
@@ -338,7 +338,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
               </div>
             )}
           </div>
-          <p className="mt-6 text-xs text-luxe/45 text-center">Performance visée après travaux — valeurs indicatives, non contractuelles.</p>
+          <p className="mt-6 text-xs text-luxe/70 text-center">Performance visée après travaux — valeurs indicatives, non contractuelles.</p>
         </section>
       )}
 
@@ -349,7 +349,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
             <div className="text-center max-w-2xl mx-auto">
               <h2 className="luxe text-3xl md:text-4xl text-luxe">Calendrier du projet</h2>
               <div className="mt-3 h-px w-14 bg-gold/60 mx-auto" />
-              <p className="mt-4 text-luxe/60">Planning détaillé de la commercialisation à la livraison</p>
+              <p className="mt-4 text-luxe/70">Planning détaillé de la commercialisation à la livraison</p>
             </div>
             <div className="mt-10 relative">
               <div className="absolute left-[11px] top-4 bottom-4 w-px bg-gold/30" aria-hidden />
@@ -362,7 +362,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                     <div className="card p-5 flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <h3 className="luxe text-lg text-luxe">{etape.etape || etape.title}</h3>
-                        {etape.description && <p className="text-sm text-luxe/60 mt-0.5">{etape.description}</p>}
+                        {etape.description && <p className="text-sm text-luxe/70 mt-0.5">{etape.description}</p>}
                       </div>
                       {etape.date && (
                         <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#B89C6D] whitespace-nowrap">
@@ -380,7 +380,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                   <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gold/15 text-[#B89C6D]"><Camera className="w-5 h-5" /></span>
                   <div>
                     <div className="luxe text-lg text-luxe">Suivi de chantier en direct</div>
-                    <p className="text-sm text-luxe/60">Photos d&apos;avancement et planning mis à jour régulièrement</p>
+                    <p className="text-sm text-luxe/70">Photos d&apos;avancement et planning mis à jour régulièrement</p>
                   </div>
                 </div>
                 <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#B89C6D] whitespace-nowrap">
@@ -400,18 +400,18 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           <div>
             {p.address && (
               <div className="mb-4">
-                <div className="text-xs font-semibold uppercase tracking-wider text-luxe/45 mb-1">Adresse</div>
+                <div className="text-xs font-semibold uppercase tracking-wider text-luxe/70 mb-1">Adresse</div>
                 <div className="text-luxe/80">{p.address}</div>
               </div>
             )}
             {proximite.length > 0 && (
               <div>
-                <div className="text-xs font-semibold uppercase tracking-wider text-luxe/45 mb-2">À proximité</div>
+                <div className="text-xs font-semibold uppercase tracking-wider text-luxe/70 mb-2">À proximité</div>
                 <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm text-luxe/75">
                   {proximite.map((pt: any, i: number) => (
                     <li key={i} className="flex justify-between gap-2 border-b border-black/5 py-1">
                       <span>{typeof pt === "string" ? pt : pt.nom}</span>
-                      {pt.distance && <span className="text-luxe/45">{pt.distance}</span>}
+                      {pt.distance && <span className="text-luxe/70">{pt.distance}</span>}
                     </li>
                   ))}
                 </ul>

@@ -174,14 +174,14 @@ export default async function Page() {
       <section className="container py-14">
         <h2 className="luxe text-2xl md:text-3xl text-luxe">Un réseau d&apos;experts à vos côtés</h2>
         <div className="mt-3 h-px w-14 bg-gold/60" />
-        <p className="mt-4 text-luxe/60 max-w-2xl">Notaire, architecte, courtier : nous nous entourons de partenaires reconnus pour sécuriser et optimiser chaque étape de votre projet.</p>
+        <p className="mt-4 text-luxe/70 max-w-2xl">Notaire, architecte, courtier : nous nous entourons de partenaires reconnus pour sécuriser et optimiser chaque étape de votre projet.</p>
         <div className="mt-8 grid sm:grid-cols-3 gap-4">
           {PARTNER_ROLES.map((p) => (
             <div key={p.role} className="card p-5 flex items-center gap-4">
               <div className="shrink-0 w-12 h-12 rounded-full border-2 border-[#B89C6D] flex items-center justify-center luxe text-[#B89C6D]">{p.role[0]}</div>
               <div>
                 <div className="luxe text-lg">{p.role}</div>
-                <div className="text-xs text-luxe/60">{p.desc}</div>
+                <div className="text-xs text-luxe/70">{p.desc}</div>
               </div>
             </div>
           ))}

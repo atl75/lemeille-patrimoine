@@ -109,7 +109,7 @@ export default async function Home() {
           ].map(([t, s], i) => (
             <div key={i} className="px-2">
               <div className="luxe text-lg md:text-xl text-luxe leading-tight">{t}</div>
-              <div className="text-[11px] uppercase tracking-[0.14em] text-luxe/45 mt-1.5">{s}</div>
+              <div className="text-[11px] uppercase tracking-[0.14em] text-luxe/70 mt-1.5">{s}</div>
             </div>
           ))}
         </div>

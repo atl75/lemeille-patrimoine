@@ -59,12 +59,12 @@ export default function DocumentLink({ name, subtitle, url }: { name: string; su
       <FileText className="w-5 h-5 text-gold shrink-0" />
       <button onClick={view} className="flex-1 min-w-0 text-left" title="Consulter dans un nouvel onglet">
         <div className="font-medium text-luxe truncate group-hover:underline">{name || "Document"}</div>
-        {subtitle && <div className="text-xs text-luxe/55 truncate">{subtitle}</div>}
+        {subtitle && <div className="text-xs text-luxe/70 truncate">{subtitle}</div>}
       </button>
       <button onClick={view} className="inline-flex items-center gap-1 text-sm font-medium text-[#B89C6D] hover:underline whitespace-nowrap">
         <Eye className="w-4 h-4" /> Consulter
       </button>
-      <button onClick={download} title="Télécharger" aria-label="Télécharger" className="text-luxe/40 hover:text-luxe">
+      <button onClick={download} title="Télécharger" aria-label="Télécharger" className="text-luxe/70 hover:text-luxe">
         <Download className="w-4 h-4" />
       </button>
     </div>

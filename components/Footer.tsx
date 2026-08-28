@@ -28,8 +28,8 @@ export function Footer() {
     { href: "/secteurs/mesnil-esnard-franqueville", label: "Le Mesnil-Esnard & Franqueville" },
   ];
 
-  const heading = "text-[11px] font-semibold uppercase tracking-[0.18em] text-luxe/45 mb-4";
-  const link = "text-luxe/65 hover:text-gold transition-colors";
+  const heading = "text-[11px] font-semibold uppercase tracking-[0.18em] text-luxe/70 mb-4";
+  const link = "text-luxe/70 hover:text-gold transition-colors";
 
   return (
     <footer className="mt-20 border-t border-gold/25 bg-cream/30 text-sm">
@@ -37,10 +37,10 @@ export function Footer() {
         {/* Marque */}
         <div className="md:col-span-4">
           <div className="luxe text-lg text-luxe">Lemeille Patrimoine</div>
-          <p className="mt-2 text-luxe/55 leading-relaxed max-w-xs">
+          <p className="mt-2 text-luxe/70 leading-relaxed max-w-xs">
             Agence immobilière à Rouen, Mont-Saint-Aignan et Bois-Guillaume.
           </p>
-          <p className="mt-4 text-xs leading-relaxed text-luxe/40">
+          <p className="mt-4 text-xs leading-relaxed text-luxe/70">
             Marque du groupe Novus Capital · SIREN 937 847 937<br />
             Carte professionnelle CPI 7606 2024 000 000 038 — CCI de Rouen Métropole<br />
             CIF — ORIAS n° 23 003 614
@@ -89,7 +89,7 @@ export function Footer() {
                 data-testid={b.testid}
               >
                 <span className="text-luxe/80 group-hover:text-gold transition-colors">{b.label}</span>
-                <span className="block text-xs text-luxe/45">{b.detail}</span>
+                <span className="block text-xs text-luxe/70">{b.detail}</span>
               </a>
             ))}
           </div>
@@ -109,10 +109,10 @@ export function Footer() {
       {/* Secteurs d'intervention — maillage interne / SEO local */}
       <div className="border-t border-gold/15">
         <div className="container py-5">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-luxe/40 mb-2">Secteurs d&apos;intervention</div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-luxe/70 mb-2">Secteurs d&apos;intervention</div>
           <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
             {secteurs.map(s => (
-              <Link key={s.href} href={s.href} className="text-luxe/55 hover:text-gold transition-colors">{s.label}</Link>
+              <Link key={s.href} href={s.href} className="text-luxe/70 hover:text-gold transition-colors">{s.label}</Link>
             ))}
           </div>
         </div>
@@ -120,7 +120,7 @@ export function Footer() {
 
       {/* Copyright */}
       <div className="border-t border-gold/15">
-        <div className="container py-5 text-xs text-luxe/40">
+        <div className="container py-5 text-xs text-luxe/70">
           &copy; {year} Lemeille Patrimoine — Tous droits réservés.
         </div>
       </div>

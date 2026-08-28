@@ -90,7 +90,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string;
               <div className="relative w-full aspect-[3/2] rounded-2xl overflow-hidden">
                 <Image src={lot.image} alt={`Projection intérieure — Lot ${lot.numero ?? numero}`} fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
               </div>
-              <figcaption className="mt-2 text-center text-sm text-luxe/50">Projection intérieure — <span className="opacity-70">photo non contractuelle</span></figcaption>
+              <figcaption className="mt-2 text-center text-sm text-luxe/70">Projection intérieure — <span className="opacity-70">photo non contractuelle</span></figcaption>
             </figure>
           ) : (
             <div className="w-full aspect-[4/3] rounded-2xl bg-gradient-to-br from-[#1F3B2C] to-[#2e5140] flex items-center justify-center text-cream/70 text-sm">Projection à venir</div>
@@ -110,7 +110,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string;
                   decoding="async"
                   className="w-full rounded-2xl object-contain bg-white border"
                 />
-                <figcaption className="mt-2 text-center text-sm text-luxe/50">Plan du lot</figcaption>
+                <figcaption className="mt-2 text-center text-sm text-luxe/70">Plan du lot</figcaption>
               </figure>
             )
           )}
@@ -125,19 +125,19 @@ export default async function Page({ params }: { params: Promise<{ slug: string;
               </h1>
               <span className={`text-xs rounded-full border px-2.5 py-0.5 ${st.cls}`}>{st.label}</span>
             </div>
-            <p className="mt-1 text-luxe/60">{lot.type || "Lot"}{lot.etage ? ` · ${lot.etage} étage` : ""}</p>
+            <p className="mt-1 text-luxe/70">{lot.type || "Lot"}{lot.etage ? ` · ${lot.etage} étage` : ""}</p>
           </div>
 
           {/* Détails du lot */}
           <div className="card p-6">
             <h2 className="luxe text-xl mb-4">Détails du lot</h2>
             <div className="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              <div className="flex justify-between gap-3"><span className="text-luxe/60">Surface vendue actuelle</span><span className="font-medium">{lot.surfaceActuelle ? `${Number(lot.surfaceActuelle).toLocaleString("fr-FR")} m²` : "—"}</span></div>
-              <div className="flex justify-between gap-3"><span className="text-luxe/60">Prix plateau</span><span className="font-medium">{eur(lot.prixPlateau)}</span></div>
-              <div className="flex justify-between gap-3"><span className="text-luxe/60">Surface après travaux</span><span className="font-medium">{lot.surfaceApresTravaux ? `${Number(lot.surfaceApresTravaux).toLocaleString("fr-FR")} m²` : "—"}</span></div>
-              <div className="flex justify-between gap-3"><span className="text-luxe/60">Prix travaux</span><span className="font-medium">{eur(lot.prixTravaux)}</span></div>
-              <div className="flex justify-between gap-3"><span className="text-luxe/60">DPE cible</span><span className="font-medium">{dpeCible ? `Classe ${String(dpeCible).toUpperCase()}` : "—"}</span></div>
-              <div className="flex justify-between gap-3 sm:border-l sm:pl-6 border-black/5"><span className="text-luxe/60">Prix total</span><span className="font-semibold text-[#B89C6D]">{lotTotal(lot)}</span></div>
+              <div className="flex justify-between gap-3"><span className="text-luxe/70">Surface vendue actuelle</span><span className="font-medium">{lot.surfaceActuelle ? `${Number(lot.surfaceActuelle).toLocaleString("fr-FR")} m²` : "—"}</span></div>
+              <div className="flex justify-between gap-3"><span className="text-luxe/70">Prix plateau</span><span className="font-medium">{eur(lot.prixPlateau)}</span></div>
+              <div className="flex justify-between gap-3"><span className="text-luxe/70">Surface après travaux</span><span className="font-medium">{lot.surfaceApresTravaux ? `${Number(lot.surfaceApresTravaux).toLocaleString("fr-FR")} m²` : "—"}</span></div>
+              <div className="flex justify-between gap-3"><span className="text-luxe/70">Prix travaux</span><span className="font-medium">{eur(lot.prixTravaux)}</span></div>
+              <div className="flex justify-between gap-3"><span className="text-luxe/70">DPE cible</span><span className="font-medium">{dpeCible ? `Classe ${String(dpeCible).toUpperCase()}` : "—"}</span></div>
+              <div className="flex justify-between gap-3 sm:border-l sm:pl-6 border-black/5"><span className="text-luxe/70">Prix total</span><span className="font-semibold text-[#B89C6D]">{lotTotal(lot)}</span></div>
             </div>
           </div>
 
@@ -151,7 +151,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string;
               <div key={i} className="card p-4 text-center">
                 <div className="text-gold flex justify-center mb-1.5">{t.icon}</div>
                 <div className="text-sm font-medium text-luxe">{t.label}</div>
-                <div className="text-xs text-luxe/55 mt-0.5">{t.value}</div>
+                <div className="text-xs text-luxe/70 mt-0.5">{t.value}</div>
               </div>
             ))}
           </div>
@@ -175,7 +175,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string;
       )}
 
       <div className="mt-10">
-        <Link href={`/programmes/${p.slug || p.id}`} className="text-sm text-luxe/60 hover:text-luxe">← Retour au programme {p.title}</Link>
+        <Link href={`/programmes/${p.slug || p.id}`} className="text-sm text-luxe/70 hover:text-luxe">← Retour au programme {p.title}</Link>
       </div>
     </main>
   );

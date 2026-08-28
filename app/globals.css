@@ -58,7 +58,7 @@
   }
   
   .btn-gold {
-    @apply bg-gold text-white hover:bg-[#a88e60] transition-colors border-0;
+    @apply bg-gold text-luxe hover:bg-[#C4AA7E] transition-colors border-0;
   }
   
   .luxe {
@@ -111,13 +111,14 @@ header .logo-text{ transition: fill 0.3s ease; }
 .btn:hover{ border-color: var(--luxe); background: rgba(31,59,44,.04); }
 .btn-gold{
   background:var(--gold);
-  color:#fff;
+  color:var(--luxe);
+  font-weight:600;
   border-color: var(--gold);
 }
 .btn-gold:hover{
-  background:#a88b5c;
-  border-color:#a88b5c;
-  color:#fff;
+  background:#C4AA7E;
+  border-color:#C4AA7E;
+  color:var(--luxe);
   box-shadow: 0 8px 20px -10px rgba(184,156,109,.7);
 }
 

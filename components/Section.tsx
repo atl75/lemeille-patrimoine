@@ -19,7 +19,7 @@ export default function Section({
           {eyebrow && <div className="eyebrow mb-3">{eyebrow}</div>}
           {title && <h2 className="luxe text-3xl md:text-[2.5rem] leading-[1.15]">{title}</h2>}
           <div className={`rule-gold mt-5 ${center ? "mx-auto" : ""}`} />
-          {subtitle && <p className="mt-5 text-luxe/65 leading-relaxed">{subtitle}</p>}
+          {subtitle && <p className="mt-5 text-luxe/70 leading-relaxed">{subtitle}</p>}
         </header>
       )}
       {children}
