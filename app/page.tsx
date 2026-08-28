@@ -49,8 +49,8 @@ export default async function Home() {
         <HeroSlideshow
           images={[
             { src: "/hero-normandie.jpg", alt: "Maison de caractère en Normandie, région de Rouen" },
+            { src: "/hero-chaumiere.jpg", alt: "Chaumière normande traditionnelle à colombages, campagne rouennaise" },
             { src: "/hero-accueil.jpg", alt: "Immeuble haussmannien de caractère à l'heure dorée" },
-            { src: "/hero-cote-azur.jpg", alt: "Villa Belle Époque avec vue mer, Côte d'Azur" },
           ]}
         />
         {/* Voile vert dégradé — lisibilité du texte, le vert devient un accent et non un mur */}
