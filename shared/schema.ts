@@ -52,7 +52,9 @@ export const notarySchema = z.object({
   city: z.string().optional(),
   postalCode: z.string().optional(),
   phone: z.string().optional(),
-  email: z.string().email().optional().or(z.literal(''))
+  email: z.string().email().optional().or(z.literal('')),
+  clerkName: z.string().optional(), // Clerc de notaire propre à cet office
+  clerkEmail: z.string().email().optional().or(z.literal('')),
 });
 
 // Property (Bien immobilier)
@@ -70,6 +72,9 @@ export const properties = pgTable("properties", {
   commissionPercentage: real("commission_percentage"), // Commission en %
   finalSalePrice: integer("final_sale_price"), // Prix FAI final de vente (après négociation)
   negotiatedCommission: integer("negotiated_commission"), // Commission négociée
+  sequestreAmount: integer("sequestre_amount"), // Montant du séquestre (dépôt de garantie)
+  notaryClerk: jsonb("notary_clerk").$type<{name?: string, email?: string}>(), // (hérité) clerc unique
+  furniture: jsonb("furniture").$type<{label?: string, value?: number}[]>(), // Mobilier vendu (élément + valeur)
   // Informations acquéreur
   buyerFirstName: text("buyer_first_name"), // Prénom de l'acquéreur
   buyerLastName: text("buyer_last_name"), // Nom de l'acquéreur
@@ -114,8 +119,8 @@ export const properties = pgTable("properties", {
   owners: jsonb("owners").$type<Array<{type: string, firstName?: string, lastName?: string, name?: string, siren?: string, managerFirstName?: string, managerLastName?: string, email?: string, phone?: string, address?: string}>>(),
   sellerLeadIds: jsonb("seller_lead_ids").$type<string[]>(), // leads « vendeur » (CRM) reliés à ce bien (indivision, mariage…)
   // Notaires
-  sellerNotary: jsonb("seller_notary").$type<{officeName?: string, notaryName?: string, address?: string, city?: string, postalCode?: string, phone?: string, email?: string}>(),
-  buyerNotary: jsonb("buyer_notary").$type<{officeName?: string, notaryName?: string, address?: string, city?: string, postalCode?: string, phone?: string, email?: string}>(),
+  sellerNotary: jsonb("seller_notary").$type<{officeName?: string, notaryName?: string, address?: string, city?: string, postalCode?: string, phone?: string, email?: string, clerkName?: string, clerkEmail?: string}>(),
+  buyerNotary: jsonb("buyer_notary").$type<{officeName?: string, notaryName?: string, address?: string, city?: string, postalCode?: string, phone?: string, email?: string, clerkName?: string, clerkEmail?: string}>(),
   // Documents administratifs
   titleDeed: text("title_deed"), // Titre de propriété
   dpeDocument: text("dpe_document"), // Document DPE
@@ -168,6 +173,9 @@ export const insertPropertySchema = createInsertSchema(properties, {
   commissionPercentage: z.number().optional(),
   finalSalePrice: z.number().optional(),
   negotiatedCommission: z.number().optional(),
+  sequestreAmount: z.number().optional(),
+  notaryClerk: z.object({ name: z.string().optional(), email: z.string().email().optional().or(z.literal('')) }).optional(),
+  furniture: z.array(z.object({ label: z.string().optional(), value: z.number().optional() })).optional(),
   buyerFirstName: z.string().optional(),
   buyerLastName: z.string().optional(),
   buyerEmail: z.string().email().optional().or(z.literal('')),

@@ -3,11 +3,12 @@
 import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import { useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 
 // Lien de réservation en ligne (Calendly, RDV Google...). Laisser vide tant
 // qu'il n'est pas défini : le bouton "Prendre rendez-vous" bascule alors sur
 // un appel téléphonique.
-const RDV_URL = "";
+const RDV_URL = process.env.NEXT_PUBLIC_RDV_URL || "";
 
 const OFFICES = [
   { name: "Rouen", line: "35 rue Ganterie, 76000", query: "35 rue Ganterie, 76000 Rouen", testid: "link-map-rouen" },
@@ -23,7 +24,7 @@ export default function Page(){
     const payload = Object.fromEntries(fd.entries());
     const r = await fetch("/api/leads", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
     setOk(r.ok);
-    if(r.ok) (e.currentTarget as HTMLFormElement).reset();
+    if(r.ok){ trackEvent('generate_lead', 'contact', String((payload as any).topic || '')); (e.currentTarget as HTMLFormElement).reset(); }
   }
 
   return (
@@ -47,7 +48,7 @@ export default function Page(){
             <div className="flex flex-col gap-2">
               <a href="tel:+33687157259" className="flex items-center gap-2 hover:text-[#B89C6D] transition-colors" data-testid="link-phone">
                 <span>📞</span>
-                <span>06 87 15 72 59</span>
+                <span>+33 6 87 15 72 59</span>
               </a>
               <a href="mailto:arthur.lemeille@lemeillepatrimoine.com" className="flex items-center gap-2 hover:text-[#B89C6D] transition-colors" data-testid="link-email">
                 <span>✉️</span>

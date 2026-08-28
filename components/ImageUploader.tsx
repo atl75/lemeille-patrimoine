@@ -1,4 +1,5 @@
 "use client";
+import { useToast } from "@/components/Toast";
 import { useState, useRef, useEffect, DragEvent } from "react";
 import { Upload, X, Image as ImageIcon, ChevronUp, ChevronDown, GripVertical } from "lucide-react";
 
@@ -12,6 +13,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 Mo
 export default function ImageUploader({ images, onChange }: ImageUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const toast = useToast();
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imagesRef = useRef<string[]>(images);
@@ -71,6 +73,34 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
     });
   };
 
+  // Compresse/redimensionne l'image côté client avant l'upload (réduit fortement
+  // le poids et le temps d'envoi). Repli sur l'original en cas de souci, et on
+  // conserve la version la plus légère (utile pour les petites images déjà optimisées).
+  const compressImage = (file: File, maxWidth = 2200, quality = 0.82): Promise<string> =>
+    new Promise((resolve) => {
+      if (!file.type.startsWith("image/") || file.type === "image/gif") return readAsDataUrl(file).then(resolve, () => resolve(""));
+      const url = URL.createObjectURL(file);
+      const img = new window.Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+        const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return readAsDataUrl(file).then(resolve, () => resolve(""));
+        ctx.drawImage(img, 0, 0, w, h);
+        let out = "";
+        try { out = canvas.toDataURL("image/jpeg", quality); } catch { /* CORS/canvas */ }
+        readAsDataUrl(file).then(
+          (orig) => resolve(out && out.length < orig.length ? out : orig),
+          () => resolve(out)
+        );
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); readAsDataUrl(file).then(resolve, () => resolve("")); };
+      img.src = url;
+    });
+
   const uploadToCloudinary = async (dataUrl: string): Promise<string> => {
     const res = await fetch("/api/upload-image", {
       method: "POST",
@@ -87,7 +117,7 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
   const processFiles = async (files: File[]) => {
     const validFiles = files.filter(file => {
       if (file.size > MAX_FILE_SIZE) {
-        alert(`"${file.name}" dépasse 10 Mo et a été ignorée.`);
+        toast(`"${file.name}" dépasse 10 Mo et a été ignorée.`);
         return false;
       }
       return true;
@@ -100,12 +130,13 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
     const uploadedUrls: string[] = [];
     for (const file of validFiles) {
       try {
-        const dataUrl = await readAsDataUrl(file);
+        const dataUrl = await compressImage(file);
+        if (!dataUrl) throw new Error("Lecture de l'image impossible");
         const url = await uploadToCloudinary(dataUrl);
         uploadedUrls.push(url);
       } catch (error) {
         console.error("Error uploading file:", error);
-        alert(`Erreur lors de l'upload de "${file.name}" : ${error instanceof Error ? error.message : error}`);
+        toast(`Erreur lors de l'upload de "${file.name}" : ${error instanceof Error ? error.message : error}`);
       }
       setUploadProgress(prev => (prev ? { ...prev, done: prev.done + 1 } : prev));
     }

@@ -4,19 +4,29 @@ import Section from "@/components/Section";
 import HeroSlideshow from "@/components/HeroSlideshow";
 import PropertyCard from "@/components/PropertyCard";
 import HomeSeoJsonLd from "@/components/HomeSeoJsonLd";
+import EstimationForm from "@/components/EstimationFormLazy";
+import { getPropertyCards } from "@/lib/propertiesData";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
+  title: "Agence immobilière à Rouen & Plateau Nord | Lemeille Patrimoine",
+  description:
+    "Agence immobilière à Rouen, Mont-Saint-Aignan, Bois-Guillaume et Plateau Nord. Vente de maisons et appartements de caractère, estimation gratuite, défiscalisation (Malraux, Monument Historique, Déficit Foncier).",
   alternates: { canonical: "/" },
+  openGraph: {
+    title: "Agence immobilière à Rouen & Plateau Nord | Lemeille Patrimoine",
+    description:
+      "Maisons et appartements de caractère à Rouen, Mont-Saint-Aignan, Bois-Guillaume. Estimation gratuite et conseil en défiscalisation.",
+    url: "/",
+  },
 };
 
+// ISR : régénérée au plus toutes les 5 min (+ revalidation immédiate à l'édition d'un bien).
+export const revalidate = 300;
+
 async function getFeatured() {
-  const base = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT || '3000'}`;
   try {
-    const r = await fetch(`${base}/api/properties`, { cache: 'no-store' });
-    if (!r.ok) return [];
-    const all = await r.json();
-    if (!Array.isArray(all)) return [];
+    const all = await getPropertyCards();
     const available = all.filter(
       (p: any) => p && p.visible !== false && !p.sold && p.status !== 'UNDER_OFFER' && p.status !== 'SOLD'
     );
@@ -36,8 +46,8 @@ export default async function Home() {
       <section className="relative isolate overflow-hidden">
         <HeroSlideshow
           images={[
-            { src: "/hero-accueil.jpg", alt: "Immeuble haussmannien de caractère à l'heure dorée, Paris" },
-            { src: "/hero-normandie.jpg", alt: "Villa anglo-normande en bord de mer, Normandie" },
+            { src: "/hero-normandie.jpg", alt: "Maison de caractère en Normandie, région de Rouen" },
+            { src: "/hero-accueil.jpg", alt: "Immeuble haussmannien de caractère à l'heure dorée" },
             { src: "/hero-cote-azur.jpg", alt: "Villa Belle Époque avec vue mer, Côte d'Azur" },
           ]}
         />
@@ -47,15 +57,16 @@ export default async function Home() {
 
         <div className="container relative flex min-h-[70vh] md:min-h-[80vh] flex-col justify-center py-20 md:py-28">
           <span className="text-xs md:text-sm font-medium uppercase tracking-[0.28em] text-gold">
-            Immobilier de caractère
+            Rouen &amp; Plateau Nord
           </span>
-          <h1 className="mt-4 text-5xl md:text-7xl luxe text-cream leading-[1.03]">
-            Lemeille Patrimoine
+          <h1 className="mt-4 text-4xl md:text-6xl luxe text-cream leading-[1.05]">
+            Agence immobilière à Rouen
           </h1>
           <div className="mt-5 h-px w-16 bg-gold/70" />
           <p className="mt-6 max-w-xl text-base md:text-lg text-cream/90 leading-relaxed">
-            Agence spécialisée dans l&apos;immobilier de caractère — transaction dans l&apos;ancien à Paris,
-            en Normandie et sur la Côte d&apos;Azur. Défiscalisation sur mesure : Malraux, Monument Historique, Déficit Foncier.
+            Lemeille Patrimoine — votre agence immobilière à Rouen, Mont-Saint-Aignan, Bois-Guillaume et sur
+            l&apos;ensemble du Plateau Nord. Vente de maisons et appartements de caractère, estimation gratuite
+            et défiscalisation sur mesure. Également actifs à Paris et sur la Côte d&apos;Azur.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-x-7 gap-y-4">
             <Link href="/immobilier" className="btn btn-gold" data-testid="button-immobilier">
@@ -73,9 +84,27 @@ export default async function Home() {
         </div>
       </section>
 
+
+      {/* Bandeau de réassurance — signaux de confiance (SEO local + conversion) */}
+      <section className="border-b border-black/5 bg-white/70">
+        <div className="container py-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+          {[
+            ["Carte T", "CPI 7606 2024 000 000 038"],
+            ["Réponse sous 48h", "Interlocuteur unique"],
+            ["Estimation gratuite", "Avis de valeur sous 7 jours"],
+            ["Rouen & Plateau Nord", "Bureaux à Rouen et Mont-Saint-Aignan"],
+          ].map(([t, s], i) => (
+            <div key={i}>
+              <div className="luxe text-base md:text-lg text-luxe">{t}</div>
+              <div className="text-xs opacity-70 mt-0.5">{s}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Biens à la une */}
       {featured.length > 0 && (
-        <Section title="Nos biens à la une" subtitle="Une sélection de nos plus belles opportunités du moment.">
+        <Section title="Nos biens à vendre à Rouen et alentours" subtitle="Une sélection de maisons et appartements de caractère.">
           <div className="grid md:grid-cols-3 gap-6">
             {featured.map((p: any, i: number) => (
               <PropertyCard
@@ -104,9 +133,9 @@ export default async function Home() {
             ["Sélection de qualité","Biens vérifiés, diagnostics et potentiel de valorisation."],
             ["Conseil indépendant","Alignement d'intérêts, honoraires transparents."],
             ["Discrétion","Mandats off-market, confidentialité totale."],
-            ["Réseau d'experts","Notaires, banques privées, architectes, entrepreneurs."],
+            ["Réseau d'experts rouennais","Notaires, banques, architectes et artisans de la région."],
             ["Réactivité","Retour sous 48h, suivi jusqu'à la signature."],
-            ["Expertise locale","Connaissance approfondie de Paris, Normandie et Côte d'Azur."]
+            ["Expertise locale","Connaissance fine de Rouen, du Plateau Nord et de ses quartiers."]
           ].map(([t, s], i)=>(
             <div key={i} className="card p-6">
               <div className="luxe text-xl mb-2">{t}</div>
@@ -134,12 +163,12 @@ export default async function Home() {
       </Section>
 
       {/* Secteurs */}
-      <Section title="Secteurs d'intervention">
+      <Section title="Nos secteurs à Rouen et alentours" subtitle="Une connaissance quartier par quartier du marché rouennais.">
         <div className="grid md:grid-cols-3 gap-6">
           {[
-            ["Paris","Rive gauche, Ouest, Centre historique • Immeubles haussmanniens, hôtels particuliers, appartements familiaux.","/immobilier"],
-            ["Normandie","Rouen, Mont-Saint-Aignan, Bois-Guillaume • Résidentiel recherché, maisons et appartements de caractère.","/immobilier"],
-            ["Côte d'Azur","Saint-Aygulf, Fréjus, Sainte-Maxime, Estérel • Villas de standing, vue mer, environnement préservé.","/immobilier"]
+            ["Rouen centre & rive droite","Vieux-Marché, Cathédrale, Jardin des Plantes • Appartements de caractère, immeubles anciens, hôtels particuliers.","/secteurs/rouen-centre"],
+            ["Plateau Nord","Mont-Saint-Aignan, Bois-Guillaume, Bihorel, Isneauville • Maisons familiales, terrains arborés, secteurs prisés.","/secteurs/mont-saint-aignan-bois-guillaume"],
+            ["Paris & Côte d'Azur","En complément de la Normandie : accompagnement à Paris et sur le littoral varois.","/immobilier"]
           ].map(([t,s,href],i)=>(
             <Link key={i} href={href} className="card p-6 block hover:border-[#B89C6D] transition" data-testid={`link-sector-${i}`}>
               <div className="luxe text-xl mb-2">{t}</div>
@@ -163,6 +192,15 @@ export default async function Home() {
           </Link>
         </div>
       </Section>
+
+      {/* Estimation gratuite — demande client */}
+      <div id="estimation">
+        <Section title="Estimez votre bien gratuitement" subtitle="Vous vendez à Rouen, Mont-Saint-Aignan ou Bois-Guillaume ? Obtenez une estimation indicative immédiate et un avis de valeur personnalisé, sans engagement.">
+          <div className="max-w-3xl mx-auto">
+            <EstimationForm />
+          </div>
+        </Section>
+      </div>
 
       {/* Défiscalisation */}
       <Section title="Défiscalisation immobilière" subtitle="Réduisez votre imposition grâce à l'immobilier ancien de caractère.">

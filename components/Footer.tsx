@@ -18,11 +18,16 @@ export function Footer() {
     { href: "/cookies", label: "Cookies" },
   ];
   const secteurs = [
+    { href: "/secteurs/rouen-centre", label: "Rouen centre" },
+    { href: "/secteurs/rouen-rive-gauche", label: "Rouen Rive Gauche" },
+    { href: "/secteurs/mont-saint-aignan-bois-guillaume", label: "Mont-Saint-Aignan" },
+    { href: "/secteurs/bois-guillaume", label: "Bois-Guillaume" },
+    { href: "/secteurs/bihorel", label: "Bihorel" },
+    { href: "/secteurs/isneauville", label: "Isneauville" },
+    { href: "/secteurs/mesnil-esnard-franqueville", label: "Le Mesnil-Esnard & Franqueville" },
     { href: "/secteurs/paris-rive-gauche", label: "Paris Rive gauche" },
     { href: "/secteurs/paris-ouest", label: "Paris Ouest" },
     { href: "/secteurs/paris-centre-historique", label: "Paris Centre historique" },
-    { href: "/secteurs/rouen-centre", label: "Rouen centre" },
-    { href: "/secteurs/mont-saint-aignan-bois-guillaume", label: "Mont-Saint-Aignan & Bois-Guillaume" },
     { href: "/secteurs/saint-aygulf-frejus", label: "Saint-Aygulf & Fréjus" },
     { href: "/secteurs/sainte-maxime-golfe-saint-tropez", label: "Sainte-Maxime & Golfe de Saint-Tropez" },
     { href: "/secteurs/esterel-arriere-pays", label: "Estérel & arrière-pays" },
@@ -51,7 +56,7 @@ export function Footer() {
         <div className="md:col-span-4">
           <div className={heading}>Nous contacter</div>
           <div className="flex flex-col gap-1.5">
-            <a href="tel:+33687157259" className={link}>06 87 15 72 59</a>
+            <a href="tel:+33687157259" className={link}>+33 6 87 15 72 59</a>
             <a href="mailto:arthur.lemeille@lemeillepatrimoine.com" className={link}>arthur.lemeille@lemeillepatrimoine.com</a>
             <a
               href="https://x.com/lempatrimoine"

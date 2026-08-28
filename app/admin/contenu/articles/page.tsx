@@ -1,5 +1,6 @@
 "use client";
 import AdminShell from "@/components/AdminShell";
+import { useToast } from "@/components/Toast";
 import Breadcrumb from "@/components/Breadcrumb";
 import ImageUploader from "@/components/ImageUploader";
 import { useConfirm } from "@/components/ConfirmDialog";
@@ -46,6 +47,7 @@ const EMPTY_ARTICLE: Partial<Article> = {
 export default function Page() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
   const [editing, setEditing] = useState<Partial<Article> | null>(null);
   const [saving, setSaving] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
@@ -82,10 +84,10 @@ export default function Page() {
         setEditing(null);
       } else {
         const err = await res.json();
-        alert(err.error || "Erreur lors de la sauvegarde");
+        toast(err.error || "Erreur lors de la sauvegarde");
       }
     } catch {
-      alert("Erreur lors de la sauvegarde");
+      toast("Erreur lors de la sauvegarde");
     }
     setSaving(false);
   };
@@ -96,7 +98,7 @@ export default function Page() {
       const res = await fetch(`/api/articles/${id}`, { method: "DELETE" });
       if (res.ok) await fetchArticles();
     } catch {
-      alert("Erreur lors de la suppression");
+      toast("Erreur lors de la suppression");
     }
   };
 

@@ -1,6 +1,7 @@
 "use client";
 import AdminShell from "@/components/AdminShell";
 import Breadcrumb from "@/components/Breadcrumb";
+import GaAnalytics from "@/components/GaAnalytics";
 import { useEffect, useState, useMemo } from "react";
 import {
   ResponsiveContainer,
@@ -34,6 +35,17 @@ type Property = {
   commissionAmount?: number;
   commissionPercentage?: number;
 };
+
+// Libellés lisibles des sources de leads (canaux de conversion du site).
+const SOURCE_LABELS: Record<string, string> = {
+  'contact-form': 'Formulaire de contact',
+  'estimation-immobilier': 'Estimation immobilière',
+  'simulateur-defiscalisation': 'Simulateur défiscalisation',
+  'guide-defiscalisation': 'Guide (téléchargement)',
+  'alerte-biens': 'Alerte nouveaux biens',
+  'newsletter': 'Newsletter',
+};
+const sourceLabel = (s: string) => SOURCE_LABELS[s] || s || 'Autre';
 
 export default function Page(){
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -307,6 +319,8 @@ export default function Page(){
   return (
     <AdminShell title="Indicateurs">
       <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Administration", href:"/admin"},{label:"Indicateurs"}]} />
+
+      <GaAnalytics />
 
       {loading && <div className="card p-6">Chargement des données...</div>}
 
@@ -632,18 +646,28 @@ export default function Page(){
             </div>
           </div>
 
-          {/* Par source */}
+          {/* Par source — quel canal du site convertit le mieux */}
           <div className="card p-6 mb-4">
-            <h3 className="luxe text-xl mb-4">Répartition par source</h3>
-            <div className="grid md:grid-cols-3 gap-4">
+            <h3 className="luxe text-xl mb-1">Leads par source</h3>
+            <p className="text-xs opacity-60 mb-4">Quel formulaire / canal du site génère le plus de contacts.</p>
+            <div className="space-y-2">
               {Object.entries(kpi.bySource)
-                .sort(([,a], [,b]) => b - a)
-                .map(([source, count]) => (
-                  <div key={source} className="flex justify-between items-center p-3 bg-gray-100 rounded">
-                    <span className="text-sm text-gray-700">{source}</span>
-                    <span className="font-semibold text-gray-900">{count}</span>
-                  </div>
-                ))}
+                .sort(([, a], [, b]) => b - a)
+                .map(([source, count]) => {
+                  const pct = kpi.total > 0 ? Math.round((count / kpi.total) * 100) : 0;
+                  return (
+                    <div key={source} data-testid={`source-${source}`}>
+                      <div className="flex justify-between items-center text-sm mb-0.5">
+                        <span className="text-gray-700">{sourceLabel(source)}</span>
+                        <span className="font-semibold text-gray-900">{count} <span className="opacity-50 font-normal">· {pct}%</span></span>
+                      </div>
+                      <div className="h-2 bg-gray-100 rounded overflow-hidden">
+                        <div className="h-full bg-[#1F3B2C]" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              {Object.keys(kpi.bySource).length === 0 && <div className="text-sm opacity-50">Aucun lead sur la période.</div>}
             </div>
           </div>
 

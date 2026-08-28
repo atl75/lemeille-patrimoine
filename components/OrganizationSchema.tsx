@@ -14,7 +14,7 @@ export function OrganizationSchema() {
       "height": 200
     },
     "image": `${baseUrl}/og-image.jpg`,
-    "description": "Agence spécialisée dans l'immobilier de caractère, la transaction dans l'ancien et la défiscalisation à Paris, en Normandie et sur la Côte d'Azur. Dispositifs Malraux, Monument Historique, Déficit Foncier.",
+    "description": "Agence immobilière à Rouen, Mont-Saint-Aignan, Bois-Guillaume et sur l'ensemble du Plateau Nord : vente de maisons et appartements de caractère, estimation gratuite et défiscalisation (Malraux, Monument Historique, Déficit Foncier). Également présents à Paris et sur la Côte d'Azur.",
     "priceRange": "€€€€",
     "telephone": "+33687157259",
     "email": "arthur.lemeille@lemeillepatrimoine.com",
@@ -54,7 +54,62 @@ export function OrganizationSchema() {
     "areaServed": [
       {
         "@type": "City",
+        "name": "Rouen",
+        "addressCountry": "FR"
+      },
+      {
+        "@type": "City",
+        "name": "Mont-Saint-Aignan",
+        "addressCountry": "FR"
+      },
+      {
+        "@type": "City",
+        "name": "Bois-Guillaume",
+        "addressCountry": "FR"
+      },
+      {
+        "@type": "City",
+        "name": "Bihorel",
+        "addressCountry": "FR"
+      },
+      {
+        "@type": "City",
+        "name": "Isneauville",
+        "addressCountry": "FR"
+      },
+      {
+        "@type": "City",
+        "name": "Le Mesnil-Esnard",
+        "addressCountry": "FR"
+      },
+      {
+        "@type": "City",
+        "name": "Franqueville-Saint-Pierre",
+        "addressCountry": "FR"
+      },
+      {
+        "@type": "City",
+        "name": "Déville-lès-Rouen",
+        "addressCountry": "FR"
+      },
+      {
+        "@type": "City",
+        "name": "Bonsecours",
+        "addressCountry": "FR"
+      },
+      {
+        "@type": "City",
         "name": "Paris",
+        "addressCountry": "FR"
+      },
+      {
+        "@type": "AdministrativeArea",
+        "name": "Métropole Rouen Normandie",
+        "addressCountry": "FR"
+      },
+      {
+        "@type": "AdministrativeArea",
+        "name": "Seine-Maritime",
         "addressCountry": "FR"
       },
       {

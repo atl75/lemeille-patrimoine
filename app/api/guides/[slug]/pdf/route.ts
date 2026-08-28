@@ -42,7 +42,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       page.drawText('LEMEILLE PATRIMOINE', { x: MARGIN + 32, y: 795, size: 13, font: fontSerif, color: navy });
       page.drawLine({ start: { x: MARGIN, y: 780 }, end: { x: PAGE_W - MARGIN, y: 780 }, thickness: 0.8, color: gold });
       page.drawLine({ start: { x: MARGIN, y: 54 }, end: { x: PAGE_W - MARGIN, y: 54 }, thickness: 0.8, color: gold });
-      const contact = '06 87 15 72 59    ·    arthur.lemeille@lemeillepatrimoine.com    ·    www.lemeillepatrimoine.com';
+      const contact = '+33 6 87 15 72 59    ·    arthur.lemeille@lemeillepatrimoine.com    ·    www.lemeillepatrimoine.com';
       const cw = font.widthOfTextAtSize(contact, 8);
       page.drawText(contact, { x: (PAGE_W - cw) / 2, y: 40, size: 8, font, color: lightText });
       const siren = 'Lemeille Patrimoine — Novus Capital · CIF ORIAS 23 003 614';

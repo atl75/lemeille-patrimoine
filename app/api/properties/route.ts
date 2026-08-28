@@ -3,6 +3,10 @@ import { readJSON, writeJSON, uid } from '@/lib/utils';
 import type { NextRequest } from 'next/server';
 import { isAdmin } from '@/lib/adminGuard';
 import { toPublicProperty } from '@/lib/publicProperty';
+import { revalidatePublicProperties } from '@/lib/revalidateProperties';
+import { rememberNotaries } from '@/lib/rememberNotaries';
+import { MAIL_COPY } from '@/lib/mailCopy';
+import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
 import { insertPropertySchema } from '@/shared/schema';
 import { Resend } from 'resend';
 
@@ -33,6 +37,7 @@ async function notifySubscribers(item: any) {
         <h3 style="margin:8px 0">${item.title || 'Bien'}</h3>
         <p style="color:#555">${item.city || ''}${region ? ' · ' + region : ''}${price ? ' — <strong>' + price + '</strong>' : ''}</p>
         <p><a href="${url}" style="background:#B89C6D;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Découvrir le bien</a></p>
+        ${EMAIL_SIGNATURE_HTML}
         <p style="font-size:12px;color:#999;margin-top:24px">Vous recevez cet email car vous êtes inscrit à notre alerte nouveaux biens.</p>
       </div>`;
 
@@ -40,7 +45,7 @@ async function notifySubscribers(item: any) {
     const from = process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>';
     await Promise.allSettled(
       matching.map((s: any) =>
-        resend.emails.send({ from, to: s.email, subject: `Nouveau bien à ${item.city || ''} — Lemeille Patrimoine`, html })
+        resend.emails.send({ from, to: s.email, bcc: MAIL_COPY, subject: `Nouveau bien à ${item.city || ''} — Lemeille Patrimoine`, html })
       )
     );
   } catch (error) {
@@ -67,6 +72,8 @@ export async function POST(req: NextRequest) {
   const item = { id: uid('b'), ...validation.data };
   data.push(item);
   await writeJSON(FILE, data);
+  revalidatePublicProperties();
+  await rememberNotaries(item);
   await notifySubscribers(item);
   return NextResponse.json(item);
 }

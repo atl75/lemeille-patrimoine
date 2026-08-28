@@ -23,6 +23,7 @@ export async function PATCH(
       ...updates,
       id, // S'assurer que l'ID ne change pas
       createdAt: leads[leadIndex].createdAt, // Conserver la date de création
+      lastActivityAt: new Date().toISOString(), // Horodatage de dernière action (relances)
     };
 
     await writeJSON('leads.json', leads);

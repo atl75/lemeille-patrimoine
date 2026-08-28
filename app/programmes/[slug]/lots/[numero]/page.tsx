@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/Breadcrumb";
 import DocumentLink from "@/components/DocumentLink";
+import { cldImg } from "@/lib/cldImg";
 import { dispositifsOf } from "@/lib/dispositifs";
 import { MapPin, Home, Calculator } from "lucide-react";
 import type { Metadata } from "next";
@@ -100,7 +101,15 @@ export default async function Page({ params }: { params: Promise<{ slug: string;
             ) : (
               <figure>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={lot.plan} alt={`Plan — Lot ${lot.numero ?? numero}`} loading="lazy" decoding="async" className="w-full rounded-2xl object-contain bg-white border" />
+                <img
+                  src={cldImg(lot.plan, 1200)}
+                  srcSet={`${cldImg(lot.plan, 640)} 640w, ${cldImg(lot.plan, 1200)} 1200w`}
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  alt={`Plan — Lot ${lot.numero ?? numero}`}
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full rounded-2xl object-contain bg-white border"
+                />
                 <figcaption className="mt-2 text-center text-sm text-luxe/50">Plan du lot</figcaption>
               </figure>
             )

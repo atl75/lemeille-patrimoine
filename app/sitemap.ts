@@ -10,11 +10,18 @@ export const dynamic = 'force-dynamic';
 // Pages sectorielles SEO (routes /secteurs/[slug], définies dans
 // app/secteurs/[slug]/page.tsx). Liste stable, maintenue ici.
 const SECTOR_SLUGS = [
+  // Rouen & Plateau Nord — cœur de l'activité (priorité SEO locale)
+  'rouen-centre',
+  'rouen-rive-gauche',
+  'mont-saint-aignan-bois-guillaume',
+  'bois-guillaume',
+  'bihorel',
+  'isneauville',
+  'mesnil-esnard-franqueville',
+  // Zones complémentaires
   'paris-rive-gauche',
   'paris-ouest',
   'paris-centre-historique',
-  'rouen-centre',
-  'mont-saint-aignan-bois-guillaume',
   'saint-aygulf-frejus',
   'sainte-maxime-golfe-saint-tropez',
   'esterel-arriere-pays',

@@ -1,5 +1,6 @@
 "use client";
 import AdminShell from "@/components/AdminShell";
+import { useToast } from "@/components/Toast";
 import Breadcrumb from "@/components/Breadcrumb";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useEffect, useState } from "react";
@@ -26,6 +27,7 @@ const EMPTY_REVIEW: Partial<Review> = {
 export default function Page() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
   const [editing, setEditing] = useState<Partial<Review> | null>(null);
   const [saving, setSaving] = useState(false);
   const { confirm, dialog } = useConfirm();
@@ -61,7 +63,7 @@ export default function Page() {
         setEditing(null);
       }
     } catch (err) {
-      alert('Erreur lors de la sauvegarde');
+      toast('Erreur lors de la sauvegarde');
     }
     setSaving(false);
   };
@@ -74,7 +76,7 @@ export default function Page() {
         await fetchReviews();
       }
     } catch (err) {
-      alert('Erreur lors de la suppression');
+      toast('Erreur lors de la suppression');
     }
   };
 

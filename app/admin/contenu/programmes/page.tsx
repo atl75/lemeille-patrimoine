@@ -1,5 +1,6 @@
 "use client";
 import AdminShell from "@/components/AdminShell";
+import { useToast } from "@/components/Toast";
 import Breadcrumb from "@/components/Breadcrumb";
 import DocumentUploader from "@/components/DocumentUploader";
 import { useConfirm } from "@/components/ConfirmDialog";
@@ -64,6 +65,7 @@ const EMPTY_PROGRAM: Partial<Program> = {
 export default function Page() {
   const [programs, setPrograms] = useState<Program[]>([]);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
   const [editing, setEditing] = useState<Partial<Program> | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -71,7 +73,7 @@ export default function Page() {
 
   const handlePhoto = async (file: File | undefined, field: string = 'coverImage') => {
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { alert('Image trop volumineuse (10 Mo max)'); return; }
+    if (file.size > 10 * 1024 * 1024) { toast('Image trop volumineuse (10 Mo max)'); return; }
     setUploadingPhoto(true);
     try {
       const dataUri: string = await new Promise((resolve, reject) => {
@@ -87,9 +89,9 @@ export default function Page() {
       });
       const data = await res.json();
       if (res.ok && data.url) updateField(field, data.url);
-      else alert(data.error || "Échec de l'envoi de la photo");
+      else toast(data.error || "Échec de l'envoi de la photo");
     } catch {
-      alert("Échec de l'envoi de la photo");
+      toast("Échec de l'envoi de la photo");
     }
     setUploadingPhoto(false);
   };
@@ -97,7 +99,7 @@ export default function Page() {
   // Upload d'une image et renvoi de l'URL (pour les lots / projections).
   const uploadImage = async (file: File | undefined): Promise<string | null> => {
     if (!file) return null;
-    if (file.size > 10 * 1024 * 1024) { alert('Image trop volumineuse (10 Mo max)'); return null; }
+    if (file.size > 10 * 1024 * 1024) { toast('Image trop volumineuse (10 Mo max)'); return null; }
     try {
       const dataUri: string = await new Promise((resolve, reject) => {
         const r = new FileReader();
@@ -111,16 +113,16 @@ export default function Page() {
       });
       const data = await res.json();
       if (res.ok && data.url) return data.url;
-      alert(data.error || "Échec de l'envoi de la photo");
+      toast(data.error || "Échec de l'envoi de la photo");
       return null;
-    } catch { alert("Échec de l'envoi de la photo"); return null; }
+    } catch { toast("Échec de l'envoi de la photo"); return null; }
   };
 
   // Upload d'un plan : PDF → volume persistant (/api/upload-document), image → Cloudinary.
   const uploadPlan = async (file: File | undefined): Promise<string | null> => {
     if (!file) return null;
     if (file.type !== 'application/pdf') return uploadImage(file);
-    if (file.size > 22 * 1024 * 1024) { alert('Fichier trop volumineux (20 Mo max)'); return null; }
+    if (file.size > 22 * 1024 * 1024) { toast('Fichier trop volumineux (20 Mo max)'); return null; }
     try {
       const dataUri: string = await new Promise((resolve, reject) => {
         const r = new FileReader();
@@ -134,9 +136,9 @@ export default function Page() {
       });
       const data = await res.json();
       if (res.ok && data.url) return data.url;
-      alert(data.error || "Échec de l'envoi du plan");
+      toast(data.error || "Échec de l'envoi du plan");
       return null;
-    } catch { alert("Échec de l'envoi du plan"); return null; }
+    } catch { toast("Échec de l'envoi du plan"); return null; }
   };
 
   const fetchPrograms = async () => {
@@ -170,7 +172,7 @@ export default function Page() {
         setEditing(null);
       }
     } catch (err) {
-      alert('Erreur lors de la sauvegarde');
+      toast('Erreur lors de la sauvegarde');
     }
     setSaving(false);
   };
@@ -183,7 +185,7 @@ export default function Page() {
         await fetchPrograms();
       }
     } catch (err) {
-      alert('Erreur lors de la suppression');
+      toast('Erreur lors de la suppression');
     }
   };
 

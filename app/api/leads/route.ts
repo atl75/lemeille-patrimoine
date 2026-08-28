@@ -3,6 +3,26 @@ import { readJSON, uid, updateJSON } from '@/lib/utils';
 import { Resend } from 'resend';
 import { isAdmin } from '@/lib/adminGuard';
 import { rateLimit, getClientIp } from '@/lib/rateLimit';
+import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
+
+// Accusé de réception envoyé au prospect (s'il a laissé un email), avec la
+// signature officielle. Silencieux si pas d'email ou Resend non configuré.
+async function sendClientAck(payload: any) {
+  const to = (payload?.email || '').toString().trim();
+  if (!/.+@.+\..+/.test(to) || !process.env.RESEND_API_KEY) return;
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const prenom = payload.firstName ? ` ${payload.firstName}` : '';
+    await resend.emails.send({
+      from: process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>',
+      to,
+      subject: 'Votre demande a bien été reçue — Lemeille Patrimoine',
+      html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#222;font-size:14px;line-height:1.55"><p>Bonjour${prenom},</p><p>Merci pour votre message. Nous avons bien reçu votre demande et un conseiller vous recontactera <strong>sous 48 heures</strong>.</p><p>Pour toute urgence, vous pouvez nous joindre directement au +33 6 87 15 72 59.</p><p>À très bientôt,</p>${EMAIL_SIGNATURE_HTML}</div>`,
+    });
+  } catch (e) {
+    console.error('Erreur accusé de réception client:', e);
+  }
+}
 
 export async function GET(req: Request){
   if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -221,7 +241,7 @@ export async function POST(req: Request){
         // Continue même si l'email échoue
       }
     }
-    
+    await sendClientAck(payload);
     return NextResponse.json({ success: true, id: payload.id });
   } else {
     // FormData from contact form
@@ -257,7 +277,7 @@ export async function POST(req: Request){
         // Continue même si l'email échoue
       }
     }
-    
+    await sendClientAck(payload);
     return NextResponse.redirect(new URL('/contact?ok=1', req.url));
   }
 }

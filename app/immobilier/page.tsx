@@ -7,25 +7,28 @@ import SoldToggle from "@/components/SoldToggle";
 import PropertyCard from "@/components/PropertyCard";
 import AlerteBiens from "@/components/AlerteBiens";
 import { allFeatures } from "@/lib/features";
+import { getPropertyCards } from "@/lib/propertiesData";
+import { propertyTypology } from "@/lib/propertyLabel";
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Immobilier Paris, Normandie, Côte d\'Azur | Lemeille Patrimoine',
-  description: 'Propriétés d\'exception à Paris, en Normandie et sur la Côte d\'Azur. Appartements et maisons de caractère. Expertise locale, conseil personnalisé, discrétion garantie.',
+  title: 'Biens immobiliers à Rouen & Plateau Nord | Lemeille Patrimoine',
+  description: 'Maisons et appartements à vendre à Rouen, Mont-Saint-Aignan, Bois-Guillaume et Plateau Nord. Biens de caractère sélectionnés, accompagnement personnalisé.',
   alternates: {
     canonical: '/immobilier'
   },
   openGraph: {
-    title: 'Immobilier de caractère à Paris, Normandie, Côte d\'Azur',
-    description: 'Propriétés d\'exception à Paris, en Normandie et sur la Côte d\'Azur.',
+    title: 'Biens à vendre à Rouen & Plateau Nord',
+    description: 'Maisons et appartements de caractère à Rouen et sur le Plateau Nord.',
     url: '/immobilier',
     type: 'website',
   }
 };
 
-// Désactiver complètement le cache Next.js pour cette page
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+// ISR : page mise en cache et régénérée au plus toutes les 5 min. Les
+// modifications de biens dans l'admin déclenchent une régénération immédiate
+// (revalidatePath dans les routes de mutation).
+export const revalidate = 300;
 
 const SECTORS = [
   { value: "paris", label: "Paris" },
@@ -85,12 +88,6 @@ function formatCityWithDistrict(city: string): string {
   return city;
 }
 
-async function getProperties(){
-  const base = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT||'3000'}`;
-  const r = await fetch(`${base}/api/properties`, { cache: 'no-store' });
-  return r.ok ? r.json() : [];
-}
-
 export default async function Page({ searchParams }: {
   searchParams: Promise<{
     sector?: string; priceMin?: string; priceMax?: string;
@@ -103,7 +100,9 @@ export default async function Page({ searchParams }: {
     sector, priceMin, priceMax, surfaceMin, surfaceMax, roomsMin, dpe, features, sortPrice, sortSurface, showSold, propertyType
   } = await searchParams;
 
-  const all:any[] = await getProperties();
+  // Projection « carte » légère : PropertyCard est un composant client, on évite
+  // de sérialiser descriptions/galeries/plans/map de chaque bien dans le payload.
+  const all:any[] = await getPropertyCards();
 
   // Construire la liste de caractéristiques disponibles (fallback si vide)
   const featureOptions = Array.from(new Set(
@@ -227,11 +226,10 @@ export default async function Page({ searchParams }: {
             className="w-full h-64 object-cover rounded-t-2xl grayscale opacity-60"
           />
           <div className="p-6 opacity-70">
-            <h3 className="luxe text-2xl">{p.title}</h3>
-            <div className="text-sm opacity-70">{formatCityWithDistrict(p.city)}</div>
-            <div className="mt-2 text-sm">
-              {(p.type || 'APPARTEMENT') === 'APPARTEMENT' ? 'Appartement' : 'Maison'} · Surface: {p.surface ?? "—"} m² · Pièces: {p.rooms ?? "—"}
-              {p.landSize && (p.type || 'APPARTEMENT') === 'MAISON' && <span> · Terrain: {p.landSize} m²</span>}
+            <h3 className="luxe text-2xl">{propertyTypology(p)}{p.surface ? ` · ${p.surface} m²` : ''} · {formatCityWithDistrict(p.city)}</h3>
+            <div className="mt-1 text-sm opacity-70">
+              {p.title}
+              {p.landSize && (p.type || 'APPARTEMENT') === 'MAISON' && <span> · Terrain : {p.landSize} m²</span>}
             </div>
             <div className="mt-2 font-semibold text-[#B89C6D]">Nous consulter</div>
             {p.dpe && <div className="mt-2 text-xs opacity-70">DPE : {p.dpe.classEnergy} · GES : {p.dpe.classGES}</div>}

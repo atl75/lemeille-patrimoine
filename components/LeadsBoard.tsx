@@ -1,5 +1,6 @@
 "use client";
 import AdminShell from "@/components/AdminShell";
+import { useToast } from "@/components/Toast";
 import Breadcrumb from "@/components/Breadcrumb";
 import { useConfirm } from "@/components/ConfirmDialog";
 import CompanyAutocomplete from "@/components/CompanyAutocomplete";
@@ -26,6 +27,7 @@ type Attachment = {
 type Lead = {
   id: string;
   createdAt: string;
+  lastActivityAt?: string;
   status?: string;
   category?: 'immobilier' | 'patrimoine';
   role?: 'ACHETEUR' | 'VENDEUR';
@@ -53,6 +55,16 @@ type Lead = {
   priority?: 'hot' | 'warm' | 'cold' | null;
 };
 
+// Un lead est « à relancer » s'il n'est pas clôturé et qu'aucune action récente
+// n'a eu lieu depuis un délai fonction de son statut (nouveau 3j, contacté 5j, qualifié 10j).
+const daysSince = (iso?: string) => iso ? (Date.now() - new Date(iso).getTime()) / 86400000 : Infinity;
+function needsFollowUp(l: Lead): boolean {
+  const s = l.status || 'new';
+  if (s === 'closed') return false;
+  const threshold = s === 'contacted' ? 5 : s === 'qualified' ? 10 : 3;
+  return daysSince(l.lastActivityAt || l.createdAt) >= threshold;
+}
+
 // Priorisation / scoring des leads (cliquable, cycle none → chaud → tiède → froid).
 const PRIORITY_META: Record<string, { label: string; cls: string }> = {
   hot: { label: '🔥 Chaud', cls: 'bg-red-100 border-red-300 text-red-700' },
@@ -76,6 +88,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
   const roleLabel = role === 'VENDEUR' ? 'Vendeurs' : 'Acheteurs';
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
   const [showForm, setShowForm] = useState(false);
   const [editingLead, setEditingLead] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -113,6 +126,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'new' | 'contacted' | 'qualified' | 'closed'>('all');
   const [filterPriority, setFilterPriority] = useState<'all' | 'hot' | 'warm' | 'cold'>('all');
+  const [followUpOnly, setFollowUpOnly] = useState(false);
 
   const [view, setView] = useState<'list' | 'pipeline'>('list');
   const [dragLeadId, setDragLeadId] = useState<string | null>(null);
@@ -122,7 +136,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
 
   // Déplace un lead dans le pipeline (change son statut ; optimiste + PATCH).
   const changeStatus = async (leadId: string, status: string) => {
-    setLeads(ls => ls.map(l => l.id === leadId ? { ...l, status } : l));
+    setLeads(ls => ls.map(l => l.id === leadId ? { ...l, status, lastActivityAt: new Date().toISOString() } : l));
     try {
       await fetch(`/api/leads/${leadId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
     } catch { fetchLeads(); }
@@ -132,7 +146,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
   const cyclePriority = async (lead: Lead) => {
     const idx = PRIORITY_CYCLE.indexOf((lead.priority as any) ?? null);
     const next = PRIORITY_CYCLE[(idx + 1) % PRIORITY_CYCLE.length];
-    setLeads(ls => ls.map(l => l.id === lead.id ? { ...l, priority: next } : l));
+    setLeads(ls => ls.map(l => l.id === lead.id ? { ...l, priority: next, lastActivityAt: new Date().toISOString() } : l));
     try {
       await fetch(`/api/leads/${lead.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -253,14 +267,14 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        alert('Erreur lors de la création de la fiche bien.');
+        toast('Erreur lors de la création de la fiche bien.');
         setCreatingMandat(null);
         return;
       }
       const created = await res.json();
       window.location.href = `/admin/contenu/biens?edit=${created.id}`;
     } catch {
-      alert('Erreur lors de la création de la fiche bien.');
+      toast('Erreur lors de la création de la fiche bien.');
       setCreatingMandat(null);
     }
   };
@@ -320,16 +334,16 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
           interestPropertyId: buyerForm.interestPropertyId || null,
         }),
       });
-      if (res.ok) fetchLeads(); else alert('Erreur lors de l\'enregistrement des critères.');
-    } catch { alert('Erreur réseau.'); }
+      if (res.ok) fetchLeads(); else toast('Erreur lors de l\'enregistrement des critères.');
+    } catch { toast('Erreur réseau.'); }
     setSavingBuyer(false);
   };
 
   // Envoie au client la sélection de biens correspondants par email.
   const proposeBiens = async (lead: Lead) => {
     const ids = matchingBiens(currentBuyerCriteria()).map((b: any) => b.id);
-    if (!ids.length) { alert('Aucun bien à proposer.'); return; }
-    if (!lead.email) { alert("Ce lead n'a pas d'email."); return; }
+    if (!ids.length) { toast('Aucun bien à proposer.'); return; }
+    if (!lead.email) { toast("Ce lead n'a pas d'email."); return; }
     setProposing(lead.id);
     setProposeMsg(null);
     try {
@@ -373,8 +387,8 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
         body: JSON.stringify({ leadId: lead.id }),
       });
       if (res.ok) { await refreshProperties(); setLinkPropertyId(''); }
-      else alert('Erreur lors de la liaison du bien.');
-    } catch { alert('Erreur réseau.'); }
+      else toast('Erreur lors de la liaison du bien.');
+    } catch { toast('Erreur réseau.'); }
   };
 
   const unlinkBien = async (propertyId: string, leadId: string) => {
@@ -428,10 +442,10 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
         setShowForm(false);
         fetchLeads();
       } else {
-        alert('Erreur lors de l\'ajout du lead');
+        toast('Erreur lors de l\'ajout du lead');
       }
     } catch (error) {
-      alert('Erreur lors de l\'ajout du lead');
+      toast('Erreur lors de l\'ajout du lead');
     } finally {
       setSubmitting(false);
     }
@@ -439,7 +453,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
 
   const handleAddAction = async (leadId: string) => {
     if (!actionFormData.description || !actionFormData.dueDate) {
-      alert('Veuillez remplir tous les champs');
+      toast('Veuillez remplir tous les champs');
       return;
     }
 
@@ -464,10 +478,10 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
         setShowActionForm(null);
         fetchLeads();
       } else {
-        alert('Erreur lors de l\'ajout de l\'action');
+        toast('Erreur lors de l\'ajout de l\'action');
       }
     } catch (error) {
-      alert('Erreur lors de l\'ajout de l\'action');
+      toast('Erreur lors de l\'ajout de l\'action');
     }
   };
 
@@ -552,10 +566,10 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
         setShowForm(false);
         fetchLeads();
       } else {
-        alert('Erreur lors de la modification du lead');
+        toast('Erreur lors de la modification du lead');
       }
     } catch (error) {
-      alert('Erreur lors de la modification du lead');
+      toast('Erreur lors de la modification du lead');
     } finally {
       setSubmitting(false);
     }
@@ -574,10 +588,10 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
       if (response.ok) {
         fetchLeads();
       } else {
-        alert('Erreur lors de la suppression du lead');
+        toast('Erreur lors de la suppression du lead');
       }
     } catch (error) {
-      alert('Erreur lors de la suppression du lead');
+      toast('Erreur lors de la suppression du lead');
     }
   };
 
@@ -618,7 +632,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
       
       // Vérifier la taille (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        alert(`Le fichier ${file.name} est trop volumineux (max 5MB)`);
+        toast(`Le fichier ${file.name} est trop volumineux (max 5MB)`);
         continue;
       }
 
@@ -638,7 +652,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
           uploadedAt: new Date().toISOString()
         });
       } catch (error) {
-        alert(`Erreur lors du chargement de ${file.name}`);
+        toast(`Erreur lors du chargement de ${file.name}`);
       }
     }
 
@@ -668,12 +682,15 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
     if ((l.role || 'ACHETEUR') !== role) return false;
     if (filterStatus !== 'all' && (l.status || 'new') !== filterStatus) return false;
     if (filterPriority !== 'all' && (l.priority || '') !== filterPriority) return false;
+    if (followUpOnly && !needsFollowUp(l)) return false;
     if (q) {
       const hay = [l.firstName, l.lastName, l.email, l.phone, l.address, l.topic, l.message].filter(Boolean).join(' ').toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;
   });
+  // Nombre de leads (du rôle courant) à relancer.
+  const followUpCount = sortedLeads.filter(l => (l.category || 'immobilier') === 'immobilier' && (l.role || 'ACHETEUR') === role && needsFollowUp(l)).length;
   const byRole = leads.reduce((acc, l) => {
     if ((l.category || 'immobilier') === 'immobilier') { const r = l.role || 'ACHETEUR'; acc[r] = (acc[r] || 0) + 1; }
     return acc;
@@ -774,6 +791,15 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
             <option value="warm">🌤️ Tiède</option>
             <option value="cold">❄️ Froid</option>
           </select>
+          <button
+            type="button"
+            onClick={() => setFollowUpOnly(v => !v)}
+            className={`px-3 py-2 rounded border text-sm whitespace-nowrap ${followUpOnly ? 'bg-amber-500 text-white border-amber-500' : 'border-amber-400 text-amber-700 hover:bg-amber-50'}`}
+            data-testid="filter-followup"
+            title="Leads sans action récente"
+          >
+            ⏰ À relancer{followUpCount ? ` (${followUpCount})` : ''}
+          </button>
         </div>
 
         {showForm && (
@@ -1026,6 +1052,11 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                     <h3 className="font-semibold text-lg">
                       {lead.firstName} {lead.lastName}
                     </h3>
+                    {needsFollowUp(lead) && (
+                      <span className="pill text-xs font-semibold bg-amber-100 border-amber-300 text-amber-800" title="Aucune action récente sur ce lead" data-testid={`badge-followup-${lead.id}`}>
+                        ⏰ À relancer
+                      </span>
+                    )}
                     <span className={`pill text-xs font-semibold ${
                       lead.category === 'patrimoine' 
                         ? 'bg-purple-100 border-purple-300 text-purple-700' 

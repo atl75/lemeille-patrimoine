@@ -21,8 +21,8 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: 'Lemeille Patrimoine — Immobilier & défiscalisation',
-  description: "Immobilier de caractère et défiscalisation à Paris, Normandie et Côte d'Azur. Transaction dans l'ancien et dispositifs Malraux, Monument Historique, Déficit Foncier.",
+  title: 'Lemeille Patrimoine — Agence immobilière à Rouen',
+  description: "Agence immobilière à Rouen, Mont-Saint-Aignan et Bois-Guillaume. Maisons et appartements de caractère, estimation gratuite, défiscalisation (Malraux, Monument Historique, Déficit Foncier).",
   // Pas de canonical global ici : il serait hérité par toutes les pages
   // (chaque page définit son propre canonical ; l'accueil le fait ci-dessous).
   openGraph: {
@@ -30,8 +30,8 @@ export const metadata: Metadata = {
     locale: 'fr_FR',
     url: process.env.NEXT_PUBLIC_SITE_URL || 'https://lemeillepatrimoine.com',
     siteName: 'Lemeille Patrimoine',
-    title: 'Lemeille Patrimoine — Immobilier de caractère & défiscalisation',
-    description: "Agence spécialisée dans l'immobilier de caractère et la défiscalisation à Paris, en Normandie et sur la Côte d'Azur.",
+    title: 'Lemeille Patrimoine — Agence immobilière à Rouen & Plateau Nord',
+    description: "Agence immobilière de caractère à Rouen, Mont-Saint-Aignan, Bois-Guillaume et Plateau Nord.",
     images: [{
       url: '/og-image.jpg?v=4',
       width: 1200,
@@ -42,10 +42,14 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Lemeille Patrimoine — Immobilier & défiscalisation',
-    description: "Immobilier de caractère & défiscalisation - Paris, Normandie, Côte d'Azur",
+    description: "Agence immobilière à Rouen — maisons et appartements de caractère",
     images: ['/og-image.jpg?v=4'],
   },
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://lemeillepatrimoine.com'),
+  // PWA installable (écran d'accueil iPhone/Android) pour la webapp /app.
+  manifest: '/manifest.webmanifest',
+  appleWebApp: { capable: true, title: 'LP Terrain', statusBarStyle: 'black-translucent' },
+  icons: { apple: '/logo.png' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

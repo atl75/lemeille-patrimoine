@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import AddressAutocomplete from "./AddressAutocomplete";
+import { trackEvent } from "@/lib/analytics";
 
 /** Barèmes indicatifs €/m² (milieu de fourchette) */
 const BASE_M2: Record<string, number> = {
@@ -19,13 +20,13 @@ type TInput = {
   sector: string;
   type: "Appartement" | "Maison";
   city: string;
-  surface: number;
-  rooms: number;
+  surface: number | "";
+  rooms: number | "";
   condition: "Refait à neuf" | "Bon état" | "À rafraîchir" | "À rénover";
   dpe: "A"|"B"|"C"|"D"|"E"|"F"|"G"|"Inconnu";
-  floor?: number;
+  floor?: number | "";
   elevator?: boolean;
-  extBalcon?: number;   // m²
+  extBalcon?: number | "";   // m²
   extTerrasse?: boolean;
   extJardin?: boolean;
   parking?: boolean;
@@ -46,13 +47,13 @@ export default function EstimationForm(){
     sector: "paris",
     type: "Appartement",
     city: "",
-    surface: 0,
-    rooms: 0,
+    surface: "",
+    rooms: "",
     condition: "Bon état",
     dpe: "D",
-    floor: 0,
+    floor: "",
     elevator: false,
-    extBalcon: 0,
+    extBalcon: "",
     extTerrasse: false,
     extJardin: false,
     parking: false,
@@ -76,7 +77,7 @@ export default function EstimationForm(){
   const [validationError, setValidationError] = useState("");
 
   const set = (k:keyof TInput)=>(e:any)=>{
-    const v = (typeof e === "object" && e?.target) ? (e.target.type==="number" ? Number(e.target.value) : e.target.value) : e;
+    const v = (typeof e === "object" && e?.target) ? (e.target.type==="number" ? (e.target.value === "" ? "" : Number(e.target.value)) : e.target.value) : e;
     setInp(s=>({...s,[k]: v}));
   };
 
@@ -164,8 +165,9 @@ export default function EstimationForm(){
         body: JSON.stringify(payload)
       });
       setSent(r.ok);
-      if(r.ok){ 
-        setFirstName(""); 
+      if(r.ok){
+        trackEvent('generate_lead', 'estimation', inp.sector, Math.round((result?.reco || 0)));
+        setFirstName("");
         setLastName(""); 
         setEmail(""); 
         setPhone(""); 
@@ -237,7 +239,7 @@ export default function EstimationForm(){
               <div className="flex gap-2">
                 <label className="grid gap-1 flex-1">
                   <span className="text-sm font-medium">Étage</span>
-                  <input className="input" type="number" min="0" step="1" value={inp.floor||0} onChange={set("floor") as any} onFocus={e => e.target.select()} placeholder="3"/>
+                  <input className="input" type="number" min="0" step="1" value={inp.floor ?? ''} onChange={set("floor") as any} onFocus={e => e.target.select()} placeholder="3"/>
                 </label>
                 <label className="grid gap-1">
                   <span className="text-sm font-medium opacity-0">Ascenseur</span>

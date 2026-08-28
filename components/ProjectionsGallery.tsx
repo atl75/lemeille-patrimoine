@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { X, ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
+import { cldImg } from "@/lib/cldImg";
 
 type Item = { image?: string; title?: string };
 
@@ -94,7 +95,8 @@ export default function ProjectionsGallery({ items }: { items: Item[] }) {
             </button>
           )}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={cur.image} alt={cur.title || `Vue ${current + 1}`} className="max-h-[85vh] max-w-[92vw] object-contain rounded-lg shadow-2xl" onClick={(e) => e.stopPropagation()} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={cldImg(cur.image, 1600)} alt={cur.title || `Vue ${current + 1}`} className="max-h-[85vh] max-w-[92vw] object-contain rounded-lg shadow-2xl" onClick={(e) => e.stopPropagation()} />
           {cur.title && <div className="mt-3 text-sm text-white/80">{cur.title}</div>}
           {many && <div className="mt-1 text-xs text-white/40">{current + 1} / {imgs.length}</div>}
           {many && (

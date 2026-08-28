@@ -185,7 +185,7 @@ export default function Page(){
         </p>
         <ul className="not-prose list-none pl-0">
           <li className="mb-2">
-            📞 <a href="tel:+33687157259" className="text-[#B89C6D] hover:underline">06 87 15 72 59</a>
+            📞 <a href="tel:+33687157259" className="text-[#B89C6D] hover:underline">+33 6 87 15 72 59</a>
           </li>
           <li className="mb-2">
             ✉️ <a href="mailto:arthur.lemeille@lemeillepatrimoine.com" className="text-[#B89C6D] hover:underline">arthur.lemeille@lemeillepatrimoine.com</a>

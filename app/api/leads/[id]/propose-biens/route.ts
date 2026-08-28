@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { readJSON } from '@/lib/utils';
 import { isAdmin } from '@/lib/adminGuard';
+import { MAIL_COPY } from '@/lib/mailCopy';
+import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
 import { Resend } from 'resend';
 
 // Envoie au lead (acheteur) une sélection de biens correspondant à sa recherche.
@@ -57,8 +59,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       <p>Suite à votre recherche, voici une première sélection de biens qui pourraient vous correspondre :</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px">${cards}</table>
       <p style="margin-top:18px">N'hésitez pas à me contacter pour organiser une visite ou affiner votre recherche.</p>
-      <p style="margin-top:18px;color:#1F3B2C"><strong>Arthur Lemeille</strong><br>Lemeille Patrimoine<br>
-        <a href="tel:+33687157259" style="color:#8A6D3F">06 87 15 72 59</a> · <a href="${base}" style="color:#8A6D3F">lemeillepatrimoine.com</a></p>
+      ${EMAIL_SIGNATURE_HTML}
       <p style="font-size:11px;color:#999;margin-top:20px">Vous recevez cet email car vous avez sollicité Lemeille Patrimoine pour un projet immobilier.</p>
     </div>`;
 
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await resend.emails.send({
       from,
       to: lead.email,
+      bcc: MAIL_COPY,
       subject: `Votre sélection de biens — Lemeille Patrimoine (${list.length})`,
       html,
     });

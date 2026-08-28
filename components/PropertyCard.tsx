@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { propertyTypology } from "@/lib/propertyLabel";
 import { Eye } from "lucide-react";
 import Img from "@/components/Img";
 import PropertyQuickView from "@/components/PropertyQuickView";
@@ -65,11 +66,10 @@ export default function PropertyCard({
           </button>
         </div>
         <div className="p-6">
-          <h3 className="luxe text-2xl">{property.title}</h3>
-          <div className="text-sm opacity-70">{cityLabel}</div>
-          <div className="mt-2 text-sm">
-            {(property.type || "APPARTEMENT") === "APPARTEMENT" ? "Appartement" : "Maison"} · Surface: {property.surface ?? "—"} m² · Pièces: {property.rooms ?? "—"}
-            {property.landSize && property.type === "MAISON" && <span> · Terrain: {property.landSize} m²</span>}
+          <h3 className="luxe text-2xl">{propertyTypology(property)}{property.surface ? ` · ${property.surface} m²` : ""}{cityLabel ? ` · ${cityLabel}` : ""}</h3>
+          <div className="mt-1 text-sm opacity-70">
+            {property.title}
+            {property.landSize && property.type === "MAISON" && <span> · Terrain : {property.landSize} m²</span>}
           </div>
           {property.priceOnRequest ? (
             <div className="mt-2 font-semibold text-[#B89C6D]">Nous consulter</div>

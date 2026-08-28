@@ -5,6 +5,8 @@ import Link from "next/link";
 // SiteChrome). Reprend l'esprit du hero (photo + voile vert) pour clore chaque
 // page sur une invitation à prendre contact — comble le vide et convertit.
 export default function CtaBand() {
+  // Lien de prise de RDV (Calendly…) configurable via env ; sinon page contact.
+  const rdvUrl = process.env.NEXT_PUBLIC_RDV_URL || "";
   return (
     <section className="relative isolate overflow-hidden mt-20">
       <Image
@@ -28,14 +30,20 @@ export default function CtaBand() {
           Parlons-en. Premier échange confidentiel et sans engagement.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-x-7 gap-y-3">
-          <Link href="/contact" className="btn btn-gold">
-            Prendre rendez-vous
-          </Link>
+          {rdvUrl ? (
+            <a href={rdvUrl} target="_blank" rel="noopener noreferrer" className="btn btn-gold">
+              Prendre rendez-vous
+            </a>
+          ) : (
+            <Link href="/contact" className="btn btn-gold">
+              Prendre rendez-vous
+            </Link>
+          )}
           <a
             href="tel:+33687157259"
             className="group inline-flex items-center gap-1.5 font-medium text-cream/90 hover:text-cream transition-colors"
           >
-            06 87 15 72 59
+            +33 6 87 15 72 59
             <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
           </a>
         </div>

@@ -20,3 +20,10 @@ skills-lock.json
 data/uploads/
 signature-mandataire.png
 data/mandats.json
+
+# Données/secrets générés en local ou en prod (jamais versionnés)
+data/google-token.json
+data/documents.json
+data/notary-contacts.json
+data/company-contacts.json
+data/ingested-emails.json

@@ -50,7 +50,7 @@ export default async function Page(){
 
         {/* KPI Cards */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <div className="card p-6 border-2 border-[#B89C6D]/20">
+          <Link href="/admin/contenu/biens" className="card p-6 border-2 border-[#B89C6D]/20 hover:border-[#B89C6D] transition-colors block" data-testid="link-active-properties">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-lg bg-[#B89C6D]/10">
                 <TrendingUp className="h-6 w-6 text-[#B89C6D]" />
@@ -61,7 +61,7 @@ export default async function Page(){
               {totalProperties}
             </p>
             <p className="text-sm opacity-60 mt-1">Annonces en ligne</p>
-          </div>
+          </Link>
 
           <div className="card p-6 border-2 border-[#B89C6D]/20">
             <div className="flex items-center gap-3 mb-2">
@@ -99,6 +99,14 @@ export default async function Page(){
           <Link className="card p-6 hover:border-[#B89C6D]" href="/admin/crm" data-testid="link-crm">
             <h3 className="luxe text-xl">CRM</h3>
             <p className="opacity-80 mt-2">Leads entrants, suivi, statut et export CSV.</p>
+          </Link>
+          <Link className="card p-6 hover:border-[#B89C6D]" href="/admin/repertoire" data-testid="link-repertoire">
+            <h3 className="luxe text-xl">Répertoire</h3>
+            <p className="opacity-80 mt-2">Vendeurs, acquéreurs et notaires — contacts et biens liés.</p>
+          </Link>
+          <Link className="card p-6 hover:border-[#B89C6D]" href="/app" data-testid="link-terrain">
+            <h3 className="luxe text-xl">Documents terrain 📱</h3>
+            <p className="opacity-80 mt-2">Bon de visite / offre d’achat signés — webapp mobile (à ajouter à l’écran d’accueil).</p>
           </Link>
           <Link className="card p-6 hover:border-[#B89C6D]" href="/admin/kpi" data-testid="link-kpi">
             <h3 className="luxe text-xl">Indicateurs</h3>

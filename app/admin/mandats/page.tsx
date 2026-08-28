@@ -1,11 +1,14 @@
 "use client";
 import AdminShell from "@/components/AdminShell";
+import { useToast } from "@/components/Toast";
 import Breadcrumb from "@/components/Breadcrumb";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { Printer, FileText, PenLine, Trash2, Save } from "lucide-react";
+import { Printer, FileText, PenLine, Trash2, Save, Plus, Lock } from "lucide-react";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
+import CompanyAutocomplete from "@/components/CompanyAutocomplete";
 
-type Owner = { type?: string; firstName?: string; lastName?: string; name?: string; address?: string; email?: string };
+type Owner = { type?: string; firstName?: string; lastName?: string; name?: string; address?: string; email?: string; phone?: string; siren?: string; legalForm?: string; managerFirstName?: string; managerLastName?: string; managerRole?: string };
+type Signer = { ownerIndex?: number; name?: string; email?: string; phone?: string; url?: string; signed?: boolean; emailed?: boolean };
 type Mandat = {
   id: string;
   createdAt?: string;
@@ -15,6 +18,7 @@ type Mandat = {
   rooms?: number;
   city?: string;
   region?: string;
+  designation?: string;
   map?: { query?: string };
   price?: number;
   netSellerAmount?: number;
@@ -25,6 +29,7 @@ type Mandat = {
   mandateHonorairesCharge?: 'VENDEUR' | 'ACQUEREUR';
   mandatePlace?: string;
   owners?: Owner[];
+  signers?: { ownerIndex?: number; name?: string; signedAt?: string; dataUrl?: string }[];
   mandateSignStatus?: 'PENDING' | 'SIGNED';
   mandateSignature?: { signedAt?: string };
   mandateSignerEmail?: string;
@@ -41,10 +46,11 @@ function mandantOf(m: Mandat): string {
 export default function Page() {
   const [items, setItems] = useState<Mandat[]>([]);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
   const [savingId, setSavingId] = useState<string | null>(null);
   const [signingId, setSigningId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [signInfo, setSignInfo] = useState<Record<string, { link: string; emailed: boolean; email: string }>>({});
+  const [signInfo, setSignInfo] = useState<Record<string, Signer[]>>({});
 
   const load = () => {
     fetch('/api/mandats')
@@ -61,10 +67,31 @@ export default function Page() {
   const pending = mandats.filter(m => m.mandateSignStatus === 'PENDING').length;
 
   const patchLocal = (id: string, patch: Partial<Mandat>) => setItems(prev => prev.map(m => m.id === id ? { ...m, ...patch } : m));
-  const setOwner = (m: Mandat, oi: number, patch: Partial<Owner>) => {
-    const owners = [...(m.owners || [])];
+  const setOwner = (m: Mandat, oi: number, patch: Partial<Owner>) => setItems(prev => prev.map(x => {
+    if (x.id !== m.id) return x;
+    const owners = [...(x.owners || [])];
     owners[oi] = { type: 'INDIVIDUAL', ...(owners[oi] || {}), ...patch };
-    patchLocal(m.id, { owners });
+    return { ...x, owners };
+  }));
+
+  // Sélection d'une société : champs depuis l'API entreprise, puis réinjection
+  // des infos mémorisées (gérant, courriel, téléphone saisis à la main).
+  const onCompanySelect = async (m: Mandat, oi: number, c: any) => {
+    setOwner(m, oi, { type: 'COMPANY', name: c.name, siren: c.siren, address: c.address || undefined, legalForm: c.legalForm, managerFirstName: c.managerFirstName, managerLastName: c.managerLastName, managerRole: c.managerRole });
+    try {
+      const q = c.siren ? `siren=${encodeURIComponent(c.siren)}` : `name=${encodeURIComponent(c.name || '')}`;
+      const r = await fetch(`/api/company-contacts?${q}`);
+      const d = await r.json();
+      const s = d?.contact;
+      if (s) setOwner(m, oi, {
+        email: s.email || undefined, phone: s.phone || undefined,
+        managerFirstName: s.managerFirstName || c.managerFirstName || undefined,
+        managerLastName: s.managerLastName || c.managerLastName || undefined,
+        managerRole: s.managerRole || c.managerRole || undefined,
+        legalForm: s.legalForm || c.legalForm || undefined,
+        address: s.address || c.address || undefined,
+      });
+    } catch { /* pas de contact mémorisé */ }
   };
   const addOwner = (m: Mandat) => patchLocal(m.id, { owners: [...(m.owners || []), { type: 'INDIVIDUAL' }] });
   const removeOwner = (m: Mandat, oi: number) => patchLocal(m.id, { owners: (m.owners || []).filter((_, i) => i !== oi) });
@@ -78,13 +105,25 @@ export default function Page() {
         body: JSON.stringify({
           mandateNumber: m.mandateNumber, mandateType: m.mandateType,
           mandateHonorairesCharge: m.mandateHonorairesCharge, mandatePlace: m.mandatePlace,
+          designation: m.designation, map: m.map, city: m.city,
           occupancy: m.occupancy, netSellerAmount: m.netSellerAmount, price: m.price,
           commissionAmount: (m.price || 0) - (m.netSellerAmount || 0) || undefined,
           owners: m.owners,
         }),
       });
-      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error || 'Erreur à l\'enregistrement.'); }
-    } catch { alert('Erreur réseau.'); }
+      if (!res.ok) { const d = await res.json().catch(() => ({})); toast(d.error || 'Erreur à l\'enregistrement.'); }
+      else {
+        // Mémorise les infos saisies pour chaque société (réinjectées la fois suivante).
+        for (const o of (m.owners || [])) {
+          if (o.type === 'COMPANY' && (o.name || o.siren)) {
+            fetch('/api/company-contacts', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ siren: o.siren, name: o.name, legalForm: o.legalForm, address: o.address, managerFirstName: o.managerFirstName, managerLastName: o.managerLastName, managerRole: o.managerRole, email: o.email, phone: o.phone }),
+            }).catch(() => {});
+          }
+        }
+      }
+    } catch { toast('Erreur réseau.'); }
     setSavingId(null);
   };
 
@@ -94,11 +133,26 @@ export default function Page() {
       const res = await fetch(`/api/mandats/${m.id}/sign-request`, { method: 'POST' });
       const d = await res.json();
       if (res.ok) {
-        setSignInfo(prev => ({ ...prev, [m.id]: { link: d.url, emailed: !!d.emailed, email: d.signerEmail || '' } }));
+        setSignInfo(prev => ({ ...prev, [m.id]: Array.isArray(d.signers) ? d.signers : [] }));
         patchLocal(m.id, { mandateSignStatus: 'PENDING' });
-      } else { alert(d.error || 'Erreur lors de la génération du lien.'); }
-    } catch { alert('Erreur réseau.'); }
+      } else { toast(d.error || 'Erreur lors de la génération des liens.'); }
+    } catch { toast('Erreur réseau.'); }
     setSigningId(null);
+  };
+
+  const [creating, setCreating] = useState(false);
+  const createMandat = async () => {
+    setCreating(true);
+    try {
+      const res = await fetch('/api/mandats', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+      const d = await res.json();
+      if (res.ok && d?.id) {
+        setItems(prev => [...prev, d]);
+        setEditingId(d.id);
+        setTimeout(() => document.getElementById(`row-${d.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+      } else { toast(d.error || 'Erreur à la création du mandat.'); }
+    } catch { toast('Erreur réseau.'); }
+    setCreating(false);
   };
 
   const remove = async (m: Mandat) => {
@@ -106,8 +160,8 @@ export default function Page() {
     try {
       const res = await fetch(`/api/mandats/${m.id}`, { method: 'DELETE' });
       if (res.ok) setItems(prev => prev.filter(x => x.id !== m.id));
-      else alert('Erreur à la suppression.');
-    } catch { alert('Erreur réseau.'); }
+      else toast('Erreur à la suppression.');
+    } catch { toast('Erreur réseau.'); }
   };
 
   const inputCls = "w-full px-2 py-1 text-sm border rounded";
@@ -139,9 +193,14 @@ export default function Page() {
               <div className="text-xs text-amber-700">En attente</div>
             </div>
           </div>
-          <button onClick={() => window.print()} className="btn-luxe flex items-center gap-2">
-            <Printer className="w-4 h-4" /> Imprimer / Exporter en PDF
-          </button>
+          <div className="flex gap-2">
+            <button onClick={createMandat} disabled={creating} className="flex items-center gap-2 px-3 py-2 border border-[#1F3B2C] text-[#1F3B2C] rounded hover:bg-[#1F3B2C]/5 disabled:opacity-60">
+              <Plus className="w-4 h-4" /> {creating ? 'Création…' : 'Nouveau mandat'}
+            </button>
+            <button onClick={() => window.print()} className="btn-luxe flex items-center gap-2">
+              <Printer className="w-4 h-4" /> Imprimer / Exporter en PDF
+            </button>
+          </div>
         </div>
         <p className="text-xs opacity-60 mt-3">
           Registre tenu conformément à la loi n° 70-9 du 2 janvier 1970 (loi Hoguet). Les mandats sont modifiables ici, sans repasser par la fiche du bien.
@@ -181,26 +240,35 @@ export default function Page() {
               <tbody>
                 {mandats.map((m, i) => (
                   <Fragment key={m.id}>
-                    <tr className={i % 2 ? 'bg-black/[0.03]' : ''} style={{ borderBottom: '1px solid #eee' }}>
+                    <tr id={`row-${m.id}`} className={i % 2 ? 'bg-black/[0.03]' : ''} style={{ borderBottom: '1px solid #eee' }}>
                       <td className="px-3 py-2 font-semibold whitespace-nowrap">{m.mandateNumber || '—'}</td>
                       <td className="px-3 py-2 whitespace-nowrap">{m.mandateSignature?.signedAt ? new Date(m.mandateSignature.signedAt).toLocaleDateString('fr-FR') : <span className="opacity-50">—</span>}</td>
                       <td className="px-3 py-2">
                         <div className="font-medium">{mandantOf(m)}</div>
-                        <div className="text-xs opacity-60">{(m.owners || []).map(o => o.address).filter(Boolean).join(' ; ')}</div>
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap">{m.mandateType === 'EXCLUSIF' ? 'Exclusif' : m.mandateType === 'SUCCES' ? 'Succès' : 'Simple'}</td>
-                      <td className="px-3 py-2">{typeLabel(m)} — {m.map?.query || [m.city, String(m.region || '').replaceAll('_', ' ')].filter(Boolean).join(', ')}</td>
+                      <td className="px-3 py-2">{[m.designation || typeLabel(m), m.map?.query || [m.city, String(m.region || '').replaceAll('_', ' ')].filter(Boolean).join(', ')].filter(Boolean).join(' — ')}</td>
                       <td className="px-3 py-2 text-right whitespace-nowrap">{eur(m.netSellerAmount ?? m.price)}</td>
                       <td className="px-3 py-2 text-right whitespace-nowrap">{eur((m.price || 0) - (m.netSellerAmount || 0))}</td>
                       <td className="px-3 py-2 text-right whitespace-nowrap">{eur(m.price)}</td>
                       <td className="px-3 py-2 whitespace-nowrap">
-                        {m.mandateSignStatus === 'SIGNED' ? <span className="text-green-700 font-medium">✔ Signé</span> : m.mandateSignStatus === 'PENDING' ? <span className="text-amber-700">En attente</span> : <span className="opacity-50">Non envoyé</span>}
+                        {(() => {
+                          const total = (m.signers?.length) || (m.owners?.length) || 1;
+                          const done = (m.signers || []).filter(s => s.dataUrl || s.signedAt).length;
+                          if (m.mandateSignStatus === 'SIGNED') return <span className="text-green-700 font-medium">✔ Signé{total > 1 ? ` (${total}/${total})` : ''}</span>;
+                          if (m.mandateSignStatus === 'PENDING') return <span className="text-amber-700">En attente{total > 1 ? ` (${done}/${total} signés)` : ''}</span>;
+                          return <span className="opacity-50">Non envoyé</span>;
+                        })()}
                       </td>
                       <td className="px-3 py-2 no-print">
                         <div className="flex gap-2 items-center">
-                          <button onClick={() => setEditingId(editingId === m.id ? null : m.id)} className={`text-xs px-2 py-1 border rounded ${editingId === m.id ? 'bg-[#1F3B2C] text-white border-[#1F3B2C]' : 'hover:bg-black/5'}`} data-testid={`button-edit-${m.id}`}>
-                            {editingId === m.id ? 'Fermer' : 'Modifier'}
-                          </button>
+                          {m.mandateSignStatus === 'SIGNED' ? (
+                            <span className="text-xs px-2 py-1 border rounded bg-green-50 border-green-200 text-green-700 flex items-center gap-1" title="Mandat signé — figé, non modifiable"><Lock className="w-3 h-3" /> Figé</span>
+                          ) : (
+                            <button onClick={() => setEditingId(editingId === m.id ? null : m.id)} className={`text-xs px-2 py-1 border rounded ${editingId === m.id ? 'bg-[#1F3B2C] text-white border-[#1F3B2C]' : 'hover:bg-black/5'}`} data-testid={`button-edit-${m.id}`}>
+                              {editingId === m.id ? 'Fermer' : 'Modifier'}
+                            </button>
+                          )}
                           {m.mandateSignStatus !== 'SIGNED' && (
                             <button onClick={() => handleSign(m)} disabled={signingId === m.id} title="Générer le lien de signature" className="p-1 text-[#1F3B2C] hover:opacity-70 disabled:opacity-40"><PenLine className="w-4 h-4" /></button>
                           )}
@@ -213,13 +281,22 @@ export default function Page() {
                     {signInfo[m.id] && (
                       <tr className="no-print">
                         <td colSpan={10} className="px-3 py-2 bg-amber-50" style={{ borderBottom: '1px solid #eee' }}>
-                          <div className="flex gap-2 items-center flex-wrap">
-                            <span className="text-xs font-medium whitespace-nowrap">✍️ Lien de signature :</span>
-                            <input readOnly value={signInfo[m.id].link} onFocus={e => e.currentTarget.select()} className="flex-1 min-w-[220px] px-2 py-1 text-xs border rounded bg-white" />
-                            <button onClick={() => navigator.clipboard?.writeText(signInfo[m.id].link)} className="px-2 py-1 text-xs border rounded hover:bg-white">Copier</button>
-                            {signInfo[m.id].emailed
-                              ? <span className="text-xs text-green-700 whitespace-nowrap">✉️ Envoyé à {signInfo[m.id].email}</span>
-                              : <span className="text-xs text-gray-500">{signInfo[m.id].email ? 'Email non envoyé — copiez le lien' : 'Aucun email du mandant — copiez le lien'}</span>}
+                          <div className="text-xs font-medium mb-2">✍️ Liens de signature — un par mandant ({signInfo[m.id].length}) :</div>
+                          <div className="space-y-2">
+                            {signInfo[m.id].map((s, si) => (
+                              <div key={si} className="flex gap-2 items-center flex-wrap">
+                                <span className="text-xs whitespace-nowrap min-w-[140px] font-medium">{s.name || `Mandant ${si + 1}`}{s.signed ? ' ✔' : ''}</span>
+                                {s.signed
+                                  ? <span className="text-xs text-green-700">Déjà signé</span>
+                                  : <>
+                                      <input readOnly value={s.url || ''} onFocus={e => e.currentTarget.select()} className="flex-1 min-w-[220px] px-2 py-1 text-xs border rounded bg-white" />
+                                      <button onClick={() => navigator.clipboard?.writeText(s.url || '')} className="px-2 py-1 text-xs border rounded hover:bg-white">Copier</button>
+                                      {s.emailed
+                                        ? <span className="text-xs text-green-700 whitespace-nowrap">✉️ Envoyé à {s.email}</span>
+                                        : <span className="text-xs text-gray-500">{s.email ? 'Email non envoyé — copiez le lien' : 'Pas d\'email — copiez le lien'}</span>}
+                                    </>}
+                              </div>
+                            ))}
                           </div>
                         </td>
                       </tr>
@@ -248,6 +325,22 @@ export default function Page() {
                                 <option value="OCCUPE">Loué (occupé)</option>
                               </select>
                             </div>
+                            <div className="md:col-span-3 grid md:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs opacity-60 mb-1">Désignation du bien</label>
+                                <input value={m.designation || ''} onChange={e => patchLocal(m.id, { designation: e.target.value })} placeholder={typeLabel(m)} className={inputCls} />
+                              </div>
+                              <div>
+                                <label className="block text-xs opacity-60 mb-1">Adresse du bien</label>
+                                <AddressAutocomplete
+                                  value={m.map?.query || ''}
+                                  onChange={(c) => patchLocal(m.id, { map: { ...(m.map || {}), query: c.address } })}
+                                  onTextChange={(t) => patchLocal(m.id, { map: { ...(m.map || {}), query: t } })}
+                                  placeholder="Adresse du bien"
+                                  className={inputCls}
+                                />
+                              </div>
+                            </div>
                             <div className="md:col-span-3">
                               <div className="flex items-center justify-between mb-1">
                                 <label className="text-xs opacity-60">Mandant(s)</label>
@@ -262,7 +355,23 @@ export default function Page() {
                                       {(m.owners?.length || 0) > 1 && <button type="button" onClick={() => removeOwner(m, oi)} className="ml-auto text-red-600 hover:underline">Retirer</button>}
                                     </div>
                                     {o.type === 'COMPANY' ? (
-                                      <input placeholder="Raison sociale" value={o.name || ''} onChange={e => setOwner(m, oi, { name: e.target.value })} className={inputCls} />
+                                      <div className="space-y-1">
+                                        <CompanyAutocomplete
+                                          value={o.name || ''}
+                                          onSelect={(c) => onCompanySelect(m, oi, c)}
+                                          label="Raison sociale (recherche SIREN)"
+                                        />
+                                        <div className="grid grid-cols-2 gap-1">
+                                          <input placeholder="SIREN" value={o.siren || ''} onChange={e => setOwner(m, oi, { siren: e.target.value })} className={inputCls} />
+                                          <input placeholder="Forme juridique (SCI, SAS…)" value={o.legalForm || ''} onChange={e => setOwner(m, oi, { legalForm: e.target.value })} className={inputCls} />
+                                        </div>
+                                        <div className="text-[11px] opacity-60 mt-1">Représentant légal (signataire) :</div>
+                                        <div className="grid grid-cols-3 gap-1">
+                                          <input placeholder="Prénom" value={o.managerFirstName || ''} onChange={e => setOwner(m, oi, { managerFirstName: e.target.value })} className={inputCls} />
+                                          <input placeholder="Nom" value={o.managerLastName || ''} onChange={e => setOwner(m, oi, { managerLastName: e.target.value })} className={inputCls} />
+                                          <input placeholder="Qualité (Gérant…)" value={o.managerRole || ''} onChange={e => setOwner(m, oi, { managerRole: e.target.value })} className={inputCls} />
+                                        </div>
+                                      </div>
                                     ) : (
                                       <div className="grid grid-cols-2 gap-1">
                                         <input placeholder="Prénom" value={o.firstName || ''} onChange={e => setOwner(m, oi, { firstName: e.target.value })} className={inputCls} />
@@ -274,9 +383,13 @@ export default function Page() {
                                         value={o.address || ''}
                                         onChange={(c) => setOwner(m, oi, { address: c.address })}
                                         onTextChange={(t) => setOwner(m, oi, { address: t })}
-                                        placeholder="Adresse du mandant"
+                                        placeholder={o.type === 'COMPANY' ? 'Adresse du siège social' : 'Adresse du mandant'}
                                         className={inputCls}
                                       />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-1 mt-1">
+                                      <input type="email" placeholder={o.type === 'COMPANY' ? 'Email du représentant' : 'Email'} value={o.email || ''} onChange={e => setOwner(m, oi, { email: e.target.value })} className={inputCls} />
+                                      <input placeholder="Téléphone" value={o.phone || ''} onChange={e => setOwner(m, oi, { phone: e.target.value })} className={inputCls} />
                                     </div>
                                   </div>
                                 ))}
@@ -302,8 +415,8 @@ export default function Page() {
                               <div className="px-2 py-1 text-sm bg-black/5 rounded">{eur((m.price || 0) - (m.netSellerAmount || 0))}</div>
                             </div>
                             <div>
-                              <label className="block text-xs opacity-60 mb-1">Fait à</label>
-                              <input value={m.mandatePlace || ''} onChange={e => patchLocal(m.id, { mandatePlace: e.target.value })} placeholder={m.city || 'Ville'} className={inputCls} />
+                              <label className="block text-xs opacity-60 mb-1">Ville de signature (« Fait à »)</label>
+                              <input value={m.mandatePlace || ''} onChange={e => patchLocal(m.id, { mandatePlace: e.target.value })} placeholder={m.city || 'Ville où le mandat est signé'} className={inputCls} />
                             </div>
                           </div>
                           <div className="mt-3 flex gap-2">

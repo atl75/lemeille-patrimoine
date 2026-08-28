@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { readJSON, writeJSON } from '@/lib/utils';
 import { isAdmin } from '@/lib/adminGuard';
+import { MAIL_COPY } from '@/lib/mailCopy';
+import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
 import { Resend } from 'resend';
 import crypto from 'crypto';
 
@@ -21,11 +23,12 @@ async function sendSignInvite(to: string, name: string, url: string, mandateNumb
           <a href="${url}" style="background:#B89C6D;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Lire et signer le mandat</a>
         </p>
         <p style="font-size:13px;color:#555">Ou copiez ce lien : <br>${url}</p>
-        <p style="font-size:12px;color:#999;margin-top:24px">NOVUS CAPITAL SAS — Arthur Lemeille — CPI 7606 2024 000 000 038 — 50 rue de la Garenne, 76130 Mont-Saint-Aignan.</p>
+        ${EMAIL_SIGNATURE_HTML}
       </div>`;
     await resend.emails.send({
       from,
       to,
+      bcc: MAIL_COPY,
       subject: `Signature de votre mandat de vente${mandateNumber ? ` — N° ${mandateNumber}` : ''}`,
       html,
     });

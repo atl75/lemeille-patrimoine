@@ -3,14 +3,15 @@ import AdminShell from "@/components/AdminShell";
 import Breadcrumb from "@/components/Breadcrumb";
 import FeaturePicker from "@/components/FeaturePicker";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
-import NotaryAutocomplete from "@/components/NotaryAutocomplete";
 import GoogleMapsScript from "@/components/GoogleMapsScript";
 import ImageUploader from "@/components/ImageUploader";
-import DocumentUploader from "@/components/DocumentUploader";
-import MultiDocumentUploader from "@/components/MultiDocumentUploader";
 import CompanyAutocomplete from "@/components/CompanyAutocomplete";
 import CollapsibleSection from "@/components/CollapsibleSection";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { useToast } from "@/components/Toast";
+import InfoVenteSection from "@/components/biens/InfoVenteSection";
+import { propertyLabel } from "@/lib/propertyLabel";
+import DocumentsSection from "@/components/biens/DocumentsSection";
 import { useEffect, useRef, useState } from "react";
 
 type Property = {
@@ -32,6 +33,8 @@ type Property = {
   commissionPercentage?: number;
   finalSalePrice?: number;
   negotiatedCommission?: number;
+  sequestreAmount?: number;
+  notaryClerk?: { name?: string; email?: string };
   buyerFirstName?: string;
   buyerLastName?: string;
   buyerEmail?: string;
@@ -45,6 +48,8 @@ type Property = {
     postalCode?: string;
     phone?: string;
     email?: string;
+    clerkName?: string;
+    clerkEmail?: string;
   };
   buyerNotary?: {
     officeName?: string;
@@ -54,7 +59,10 @@ type Property = {
     postalCode?: string;
     phone?: string;
     email?: string;
+    clerkName?: string;
+    clerkEmail?: string;
   };
+  furniture?: { label?: string; value?: number }[];
   description: string;
   images: string[];
   features: string[];
@@ -153,9 +161,43 @@ export default function Page() {
   const [saving, setSaving] = useState(false);
   const [showSoldView, setShowSoldView] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [genMandate, setGenMandate] = useState(false);
   const [searchingCadastre, setSearchingCadastre] = useState(false);
   const [calculationMode, setCalculationMode] = useState<'FROM_NET' | 'FROM_FAI'>('FROM_NET'); // Mode de calcul financier
+  const [gmail, setGmail] = useState<{ configured: boolean; connected: boolean; email: string }>({ configured: false, connected: false, email: '' });
+  const [notaireBusy, setNotaireBusy] = useState<string | null>(null);
   const { confirm, dialog } = useConfirm();
+  const toast = useToast();
+
+  // Suivi des modifications non enregistrées de la fiche bien.
+  const [dirty, setDirty] = useState(false);
+  const openingRef = useRef(false);
+  // Ouvre la fiche en marquant l'état « propre » (non modifié).
+  const startEdit = (p: Partial<Property> | null) => { openingRef.current = true; setDirty(false); setEditing(p); };
+  // Toute modification de `editing` (sauf l'ouverture) marque la fiche « sale ».
+  useEffect(() => {
+    if (!editing) return;
+    if (openingRef.current) { openingRef.current = false; return; }
+    setDirty(true);
+  }, [editing]);
+  // Avertit avant de quitter/rafraîchir si des modifications ne sont pas enregistrées.
+  useEffect(() => {
+    if (!dirty) return;
+    const h = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', h);
+    return () => window.removeEventListener('beforeunload', h);
+  }, [dirty]);
+
+  // Validation inline des champs sensibles (email/SIREN propriétaire, prix).
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const ownerErrors = ((editing?.owners as any[]) || []).map((o: any) => ({
+    email: o?.email && !emailRe.test(String(o.email).trim()) ? 'Adresse email invalide' : '',
+    siren: o?.type === 'COMPANY' && o?.siren && !/^\d{9}$/.test(String(o.siren).replace(/\s/g, '')) ? 'Le SIREN doit comporter 9 chiffres' : '',
+  }));
+  const priceError = editing && !editing.priceOnRequest && editing.price != null && (isNaN(Number(editing.price)) || Number(editing.price) <= 0) ? 'Prix invalide' : '';
+  const netError = editing && editing.netSellerAmount != null && editing.price != null && Number(editing.netSellerAmount) > Number(editing.price) ? 'Le net vendeur ne peut pas dépasser le prix FAI' : '';
+  const formErrors = [priceError, netError, ...ownerErrors.flatMap((e: any) => [e.email, e.siren])].filter(Boolean);
+  const errCls = "text-xs text-red-600 mt-1";
 
   // Fonction pour rechercher la parcelle cadastrale
   const searchCadastralReference = async () => {
@@ -163,7 +205,7 @@ export default function Page() {
     const fullAddress = editing?.map?.query || editing?.city;
     
     if (!fullAddress) {
-      alert('⚠️ Veuillez d\'abord renseigner l\'adresse complète');
+      toast('⚠️ Veuillez d\'abord renseigner l\'adresse complète');
       return;
     }
 
@@ -192,13 +234,13 @@ export default function Page() {
           };
         });
         
-        alert(`✅ Parcelle cadastrale trouvée !\n\nRéférence: ${data.cadastralReference}\nCommune: ${data.details.commune}\nSurface du terrain: ${data.details.surface ? Math.round(data.details.surface) + ' m²' : 'N/A'}`);
+        toast(`✅ Parcelle cadastrale trouvée !\n\nRéférence: ${data.cadastralReference}\nCommune: ${data.details.commune}\nSurface du terrain: ${data.details.surface ? Math.round(data.details.surface) + ' m²' : 'N/A'}`);
       } else {
-        alert(`⚠️ ${data.message}`);
+        toast(`⚠️ ${data.message}`);
       }
     } catch (error: any) {
       console.error('Erreur cadastre:', error);
-      alert(`❌ Erreur: ${error.message}`);
+      toast(`❌ Erreur: ${error.message}`);
     } finally {
       setSearchingCadastre(false);
     }
@@ -207,7 +249,7 @@ export default function Page() {
   // Fonction pour analyser un document avec l'IA
   const analyzeDocument = async (documentBase64: string) => {
     if (!documentBase64) {
-      alert('⚠️ Aucun document à analyser');
+      toast('⚠️ Aucun document à analyser');
       return;
     }
 
@@ -254,10 +296,10 @@ export default function Page() {
         };
       });
 
-      alert('✅ Document analysé ! Les informations ont été préremplies.');
+      toast('✅ Document analysé ! Les informations ont été préremplies.');
     } catch (error: any) {
       console.error('Erreur d\'analyse:', error);
-      alert(`❌ Erreur: ${error.message}`);
+      toast(`❌ Erreur: ${error.message}`);
     } finally {
       setAnalyzing(false);
     }
@@ -288,7 +330,7 @@ export default function Page() {
         setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
       } catch (error) {
         console.error('Erreur de conversion Base64:', error);
-        alert('❌ Erreur lors de l\'ouverture du document');
+        toast('❌ Erreur lors de l\'ouverture du document');
       }
     } else {
       // URL externe - ouvrir directement
@@ -315,6 +357,34 @@ export default function Page() {
     fetchProperties();
   }, []);
 
+  // État de connexion Gmail + retour du flux OAuth (?gmail=...).
+  useEffect(() => {
+    fetch('/api/google/status').then(r => r.json()).then(setGmail).catch(() => {});
+    const g = new URLSearchParams(window.location.search).get('gmail');
+    if (g === 'connected') toast('✅ Gmail connecté. Vous pouvez générer les brouillons pour les notaires.');
+    else if (g === 'notconfigured') toast('⚠️ Identifiants Google non configurés côté serveur (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET).');
+    else if (g === 'denied') toast('Connexion Gmail refusée.');
+    else if (g === 'error') toast('Échec de la connexion Gmail. Réessayez.');
+  }, []);
+
+  // Crée un brouillon Gmail à destination des notaires (dossier du bien).
+  const sendNotaireDraft = async (property: Property) => {
+    if (!gmail.connected) {
+      if (await confirm("Gmail n'est pas connecté. Se connecter maintenant pour déposer les brouillons ?")) {
+        window.location.href = '/api/google/oauth/start?return=/admin/contenu/biens';
+      }
+      return;
+    }
+    setNotaireBusy(property.id);
+    try {
+      const res = await fetch(`/api/properties/${property.id}/notaire-draft`, { method: 'POST' });
+      const d = await res.json();
+      if (res.ok) toast(`✅ Brouillon créé dans Gmail (${gmail.email})\nDestinataires : ${(d.recipients || []).join(', ')}\nPièces jointes : ${d.attachments}\n\nRelisez-le dans vos Brouillons avant de l'envoyer.`);
+      else toast(d.error || 'Erreur lors de la création du brouillon.');
+    } catch { toast('Erreur réseau.'); }
+    setNotaireBusy(null);
+  };
+
   // Ouverture directe d'une fiche via ?edit=<id> (ex. depuis le CRM, après
   // création d'une fiche bien à partir d'un lead pour saisir le mandat).
   const openedFromUrl = useRef(false);
@@ -325,7 +395,7 @@ export default function Page() {
     const prop = properties.find(p => p.id === editId);
     if (prop) {
       openedFromUrl.current = true;
-      setEditing(prop);
+      startEdit(prop);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [properties]);
@@ -369,7 +439,7 @@ export default function Page() {
       );
       await fetchProperties();
     } catch {
-      alert('Erreur lors du réordonnancement');
+      toast('Erreur lors du réordonnancement');
     }
     setReordering(false);
   };
@@ -379,10 +449,15 @@ export default function Page() {
     
     // Validation rapide
     if (!editing.title || !editing.city || !editing.description) {
-      alert('⚠️ Veuillez remplir tous les champs obligatoires (Titre, Ville, Description)');
+      toast('⚠️ Veuillez remplir tous les champs obligatoires (Titre, Ville, Description)');
       return;
     }
-    
+    // Validation inline (email/SIREN propriétaire, prix)
+    if (formErrors.length) {
+      toast(`⚠️ Corrigez les erreurs avant d'enregistrer :\n• ${formErrors.join('\n• ')}`);
+      return;
+    }
+
     // S'assurer que le type a une valeur par défaut
     const propertyToSave = {
       ...editing,
@@ -393,9 +468,7 @@ export default function Page() {
     try {
       const method = editing.id ? 'PUT' : 'POST';
       const url = editing.id ? `/api/properties/${editing.id}` : '/api/properties';
-      
-      console.log('📤 Envoi des données:', propertyToSave);
-      
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -404,18 +477,18 @@ export default function Page() {
       });
       
       if (res.ok) {
-        console.log('✅ Sauvegarde réussie');
         await fetchProperties();
+        setDirty(false);
         setEditing(null);
-        alert('✅ Bien immobilier sauvegardé avec succès !');
+        toast('✅ Bien immobilier enregistré avec succès');
       } else {
         const errorData = await res.json().catch(() => ({ error: 'Erreur inconnue' }));
         console.error('❌ Erreur serveur:', res.status, errorData);
-        alert(`❌ Erreur ${res.status}: ${errorData.error || JSON.stringify(errorData)}`);
+        toast(`❌ Erreur ${res.status}: ${errorData.error || JSON.stringify(errorData)}`);
       }
     } catch (err: any) {
       console.error('❌ Erreur réseau:', err);
-      alert(`❌ Erreur lors de la sauvegarde: ${err.message}`);
+      toast(`❌ Erreur lors de la sauvegarde: ${err.message}`);
     }
     setSaving(false);
   };
@@ -431,7 +504,7 @@ export default function Page() {
         await fetchProperties();
       }
     } catch (err) {
-      alert('Erreur lors de la suppression');
+      toast('Erreur lors de la suppression');
     }
   };
 
@@ -486,14 +559,24 @@ export default function Page() {
         </button>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-6 flex items-center gap-3 flex-wrap">
         <button
-          onClick={() => setEditing(EMPTY_PROPERTY)}
+          onClick={() => startEdit(EMPTY_PROPERTY)}
           className="px-4 py-2 bg-[#B89C6D] text-white rounded hover:bg-[#A68B5D]"
           data-testid="button-new-property"
         >
           + Nouveau bien
         </button>
+        {gmail.connected ? (
+          <span className="text-xs text-green-700 flex items-center gap-1" title="Les brouillons pour notaires seront déposés dans cette boîte">
+            ✅ Gmail connecté{gmail.email ? ` (${gmail.email})` : ''}
+            <a href="/api/google/oauth/start?return=/admin/contenu/biens" className="ml-1 underline text-[#1F3B2C]/70 hover:text-[#1F3B2C]" title="Ré-autoriser Google (pour ajouter un nouveau droit)">· Reconnecter</a>
+          </span>
+        ) : (
+          <a href="/api/google/oauth/start?return=/admin/contenu/biens" className="text-xs px-3 py-1.5 border border-[#1F3B2C] text-[#1F3B2C] rounded hover:bg-[#1F3B2C]/5">
+            Connecter Gmail (brouillons notaires)
+          </a>
+        )}
       </div>
 
 
@@ -849,8 +932,8 @@ export default function Page() {
                   <label className="block text-xs font-medium mb-1">Surface (m²)</label>
                   <input
                     type="number"
-                    value={editing.surface || 0}
-                    onChange={e => updateField('surface', parseInt(e.target.value) || 0)}
+                    value={editing.surface ?? ''}
+                    onChange={e => updateField('surface', e.target.value === '' ? undefined : (parseInt(e.target.value) || 0))}
                     onFocus={e => e.target.select()}
                     className="w-full px-2 py-1.5 text-sm border rounded"
                     data-testid="input-surface"
@@ -863,8 +946,8 @@ export default function Page() {
                   <label className="block text-xs font-medium mb-1">Pièces</label>
                   <input
                     type="number"
-                    value={editing.rooms || 0}
-                    onChange={e => updateField('rooms', parseInt(e.target.value) || 0)}
+                    value={editing.rooms ?? ''}
+                    onChange={e => updateField('rooms', e.target.value === '' ? undefined : (parseInt(e.target.value) || 0))}
                     onFocus={e => e.target.select()}
                     className="w-full px-2 py-1.5 text-sm border rounded"
                     data-testid="input-rooms"
@@ -1120,6 +1203,7 @@ export default function Page() {
                               className="w-full px-2 py-1 text-xs border rounded bg-gray-50"
                               data-testid={`input-owner-siren-${index}`}
                             />
+                            {ownerErrors[index]?.siren && <p className={errCls}>{ownerErrors[index].siren}</p>}
                           </div>
                         )}
                         <div className="grid grid-cols-2 gap-2">
@@ -1229,9 +1313,10 @@ export default function Page() {
                             newOwners[index] = { ...owner, email: e.target.value };
                             updateField('owners', newOwners);
                           }}
-                          className="w-full px-2 py-1 text-xs border rounded"
+                          className={`w-full px-2 py-1 text-xs border rounded ${ownerErrors[index]?.email ? 'border-red-500' : ''}`}
                           data-testid={`input-owner-email-${index}`}
                         />
+                        {ownerErrors[index]?.email && <p className={errCls}>{ownerErrors[index].email}</p>}
                       </div>
                       <div>
                         <label className="block text-xs mb-1">Téléphone</label>
@@ -1392,6 +1477,8 @@ export default function Page() {
                     />
                   </>
                 )}
+                {priceError && <p className={errCls}>{priceError}</p>}
+                {netError && <p className={errCls}>{netError}</p>}
               </div>
 
               <div>
@@ -1610,6 +1697,18 @@ export default function Page() {
                   </div>
                 </div>
               )}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-1">Honoraires à la charge de</label>
+                <select
+                  value={editing.mandateHonorairesCharge || 'ACQUEREUR'}
+                  onChange={e => updateField('mandateHonorairesCharge', e.target.value)}
+                  className="w-full px-3 py-2 border rounded"
+                  data-testid="input-honoraires-charge"
+                >
+                  <option value="ACQUEREUR">Charge acquéreur</option>
+                  <option value="VENDEUR">Charge vendeur</option>
+                </select>
+              </div>
             </div>
             </div>
             )}
@@ -1620,7 +1719,9 @@ export default function Page() {
             <div className="flex items-center gap-3 flex-wrap">
               <button
                 type="button"
+                disabled={genMandate}
                 onClick={async () => {
+                  setGenMandate(true);
                   try {
                     const res = await fetch('/api/mandats', {
                       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1641,13 +1742,14 @@ export default function Page() {
                       if (await confirm(`Le mandat ${d.mandateNumber} a été créé à partir de ce bien. Le compléter et le signer dans le registre des mandats ?`, { title: 'Mandat généré' })) {
                         window.location.href = '/admin/mandats';
                       }
-                    } else { alert(d.error || 'Erreur lors de la génération du mandat.'); }
-                  } catch { alert('Erreur réseau.'); }
+                    } else { toast(d.error || 'Erreur lors de la génération du mandat.'); }
+                  } catch { toast('Erreur réseau.'); }
+                  setGenMandate(false);
                 }}
-                className="btn-luxe text-sm"
+                className="btn-luxe text-sm disabled:opacity-60"
                 data-testid="button-generate-mandate"
               >
-                Générer un mandat
+                {genMandate ? 'Génération…' : 'Générer un mandat'}
               </button>
               <span className="text-xs text-gray-500">
                 Crée un mandat <strong>autonome</strong> à partir des données de ce bien. Il se complète et se signe ensuite dans le <a href="/admin/mandats" className="underline">registre des mandats</a>.
@@ -1740,8 +1842,8 @@ export default function Page() {
                   <label className="block text-xs mb-1">kWh</label>
                   <input
                     type="number"
-                    value={editing.dpe?.consumptionKwh || 0}
-                    onChange={e => updateNestedField('dpe', 'consumptionKwh', parseFloat(e.target.value) || 0)}
+                    value={editing.dpe?.consumptionKwh ?? ''}
+                    onChange={e => updateNestedField('dpe', 'consumptionKwh', e.target.value === '' ? undefined : (parseFloat(e.target.value) || 0))}
                     className="w-full px-2 py-1 text-xs border rounded"
                     data-testid="input-dpe-consumption"
                   />
@@ -1750,8 +1852,8 @@ export default function Page() {
                   <label className="block text-xs mb-1">kg CO2</label>
                   <input
                     type="number"
-                    value={editing.dpe?.emissionsKg || 0}
-                    onChange={e => updateNestedField('dpe', 'emissionsKg', parseFloat(e.target.value) || 0)}
+                    value={editing.dpe?.emissionsKg ?? ''}
+                    onChange={e => updateNestedField('dpe', 'emissionsKg', e.target.value === '' ? undefined : (parseFloat(e.target.value) || 0))}
                     className="w-full px-2 py-1 text-xs border rounded"
                     data-testid="input-dpe-emissions"
                   />
@@ -1851,326 +1953,10 @@ export default function Page() {
           </div>
 
           {/* Documents (repliable) */}
-          <CollapsibleSection title="Documents administratifs" subtitle="Titre, DPE, taxe foncière, mandat, estimation, plan, PV d'AG…">
-          <div className="mb-2 p-1.5 bg-gray-50 rounded">
-            <div className="flex justify-between items-center mb-1.5">
-              <h3 className="font-semibold text-xs">Documents</h3>
-              <div className="flex gap-0.5">
-                {editing.estimation && (
-                  <button
-                    onClick={() => analyzeDocument(editing.estimation!)}
-                    disabled={analyzing}
-                    className="px-1.5 py-0.5 text-[10px] bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                    data-testid="button-analyze-estimation"
-                  >
-                    {analyzing ? '...' : 'IA Estim'}
-                  </button>
-                )}
-                {editing.dpeDocument && (
-                  <button
-                    onClick={() => analyzeDocument(editing.dpeDocument!)}
-                    disabled={analyzing}
-                    className="px-1.5 py-0.5 text-[10px] bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                    data-testid="button-analyze-dpe"
-                  >
-                    {analyzing ? '...' : 'IA DPE'}
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-1.5">
-              <div>
-                <label className="block mb-0.5 text-[10px] font-medium">Titre propriété</label>
-                <DocumentUploader
-                  document={editing.titleDeed}
-                  onChange={doc => updateField('titleDeed', doc)}
-                  label=""
-                />
-              </div>
-              <div>
-                <label className="block mb-0.5 text-[10px] font-medium">DPE</label>
-                <DocumentUploader
-                  document={editing.dpeDocument}
-                  onChange={doc => updateField('dpeDocument', doc)}
-                  label=""
-                />
-              </div>
-              <div>
-                <label className="block mb-0.5 text-[10px] font-medium">Taxe foncière</label>
-                <DocumentUploader
-                  document={editing.propertyTax}
-                  onChange={doc => updateField('propertyTax', doc)}
-                  label=""
-                />
-              </div>
-              <div>
-                <label className="block mb-0.5 text-[10px] font-medium">Mandat</label>
-                <DocumentUploader
-                  document={editing.mandate}
-                  onChange={doc => updateField('mandate', doc)}
-                  label=""
-                />
-              </div>
-              <div>
-                <label className="block mb-0.5 text-[10px] font-medium">Estimation</label>
-                <DocumentUploader
-                  document={editing.estimation}
-                  onChange={doc => updateField('estimation', doc)}
-                  label=""
-                />
-              </div>
-              <div>
-                <label className="block mb-0.5 text-[10px] font-medium">Plans du bien (plusieurs possibles)</label>
-                <MultiDocumentUploader
-                  documents={editing.floorPlans && editing.floorPlans.length
-                    ? editing.floorPlans
-                    : (editing.floorPlan ? [editing.floorPlan] : [])}
-                  onChange={docs => setEditing(prev => prev ? { ...prev, floorPlans: docs, floorPlan: undefined } : null)}
-                  label=""
-                  maxDocuments={6}
-                  accept=".pdf,.jpg,.jpeg,.png,.webp"
-                />
-              </div>
-              {editing.type === 'APPARTEMENT' && (
-                <>
-                  <div>
-                    <label className="block mb-0.5 text-[10px] font-medium">Règlement copro</label>
-                    <DocumentUploader
-                      document={editing.propertyRules}
-                      onChange={doc => updateField('propertyRules', doc)}
-                      label=""
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-0.5 text-[10px] font-medium">Relevé charges</label>
-                    <DocumentUploader
-                      document={editing.chargesStatement}
-                      onChange={doc => updateField('chargesStatement', doc)}
-                      label=""
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-0.5 text-[10px] font-medium">PV AG</label>
-                    <MultiDocumentUploader
-                      documents={editing.agMinutes || []}
-                      onChange={docs => updateField('agMinutes', docs)}
-                      label=""
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+          <DocumentsSection editing={editing} updateField={updateField} setEditing={setEditing} analyzing={analyzing} analyzeDocument={analyzeDocument} />
 
-
-          </CollapsibleSection>
-
-          {/* Acquéreur (repliable) */}
-          <CollapsibleSection title="Notaires" subtitle="Notaire vendeur et acquéreur">
-            <div className="p-2 bg-gray-50 rounded">
-              <h3 className="font-semibold text-base mb-2 pb-2 border-b">Notaires</h3>
-              
-              <div className="space-y-2">
-                {/* Notaire Vendeur */}
-                <div className="p-2 bg-white border rounded text-xs">
-                  <h4 className="font-medium text-xs mb-2">Vendeur</h4>
-                  <div className="space-y-1">
-                    <NotaryAutocomplete
-                      value={editing.sellerNotary?.officeName || ''}
-                      onSelect={(n) => updateField('sellerNotary', { ...editing.sellerNotary, officeName: n.name })}
-                      onTextChange={(text) => updateField('sellerNotary', { ...editing.sellerNotary, officeName: text })}
-                      placeholder="Office notarial"
-                      className="w-full px-2 py-1 text-xs border rounded"
-                    />
-                    <input
-                      type="text"
-                      value={editing.sellerNotary?.notaryName || ''}
-                      onChange={(e) => updateField('sellerNotary', { ...editing.sellerNotary, notaryName: e.target.value })}
-                      className="w-full px-2 py-1 text-xs border rounded"
-                      placeholder="Nom du notaire"
-                      data-testid="input-seller-notary-name"
-                    />
-                    <div className="grid grid-cols-2 gap-1">
-                      <input
-                        type="text"
-                        value={editing.sellerNotary?.phone || ''}
-                        onChange={(e) => updateField('sellerNotary', { ...editing.sellerNotary, phone: e.target.value })}
-                        className="w-full px-2 py-1 text-xs border rounded"
-                        placeholder="Tel"
-                        data-testid="input-seller-notary-phone"
-                      />
-                      <input
-                        type="email"
-                        value={editing.sellerNotary?.email || ''}
-                        onChange={(e) => updateField('sellerNotary', { ...editing.sellerNotary, email: e.target.value })}
-                        className="w-full px-2 py-1 text-xs border rounded"
-                        placeholder="Email"
-                        data-testid="input-seller-notary-email"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Notaire Acquéreur */}
-                <div className="p-2 bg-white border rounded text-xs">
-                  <div className="flex justify-between items-center mb-2">
-                    <h4 className="font-medium text-xs">Acquéreur</h4>
-                    <button
-                      type="button"
-                      onClick={() => updateField('buyerNotary', editing.sellerNotary)}
-                      className="px-1.5 py-0.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-                      data-testid="button-duplicate-notary"
-                    >
-                      Dupliquer
-                    </button>
-                  </div>
-                  <div className="space-y-1">
-                    <NotaryAutocomplete
-                      value={editing.buyerNotary?.officeName || ''}
-                      onSelect={(n) => updateField('buyerNotary', { ...editing.buyerNotary, officeName: n.name })}
-                      onTextChange={(text) => updateField('buyerNotary', { ...editing.buyerNotary, officeName: text })}
-                      placeholder="Office notarial"
-                      className="w-full px-2 py-1 text-xs border rounded"
-                    />
-                    <input
-                      type="text"
-                      value={editing.buyerNotary?.notaryName || ''}
-                      onChange={(e) => updateField('buyerNotary', { ...editing.buyerNotary, notaryName: e.target.value })}
-                      className="w-full px-2 py-1 text-xs border rounded"
-                      placeholder="Nom du notaire"
-                      data-testid="input-buyer-notary-name"
-                    />
-                    <div className="grid grid-cols-2 gap-1">
-                      <input
-                        type="text"
-                        value={editing.buyerNotary?.phone || ''}
-                        onChange={(e) => updateField('buyerNotary', { ...editing.buyerNotary, phone: e.target.value })}
-                        className="w-full px-2 py-1 text-xs border rounded"
-                        placeholder="Tel"
-                        data-testid="input-buyer-notary-phone"
-                      />
-                      <input
-                        type="email"
-                        value={editing.buyerNotary?.email || ''}
-                        onChange={(e) => updateField('buyerNotary', { ...editing.buyerNotary, email: e.target.value })}
-                        className="w-full px-2 py-1 text-xs border rounded"
-                        placeholder="Email"
-                        data-testid="input-buyer-notary-email"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CollapsibleSection>
-
-          <CollapsibleSection title="Informations acquéreur" subtitle="Coordonnées de l'acquéreur (après vente)">
-          <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded">
-            <h3 className="font-semibold text-sm mb-2">Informations Acquéreur</h3>
-            <div className="grid grid-cols-3 gap-2 text-xs mb-2">
-              <div>
-                <label className="block mb-1">Prénom</label>
-                <input
-                  type="text"
-                  value={editing.buyerFirstName || ''}
-                  onChange={(e) => updateField('buyerFirstName', e.target.value)}
-                  className="w-full px-2 py-1 text-xs border border-green-300 rounded"
-                  placeholder="Jean"
-                  data-testid="input-buyer-firstname"
-                />
-              </div>
-              <div>
-                <label className="block mb-1">Nom</label>
-                <input
-                  type="text"
-                  value={editing.buyerLastName || ''}
-                  onChange={(e) => updateField('buyerLastName', e.target.value)}
-                  className="w-full px-2 py-1 text-xs border border-green-300 rounded"
-                  placeholder="Dupont"
-                  data-testid="input-buyer-lastname"
-                />
-              </div>
-              <div>
-                <label className="block mb-1">Tel</label>
-                <input
-                  type="tel"
-                  value={editing.buyerPhone || ''}
-                  onChange={(e) => updateField('buyerPhone', e.target.value)}
-                  className="w-full px-2 py-1 text-xs border border-green-300 rounded"
-                  placeholder="06 12 34 56 78"
-                  data-testid="input-buyer-phone"
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="block mb-1">Email</label>
-                <input
-                  type="email"
-                  value={editing.buyerEmail || ''}
-                  onChange={(e) => updateField('buyerEmail', e.target.value)}
-                  className="w-full px-2 py-1 text-xs border border-green-300 rounded"
-                  placeholder="email@exemple.fr"
-                  data-testid="input-buyer-email"
-                />
-              </div>
-              <div>
-                <label className="block mb-1">Prix vente FAI (€)</label>
-                <input
-                  type="number"
-                  value={editing.finalSalePrice || ''}
-                  onChange={(e) => updateField('finalSalePrice', e.target.value ? parseFloat(e.target.value) : undefined)}
-                  className="w-full px-2 py-1 text-xs border border-green-300 rounded"
-                  data-testid="input-final-sale-price"
-                />
-              </div>
-              <div className="col-span-3">
-                <label className="block mb-1">Adresse</label>
-                <input
-                  type="text"
-                  value={editing.buyerAddress || ''}
-                  onChange={(e) => updateField('buyerAddress', e.target.value)}
-                  className="w-full px-2 py-1 text-xs border border-green-300 rounded"
-                  placeholder="123 rue..."
-                  data-testid="input-buyer-address"
-                />
-              </div>
-              <div>
-                <label className="block mb-1">Commission négociée (€)</label>
-                <input
-                  type="number"
-                  value={editing.negotiatedCommission || ''}
-                  onChange={(e) => updateField('negotiatedCommission', e.target.value ? parseFloat(e.target.value) : undefined)}
-                  className="w-full px-2 py-1 text-xs border border-green-300 rounded"
-                  data-testid="input-negotiated-commission"
-                />
-              </div>
-            </div>
-            {editing.finalSalePrice && editing.negotiatedCommission && (
-              <div className="mt-2 p-2 bg-white border border-green-300 rounded">
-                <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                  <div>
-                    <p className="text-gray-600 mb-0.5">Commission négociée</p>
-                    <p className="font-bold text-purple-600">
-                      {editing.negotiatedCommission.toLocaleString('fr-FR')} €
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600 mb-0.5">Net vendeur final</p>
-                    <p className="font-bold text-blue-600">
-                      {(editing.finalSalePrice - editing.negotiatedCommission).toLocaleString('fr-FR')} €
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600 mb-0.5">Prix FAI vente</p>
-                    <p className="font-bold text-green-600">
-                      {editing.finalSalePrice.toLocaleString('fr-FR')} €
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          </CollapsibleSection>
+          {/* Information de vente : acquéreur, notaires (+ clerc chacun), finances négociées, mobilier */}
+          <InfoVenteSection editing={editing} updateField={updateField} />
 
           <div className="flex gap-2">
             <button
@@ -2182,7 +1968,11 @@ export default function Page() {
               {saving ? 'Sauvegarde...' : 'Sauvegarder'}
             </button>
             <button
-              onClick={() => setEditing(null)}
+              onClick={async () => {
+                if (dirty && !(await confirm('Vos modifications non enregistrées seront perdues.', { title: 'Abandonner les modifications ?' }))) return;
+                setDirty(false);
+                setEditing(null);
+              }}
               className="px-4 py-2 border rounded hover:bg-gray-50"
               data-testid="button-cancel"
             >
@@ -2233,7 +2023,7 @@ export default function Page() {
                     <div className="flex gap-4 justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-lg">{property.title}</h3>
+                          <h3 className="font-semibold text-lg">{propertyLabel(property)}</h3>
                           {property.featured && (
                             <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
                               À la une
@@ -2315,17 +2105,17 @@ export default function Page() {
                         >
                           Lecture
                         </button>
-                        <a
-                          href={`/api/properties/${property.id}/mandat/pdf`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1 border border-[#1F3B2C] text-[#1F3B2C] rounded hover:bg-[#1F3B2C] hover:text-white"
-                          data-testid={`button-mandat-${property.id}`}
-                        >
-                          Mandat
-                        </a>
                         <button
-                          onClick={() => setEditing(property)}
+                          onClick={() => sendNotaireDraft(property)}
+                          disabled={notaireBusy === property.id}
+                          title="Créer un brouillon Gmail vers les notaires (avec les documents du bien)"
+                          className="px-3 py-1 border border-[#1F3B2C] text-[#1F3B2C] rounded hover:bg-[#1F3B2C] hover:text-white disabled:opacity-50"
+                          data-testid={`button-notaire-draft-${property.id}`}
+                        >
+                          {notaireBusy === property.id ? '…' : 'Notaires'}
+                        </button>
+                        <button
+                          onClick={() => startEdit(property)}
                           className="px-3 py-1 border border-[#B89C6D] text-[#B89C6D] rounded hover:bg-[#B89C6D] hover:text-white"
                           data-testid={`button-edit-${property.id}`}
                         >

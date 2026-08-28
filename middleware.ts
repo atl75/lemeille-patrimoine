@@ -38,8 +38,8 @@ async function verifySession(value: string | undefined): Promise<boolean> {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Protéger toutes les routes /admin/* sauf /admin/login.
-  const needsAuth = pathname.startsWith('/admin') && !pathname.startsWith('/admin/login');
+  // Protéger toutes les routes /admin/* (sauf /admin/login) et la webapp /app.
+  const needsAuth = (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) || pathname === '/app' || pathname.startsWith('/app/');
 
   if (needsAuth) {
     const adminCookie = request.cookies.get('lp_admin')?.value;
@@ -52,5 +52,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/app/:path*', '/app'],
 };

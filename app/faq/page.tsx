@@ -70,7 +70,7 @@ const FAQ: Cat[] = [
     items: [
       {
         q: "Sous quel délai obtient-on une réponse ?",
-        a: "Nos conseillers vous répondent sous 48h. Vous pouvez nous joindre par téléphone au 06 87 15 72 59, par email ou via le formulaire de contact.",
+        a: "Nos conseillers vous répondent sous 48h. Vous pouvez nous joindre par téléphone au +33 6 87 15 72 59, par email ou via le formulaire de contact.",
       },
     ],
   },

@@ -1,6 +1,10 @@
 import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import PropertyCard from "@/components/PropertyCard";
+import { getPropertyCards } from "@/lib/propertiesData";
+
+// ISR : régénérée au plus toutes les 5 min (+ revalidation immédiate à l'édition d'un bien).
+export const revalidate = 300;
 
 type Sector = {
   title: string;
@@ -35,6 +39,46 @@ const SECTORS: Record<string, Sector> = {
     cities: ["75001","75002","75003","75004","Louvre","Marais","Paris 1","Paris 2","Paris 3","Paris 4"],
     description: "Du Louvre au Marais, le centre historique offre un immobilier de caractère chargé d'histoire : poutres apparentes, pierres de taille, cours pavées. Un secteur idéal pour un pied-à-terre d'exception ou un investissement patrimonial, où la rareté de l'offre soutient durablement les valeurs.",
     highlights: ["Biens de caractère : Marais, Louvre, Île Saint-Louis", "Idéal pied-à-terre et investissement patrimonial", "Offre rare, forte demande locative"],
+  },
+  "bois-guillaume": {
+    title: "Bois-Guillaume",
+    subtitle: "Plateau Nord — maisons familiales et terrains arborés.",
+    region: "NORMANDIE",
+    cities: ["Bois-Guillaume"],
+    description: "Bois-Guillaume est l'une des communes les plus recherchées du Plateau Nord de Rouen. Ses maisons familiales, ses terrains arborés et la qualité de ses écoles en font un secteur prisé des familles. Le marché y est tendu : les belles demeures, notamment autour du Village et des Portes de la Forêt, se vendent rapidement. Nous y accompagnons vendeurs et acquéreurs avec une connaissance fine des micro-secteurs et des prix réels de transaction.",
+    highlights: ["Maisons familiales avec jardin, terrains arborés", "Écoles réputées, cadre résidentiel calme", "Marché tendu : estimation précise indispensable"],
+  },
+  "bihorel": {
+    title: "Bihorel",
+    subtitle: "Aux portes de Rouen — résidentiel prisé et proximité immédiate.",
+    region: "NORMANDIE",
+    cities: ["Bihorel"],
+    description: "Bihorel offre le meilleur compromis entre proximité du centre de Rouen et cadre résidentiel. Ses maisons de ville, ses pavillons des années 30 et ses appartements récents attirent aussi bien les primo-accédants que les familles. La commune bénéficie de commerces de proximité, d'écoles et d'un accès rapide au centre-ville et au CHU.",
+    highlights: ["Maisons de ville et pavillons de caractère", "À 5 minutes du centre de Rouen et du CHU", "Bon équilibre prix / qualité de vie"],
+  },
+  "isneauville": {
+    title: "Isneauville",
+    subtitle: "Nord de Rouen — constructions récentes et cadre verdoyant.",
+    region: "NORMANDIE",
+    cities: ["Isneauville"],
+    description: "Isneauville s'est imposée comme une commune de choix au nord de Rouen : constructions récentes, lotissements de qualité, écoles et commerces, le tout dans un environnement verdoyant. Sa proximité avec la zone d'activités et l'accès à l'A28 en font un secteur dynamique, particulièrement adapté aux familles souhaitant du neuf ou du récent avec jardin.",
+    highlights: ["Maisons récentes avec jardin", "Environnement verdoyant, écoles et commerces", "Accès rapide A28 et pôles d'activité"],
+  },
+  "rouen-rive-gauche": {
+    title: "Rouen Rive Gauche",
+    subtitle: "Saint-Sever, Grammont — investissement et rendement locatif.",
+    region: "NORMANDIE",
+    cities: ["Rouen"],
+    description: "La rive gauche de Rouen connaît une transformation profonde avec les projets urbains autour de Saint-Sever et de Grammont. Les prix y restent plus accessibles que sur la rive droite, offrant des rendements locatifs supérieurs, portés par la présence étudiante et la desserte en transports. Un secteur à considérer pour l'investissement locatif comme pour un premier achat.",
+    highlights: ["Prix d'entrée accessibles, bons rendements locatifs", "Quartiers en renouvellement urbain (Saint-Sever, Grammont)", "Forte demande locative étudiante et jeunes actifs"],
+  },
+  "mesnil-esnard-franqueville": {
+    title: "Le Mesnil-Esnard & Franqueville-Saint-Pierre",
+    subtitle: "Plateau Est — maisons familiales et vue sur la vallée.",
+    region: "NORMANDIE",
+    cities: ["Mesnil-Esnard", "Le Mesnil-Esnard", "Franqueville", "Franqueville-Saint-Pierre"],
+    description: "Le Mesnil-Esnard et Franqueville-Saint-Pierre forment un secteur résidentiel apprécié du Plateau Est, avec des maisons familiales, des terrains généreux et, pour certaines adresses, une vue dégagée sur la vallée de la Seine. Commerces, écoles et accès rapide à Rouen en font une alternative recherchée au Plateau Nord.",
+    highlights: ["Maisons familiales avec terrain", "Vue sur la vallée de la Seine pour certaines adresses", "Alternative au Plateau Nord, à 10 min de Rouen"],
   },
   "rouen-centre": {
     title: "Rouen & cœur historique",
@@ -104,12 +148,6 @@ function formatCityWithDistrict(city: string): string {
   return city;
 }
 
-async function getProperties(){
-  const base = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT||'3000'}`;
-  const r = await fetch(`${base}/api/properties`, { cache: "no-store" });
-  return r.ok ? r.json() : [];
-}
-
 function matchesSector(p:any, s: Sector){
   const city = norm(p.city||"");
   const region = norm(p.region||"");
@@ -134,7 +172,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   if(!sector){
     return <main className="container py-12">Secteur introuvable.</main>;
   }
-  const all = await getProperties();
+  const all = await getPropertyCards();
   const items = all.filter((p:any)=>matchesSector(p, sector));
 
   const REGION_IMAGE: Record<string, string> = {

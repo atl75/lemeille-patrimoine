@@ -20,6 +20,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const data = await readJSON(FILE);
   const i = (Array.isArray(data) ? data : []).findIndex((x: any) => x.id === id);
   if (i < 0) return NextResponse.json({ error: 'Mandat non trouvé' }, { status: 404 });
+  // Un mandat signé est figé : plus aucune modification possible.
+  if (data[i].mandateSignStatus === 'SIGNED') return NextResponse.json({ error: 'Ce mandat est signé : il n\'est plus modifiable.' }, { status: 409 });
   let updates: any;
   try { updates = await req.json(); } catch { return NextResponse.json({ error: 'Requête invalide' }, { status: 400 }); }
   data[i] = { ...data[i], ...updates, id: data[i].id, createdAt: data[i].createdAt };

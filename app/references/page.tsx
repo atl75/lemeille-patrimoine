@@ -1,4 +1,5 @@
 import Hero from "@/components/Hero";
+import { propertyTypology } from "@/lib/propertyLabel";
 import Breadcrumb from "@/components/Breadcrumb";
 import Link from "next/link";
 import Image from "next/image";
@@ -124,9 +125,9 @@ export default async function Page() {
                       </span>
                     </div>
                     <div className="p-4">
-                      <h3 className="luxe text-lg">{p.title}</h3>
+                      <h3 className="luxe text-lg">{propertyTypology(p)}{p.surface ? ` · ${p.surface} m²` : ""}{p.city ? ` · ${p.city}` : ""}</h3>
                       <div className="text-sm opacity-70">
-                        {p.city}{region ? ` · ${region}` : ""}
+                        {p.title}{region ? ` · ${region}` : ""}
                       </div>
                       <div className="text-sm opacity-70 mt-1">
                         {p.type === "MAISON" ? "Maison" : "Appartement"}

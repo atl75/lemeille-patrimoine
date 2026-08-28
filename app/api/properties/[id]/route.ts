@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { readJSON, writeJSON } from '@/lib/utils';
+import { revalidatePublicProperties } from '@/lib/revalidateProperties';
+import { rememberNotaries } from '@/lib/rememberNotaries';
 import { isAdmin } from '@/lib/adminGuard';
 import { toPublicProperty } from '@/lib/publicProperty';
 import type { NextRequest } from 'next/server';
@@ -31,6 +33,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (idx === -1) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   data[idx] = { id, ...validation.data };
   await writeJSON(FILE, data);
+  revalidatePublicProperties();
+  await rememberNotaries(data[idx]);
   return NextResponse.json(data[idx]);
 }
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -41,5 +45,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (idx === -1) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   const [removed] = data.splice(idx, 1);
   await writeJSON(FILE, data);
+  revalidatePublicProperties();
   return NextResponse.json(removed);
 }

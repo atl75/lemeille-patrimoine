@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 
 type Dispositif = "MALRAUX" | "MONUMENT_HISTORIQUE" | "DEFICIT_FONCIER";
 
@@ -18,7 +19,7 @@ const eur = (n: number) => Math.round(n).toLocaleString("fr-FR") + " €";
 
 export default function DefiscalisationSimulator() {
   const [dispositif, setDispositif] = useState<Dispositif>("MALRAUX");
-  const [travaux, setTravaux] = useState<number>(150000);
+  const [travaux, setTravaux] = useState<number | "">(150000);
   const [tmi, setTmi] = useState<number>(0.41);
   const [tauxMalraux, setTauxMalraux] = useState<number>(0.30);
 
@@ -99,6 +100,7 @@ export default function DefiscalisationSimulator() {
         }),
       });
       setSent(r.ok);
+      if (r.ok) trackEvent('generate_lead', 'simulateur', dispoLabel, Number(travaux) || 0);
     } catch {
       setSent(false);
     }
@@ -136,7 +138,7 @@ export default function DefiscalisationSimulator() {
               className="input"
               type="number" min="0" step="1000"
               value={travaux}
-              onChange={(e) => setTravaux(Number(e.target.value))}
+              onChange={(e) => setTravaux(e.target.value === "" ? "" : Number(e.target.value))}
               onFocus={(e) => e.target.select()}
               data-testid="input-travaux"
             />

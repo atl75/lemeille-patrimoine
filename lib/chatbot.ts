@@ -92,5 +92,5 @@ ${propertiesText}
 Programmes de défiscalisation en cours :
 ${programsText}
 
-Pour toute question hors de ton périmètre, oriente vers /contact ou le numéro 06 87 15 72 59.`;
+Pour toute question hors de ton périmètre, oriente vers /contact ou le numéro +33 6 87 15 72 59.`;
 }

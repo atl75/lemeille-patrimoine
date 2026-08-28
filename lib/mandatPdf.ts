@@ -209,8 +209,21 @@ export async function buildMandatePdf(p: any): Promise<Uint8Array> {
   const address = p.map?.query || [p.city, String(p.region || '').replaceAll('_', ' ')].filter(Boolean).join(', ');
   const netVendeur = Number(p.netSellerAmount ?? p.price ?? 0);
   const honoraires = Number(p.commissionAmount ?? Math.max(0, (Number(p.price) || 0) - netVendeur));
-  const honorairesPct = p.commissionPercentage ? `${p.commissionPercentage} %` : (netVendeur ? `${(honoraires / netVendeur * 100).toFixed(1)} %` : '..........');
   const prixFAI = Number(p.price ?? (netVendeur + honoraires));
+  // Honoraires exprimés en pourcentage du prix de vente FAI (frais d'agence inclus).
+  const honorairesPct = prixFAI ? `${(honoraires / prixFAI * 100).toFixed(1)} %` : '..........';
+  // Descriptif sommaire : on ne reprend pas tout le texte de l'annonce, seulement
+  // un court résumé (première phrase, plafonné à ~200 caractères).
+  const sommaire = (txt?: string): string => {
+    const t = (txt || '').replace(/\s+/g, ' ').trim();
+    if (!t) return '';
+    if (t.length <= 200) return t;
+    const cut = t.slice(0, 200);
+    const dot = cut.lastIndexOf('. ');
+    if (dot > 80) return cut.slice(0, dot + 1);
+    const sp = cut.lastIndexOf(' ');
+    return (sp > 80 ? cut.slice(0, sp) : cut).trimEnd() + '…';
+  };
   const mtype = p.mandateType || '';
   const charge = p.mandateHonorairesCharge || '';
   const occupe = p.occupancy === 'OCCUPE';
@@ -233,7 +246,7 @@ export async function buildMandatePdf(p: any): Promise<Uint8Array> {
   const obl2 = "Le Mandant donne tous pouvoirs au Mandataire pour accomplir, pour son compte et en son nom, toutes les démarches utiles à la vente : réclamer toutes pièces utiles auprès de toute personne privée ou publique (notamment le certificat d'urbanisme), faire visiter le bien à tout client potentiel, prendre des photographies, publier sur tous supports publicitaires imprimés ou électroniques et apposer un panneau de mise en vente. Le Cabinet Conseil Immobilier sera propriétaire du droit à l'image des photographies du bien qu'il a prises ou fait prendre. Le Mandant s'oblige à assurer le moyen de visiter pendant le cours du mandat et autorise sa délégation à tout confrère titulaire de la carte professionnelle.";
   const obl3 = "Le Mandant pourra exercer son droit d'accès et de rectification conformément à l'article 27 de la loi du 6 janvier 1978. Pendant la durée du mandat, il s'engage à ratifier la vente à tout acquéreur présenté par le Mandataire aux prix et conditions des présentes, et à libérer les lieux pour le jour de l'acte authentique. Clause pénale : en cas de violation de l'exclusivité ou d'une des obligations du présent paragraphe, le Mandant réglera une indemnité compensatrice forfaitaire égale à la rémunération convenue. Il s'interdit de traiter directement avec tout acquéreur présenté par le Mandataire sans le concours de ce dernier, pendant la durée du mandat et durant un an après son expiration (articles 1142 et 1152 du code civil).";
   const obl4 = "Séquestre : les fonds ou valeurs qu'il est d'usage de faire verser par l'acquéreur seront détenus par tout séquestre habilité, soit le notaire. Loi Carrez (article 46 de la loi n° 65-557 du 10 juillet 1965) : si le Mandant ne fournit pas l'attestation de surface sous huitaine, il autorise le Mandataire à la faire établir à ses frais. Copropriété : le Mandant autorise le Mandataire à demander au syndic, en son nom et à ses frais, communication et copie des documents devant être fournis à l'acquéreur (règlement de copropriété, carnet d'entretien, diagnostics des parties communes, etc.), pour les seuls documents non déjà fournis.";
-  const obl5 = "Si l'acquéreur a un lien (conjoint, parent, société d'un même groupe, intermédiaire quelconque, etc.) avec une personne à qui le bien aurait été présenté et signalé au Mandant, l'opération sera considérée comme effectivement réalisée, sans que le Mandataire ait à apporter la preuve de ce lien. Le Mandataire indiquera par courriel au Mandant les personnes auxquelles il aura présenté le bien ; sauf contestation écrite du Mandant admise par le Mandataire, elles seront considérées comme entrant définitivement dans le cadre du présent contrat.";
+  const obl5 = "Si l'acquéreur a un lien (conjoint, parent, société d'un même groupe, intermédiaire quelconque, etc.) avec une personne à qui le bien aurait été présenté et signalé au Mandant, l'opération sera considérée comme effectivement réalisée, sans que le Mandataire ait à apporter la preuve de ce lien. Le Mandataire indiquera par email au Mandant les personnes auxquelles il aura présenté le bien ; sauf contestation écrite du Mandant admise par le Mandataire, elles seront considérées comme entrant définitivement dans le cadre du présent contrat.";
   const obl6 = "Dans le cadre d'un mandat simple, le Mandant est libre de poursuivre ses recherches et de vendre le bien par lui-même ou par un autre mandataire, au prix des présentes ; il en avisera alors immédiatement le Mandataire par lettre recommandée avec accusé de réception. Dans le cas d'un mandat exclusif, le Mandant déclare n'avoir consenti aucun autre mandat exclusif en cours et s'interdit de vendre son bien sans le concours du Mandataire ni de négocier avec un autre agent immobilier ; il s'engage à informer le Mandataire de toute proposition qui lui serait adressée personnellement.";
   const mandat4 = "En considération du mandat accordé, tous pouvoirs sont donnés au Mandataire pour mener à bien sa mission. Le Mandataire s'engage à effectuer toutes les démarches nécessaires et à rendre compte de ses actions. Conformément à l'article 77 du décret du 20 juillet 1972, il informera le Mandant de l'accomplissement du mandat au plus tard dans les huit jours de l'opération, ainsi que de toute modification législative ou commerciale susceptible de modifier les conditions de vente.";
   const retract = "Le Mandant a la faculté de renoncer au mandat dans le délai de quatorze (14) jours à compter de la date de signature des présentes. S'il entend utiliser cette faculté, il utilisera le formulaire ci-joint ou procédera à toute autre déclaration dénuée d'ambiguïté exprimant sa volonté de se rétracter, et l'adressera en recommandé avec demande d'avis de réception au Mandataire désigné. Le délai commence à courir le lendemain de la signature à 0 heure et expire le 14e jour à minuit. L'exercice de cette faculté ne donnera lieu à aucune indemnité ni frais.";
@@ -252,15 +265,29 @@ export async function buildMandatePdf(p: any): Promise<Uint8Array> {
   gap(6);
 
   para('Les soussignés :', { bold: true, justify: false, after: 3 });
-  if (isCompany) {
-    const cs = `La société ${clean(owner.name || '')}${owner.legalForm ? ' (' + clean(owner.legalForm) + ')' : ''}, dont le siège social est ${clean(owner.address || '')}, immatriculée ${clean(owner.siren || '')}, représentée par ${[owner.managerFirstName, owner.managerLastName].filter(Boolean).map(clean).join(' ')}${owner.managerRole ? ' (' + clean(owner.managerRole) + ')' : ''}.`;
-    para(cs);
+  // Autant de mandants que d'ayants droit : chacun avec adresse et téléphone.
+  // Une société est représentée par son représentant légal (avec SIREN, courriel et téléphone).
+  const mandants: any[] = (Array.isArray(owners) && owners.length) ? owners : [owner].filter(Boolean);
+  if (mandants.length) {
+    mandants.forEach((o: any) => {
+      let line: string;
+      if (o?.type === 'COMPANY') {
+        const rep = [o.managerFirstName, o.managerLastName].filter(Boolean).map(clean).join(' ');
+        line = `La société ${clean(o.name || '—')}${o.legalForm ? ' (' + clean(o.legalForm) + ')' : ''}, dont le siège social est ${clean(o.address || '—')}, immatriculée sous le numéro SIREN ${clean(o.siren || '—')}, représentée par ${rep || '—'}${o.managerRole ? ' (' + clean(o.managerRole) + ')' : ''}`;
+        const c = [o.email ? 'email ' + clean(o.email) : '', o.phone ? 'téléphone ' + clean(o.phone) : ''].filter(Boolean).join(', ');
+        line += (c ? `, ${c}` : '') + '.';
+      } else {
+        const nom = [o?.firstName, o?.lastName].filter(Boolean).map(clean).join(' ') || '—';
+        line = `${nom}, demeurant ${clean(o?.address || '—')}`;
+        const c = [o?.phone ? 'téléphone ' + clean(o.phone) : '', o?.email ? 'email ' + clean(o.email) : ''].filter(Boolean).join(', ');
+        line += (c ? `, ${c}` : '') + '.';
+      }
+      para(line, { justify: false, after: 2 });
+    });
   } else {
-    const inds = owners.filter((o: any) => o?.type !== 'COMPANY');
-    if (inds.length) inds.forEach((o: any) => para([o.firstName, o.lastName].filter(Boolean).join(' ') || '—', { justify: false, after: 2 }));
-    else para('—', { justify: false, after: 2 });
+    para('—', { justify: false, after: 2 });
   }
-  para('Ci-après dénommé(e) « le Mandant »', { justify: false });
+  para(mandants.length > 1 ? 'Ci-après dénommés « le Mandant »' : 'Ci-après dénommé(e) « le Mandant »', { justify: false });
   para('Et :', { justify: false, after: 3 });
   para(mandataireSentence);
   para('Ci-après dénommé(e) « le Mandataire »,', { justify: false });
@@ -273,7 +300,9 @@ export async function buildMandatePdf(p: any): Promise<Uint8Array> {
   kv('Référence cadastrale', p.cadastralReference || '');
   kv('Superficie du bien', p.surface ? `${p.surface} m2` : '');
   if ((p.type || '') === 'MAISON') kv('Superficie de la parcelle', p.landSize ? `${p.landSize} m2` : '');
-  kv('Descriptif', p.description || '');
+  // Descriptif sommaire = la « Désignation du bien » saisie dans le registre,
+  // sinon un résumé du texte de l'annonce.
+  kv('Descriptif sommaire', p.designation || sommaire(p.description));
 
   sec('I - Prix de vente et honoraires');
   para('Prix net vendeur (Euros)', { justify: false, after: 2 });
@@ -284,7 +313,7 @@ export async function buildMandatePdf(p: any): Promise<Uint8Array> {
     { label: 'Libre de toute location, occupation ou réquisition', checked: !occupe },
     { label: "Loué suivant l'état locatif annexé aux présentes", checked: occupe },
   ]);
-  para(`En rémunération de sa mission, le Mandataire percevra des honoraires (TVA incluse de 20%) d'un montant de ${honorairesPct} du prix net vendeur, soit ${eur(honoraires)} - ${eurosEnLettres(honoraires)}. La rémunération sera exigible lors de la signature de l'acte authentique par devant notaire, étant précisé que les honoraires sont en sus du Prix Net Vendeur, à la charge :`);
+  para(`En rémunération de sa mission, le Mandataire percevra des honoraires (TVA incluse de 20%) d'un montant de ${honorairesPct} du prix de vente FAI (frais d'agence inclus), soit ${eur(honoraires)} - ${eurosEnLettres(honoraires)}. La rémunération sera exigible lors de la signature de l'acte authentique par devant notaire, étant précisé que les honoraires sont en sus du Prix Net Vendeur, à la charge :`);
   checkRow('', [
     { label: 'du Vendeur', checked: charge === 'VENDEUR' },
     { label: "de l'Acquéreur", checked: charge === 'ACQUEREUR' },
@@ -342,33 +371,54 @@ export async function buildMandatePdf(p: any): Promise<Uint8Array> {
   }
   gap(8);
   para('Le(s) Mandant(s)', { bold: true, justify: false, after: 2 });
-  kv('Nom en toutes lettres', mandantNom);
   para('Signature précédée de la mention manuscrite « Bon pour mandat »', { size: 8, color: grey, justify: false, after: 0 });
 
-  // Signature électronique du mandant, si présente
-  const sig = p.mandateSignature;
-  if (sig?.dataUrl && /^data:image\/png;base64,/.test(sig.dataUrl)) {
-    try {
-      const sigImg = await pdfDoc.embedPng(Buffer.from(sig.dataUrl.split(',')[1], 'base64'));
-      const dim = sigImg.scale(1);
-      const maxW = 200, maxH = 56;
-      const sc = Math.min(maxW / dim.width, maxH / dim.height, 1);
-      const w = dim.width * sc, h = dim.height * sc;
-      gap(8);
-      ensure(h + 26);
-      page.drawImage(sigImg, { x: M, y: y - h, width: w, height: h });
-      y -= h + 3;
-      page.drawLine({ start: { x: M, y }, end: { x: M + 240, y }, thickness: 0.7, color: rule });
-      y -= 10;
-      let signedLabel = sig.signedAt;
-      try { signedLabel = new Date(sig.signedAt).toLocaleString('fr-FR'); } catch { /* garde brut */ }
-      page.drawText(clean(`Signé électroniquement le ${signedLabel} par ${mandantNom}${sig.ip ? ` - IP ${sig.ip}` : ''}`), { x: M, y, size: 7, font, color: grey });
-      y -= 9;
-      page.drawText(clean(`Mention : « ${sig.mention || 'Bon pour mandat'} » - Signature électronique simple (eIDAS).`), { x: M, y, size: 7, font, color: grey });
-      y -= 16;
-    } catch {
-      signline('Signature du (des) Mandant(s)');
+  // Un emplacement de signature par mandant : autant de signatures que de mandants.
+  // Pour une société, c'est le représentant légal qui signe.
+  const nameForOwner = (o: any): string => {
+    if (o?.type === 'COMPANY') {
+      const rep = [o.managerFirstName, o.managerLastName].filter(Boolean).map(clean).join(' ');
+      return rep ? `${rep} (représentant de ${clean(o.name || '')})` : clean(o.name || 'Mandant');
     }
+    return [o?.firstName, o?.lastName].filter(Boolean).map(clean).join(' ') || 'Mandant';
+  };
+
+  // Dessine un bloc de signature (image + attestation si signé, sinon ligne vierge).
+  const drawMandantSignature = async (label: string, sg: any) => {
+    gap(6);
+    para(label, { size: 8, bold: true, justify: false, after: 0 });
+    if (sg?.dataUrl && /^data:image\/png;base64,/.test(sg.dataUrl)) {
+      try {
+        const sigImg = await pdfDoc.embedPng(Buffer.from(sg.dataUrl.split(',')[1], 'base64'));
+        const dim = sigImg.scale(1);
+        const sc = Math.min(200 / dim.width, 56 / dim.height, 1);
+        const w = dim.width * sc, h = dim.height * sc;
+        ensure(h + 26);
+        page.drawImage(sigImg, { x: M, y: y - h, width: w, height: h });
+        y -= h + 3;
+        page.drawLine({ start: { x: M, y }, end: { x: M + 240, y }, thickness: 0.7, color: rule });
+        y -= 10;
+        let when = sg.signedAt;
+        try { when = new Date(sg.signedAt).toLocaleString('fr-FR'); } catch { /* garde brut */ }
+        page.drawText(clean(`Signé électroniquement le ${when} par ${label}${sg.ip ? ` - IP ${sg.ip}` : ''}`), { x: M, y, size: 7, font, color: grey });
+        y -= 9;
+        page.drawText(clean(`Mention : « ${sg.mention || 'Bon pour mandat'} » - Signature électronique simple (eIDAS).`), { x: M, y, size: 7, font, color: grey });
+        y -= 14;
+        return;
+      } catch { /* repli sur ligne vierge */ }
+    }
+    signline('Signature');
+  };
+
+  const signers: any[] = Array.isArray(p.signers) ? p.signers : [];
+  if (mandants.length) {
+    for (let mi = 0; mi < mandants.length; mi++) {
+      const sg = signers.find((s: any) => s.ownerIndex === mi) || null;
+      await drawMandantSignature(nameForOwner(mandants[mi]), sg?.dataUrl ? sg : null);
+    }
+  } else if (p.mandateSignature?.dataUrl) {
+    // Héritage : signature unique.
+    await drawMandantSignature(mandantNom, p.mandateSignature);
   } else {
     signline('Signature du (des) Mandant(s)');
   }

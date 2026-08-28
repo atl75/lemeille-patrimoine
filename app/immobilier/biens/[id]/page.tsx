@@ -5,6 +5,8 @@ import MapEmbed from "@/components/MapEmbed";
 import PropertyGallery from "@/components/PropertyGallery";
 import PropertySeoJsonLd from "@/components/PropertySeoJsonLd";
 import { getVideoEmbedUrl, isImageDocument } from "@/lib/utils";
+import { cldImg } from "@/lib/cldImg";
+import { propertyLabel, propertyTypology } from "@/lib/propertyLabel";
 import type { Metadata } from 'next';
 
 async function getProperty(id: string){
@@ -19,7 +21,7 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
   if (!p) return { title: "Bien introuvable | Lemeille Patrimoine" };
 
   const region = p.region ? String(p.region).replaceAll('_', ' ') : '';
-  const title = `${p.title} — ${p.city}${region ? `, ${region}` : ''} | Lemeille Patrimoine`;
+  const title = `${propertyLabel(p, { withPrice: false })}${region ? `, ${region}` : ''} | Lemeille Patrimoine`;
   const description = p.description
     ? p.description.slice(0, 155)
     : `${p.type === 'MAISON' ? 'Maison' : 'Appartement'} à ${p.city}, ${p.surface ?? '—'} m², ${p.rooms ?? '—'} pièces.`;
@@ -87,13 +89,13 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
     <main>
       <PropertySeoJsonLd property={p} />
       <Hero
-        title={p.title}
-        subtitle={<span>{p.city}{p.region?` · ${String(p.region).replaceAll('_',' ')}`:''}</span>}
+        title={`${propertyTypology(p)}${p.surface ? ` · ${p.surface} m²` : ''}${p.city ? ` · ${p.city}` : ''}`}
+        subtitle={<span>{p.title}{p.region?` · ${String(p.region).replaceAll('_',' ')}`:''}</span>}
         primary={{label:"Consulter la fiche PDF", href:`/api/properties/${p.id}/pdf`, blank:true}}
         secondary={{label:"Contact", href:`/contact?ref=${encodeURIComponent(p.id)}`}}
       />
       <section className="container py-6">
-        <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Immobilier", href:"/immobilier"},{label:p.title}]} />
+        <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Immobilier", href:"/immobilier"},{label: propertyLabel(p, { withPrice: false })}]} />
       </section>
 
       <section className="container pb-12 grid md:grid-cols-3 gap-6">
@@ -131,7 +133,16 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
                 {plans.map((plan, i) => (
                   isImageDocument(plan) ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img key={i} src={plan} alt={`Plan ${i + 1} — ${p.title}`} loading="lazy" decoding="async" className="w-full h-auto rounded-xl border" />
+                    <img
+                      key={i}
+                      src={cldImg(plan, 1200)}
+                      srcSet={`${cldImg(plan, 640)} 640w, ${cldImg(plan, 1200)} 1200w`}
+                      sizes="(max-width: 768px) 100vw, 66vw"
+                      alt={`Plan ${i + 1} — ${p.title}`}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-auto rounded-xl border"
+                    />
                   ) : (
                     <a key={i} href={plan} target="_blank" rel="noopener noreferrer" className="btn btn-gold inline-flex w-fit">
                       Consulter le plan {plans.length > 1 ? i + 1 : ''} (PDF)
