@@ -26,7 +26,7 @@ export function Header(){
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-4 text-sm">
           <Link href="/immobilier" data-testid="link-immobilier">Nos Biens</Link>
-          <Link href="/immobilier/estimation" data-testid="link-estimation">Estimation</Link>
+          <Link href="/vendre" data-testid="link-vendre">Vendre</Link>
           <Link href="/programmes" data-testid="link-programmes">Défiscalisation</Link>
           <Link href="/actualites" data-testid="link-actualites">Actualités</Link>
           <Link href="/contact" data-testid="link-contact">Contact</Link>
@@ -60,12 +60,12 @@ export function Header(){
               Nos Biens
             </Link>
             <Link
-              href="/immobilier/estimation"
+              href="/vendre"
               className="py-2 text-base border-b border-black/5"
               onClick={() => setMobileMenuOpen(false)}
-              data-testid="link-mobile-estimation"
+              data-testid="link-mobile-vendre"
             >
-              Estimation
+              Vendre
             </Link>
             <Link
               href="/programmes"

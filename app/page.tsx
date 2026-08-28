@@ -26,6 +26,16 @@ export const metadata: Metadata = {
 // la page serait figée sans aucun bien pendant toute la fenêtre de revalidation.
 export const dynamic = 'force-dynamic';
 
+// Nombre de biens vendus / sous promesse : preuve sociale affichée sur l'accueil.
+async function getSoldCount() {
+  try {
+    const all = await getPropertyCards();
+    return all.filter((p: any) => p && (p.sold || p.status === 'SOLD' || p.status === 'UNDER_OFFER')).length;
+  } catch {
+    return 0;
+  }
+}
+
 async function getFeatured() {
   try {
     const all = await getPropertyCards();
@@ -41,7 +51,7 @@ async function getFeatured() {
 }
 
 export default async function Home() {
-  const featured = await getFeatured();
+  const [featured, soldCount] = await Promise.all([getFeatured(), getSoldCount()]);
   return (
     <main>
       {/* HERO — diaporama plein cadre + CTA unique */}
@@ -91,11 +101,11 @@ export default async function Home() {
       <section className="border-b border-black/5 bg-white/70">
         <div className="container py-6 grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
           {[
+            [soldCount > 0 ? `${soldCount} ventes réalisées` : "Rouen & Plateau Nord", soldCount > 0 ? "Biens vendus ou sous promesse" : "Bureaux à Rouen et Mont-Saint-Aignan"],
             ["8 ans d'expérience", "Master école de commerce"],
             ["Carte T", "CPI 7606 2024 000 000 038"],
             ["Réponse sous 48h", "Interlocuteur unique"],
             ["Estimation gratuite", "Avis de valeur sous 3 jours"],
-            ["Rouen & Plateau Nord", "Bureaux à Rouen et Mont-Saint-Aignan"],
           ].map(([t, s], i) => (
             <div key={i}>
               <div className="luxe text-base md:text-lg text-luxe">{t}</div>

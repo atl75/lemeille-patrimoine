@@ -8,6 +8,7 @@ export function Footer() {
     { label: "Siège", detail: "50 rue de la Garenne, 76130 Mont-Saint-Aignan", q: "50+rue+de+la+Garenne%2C+76130+Mont-Saint-Aignan", testid: "link-map-siege" },
   ];
   const nav = [
+    { href: "/vendre", label: "Vendre son bien" },
     { href: "/references", label: "Références" },
     { href: "/partenaires", label: "Partenaires" },
     { href: "/faq", label: "FAQ" },
