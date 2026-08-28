@@ -9,6 +9,7 @@ import VideoEmbed from "@/components/VideoEmbed";
 import { cldImg } from "@/lib/cldImg";
 import { propertyLabel, propertyTypology } from "@/lib/propertyLabel";
 import CapaciteEmpruntSimulator from "@/components/CapaciteEmpruntSimulator";
+import PlanViewer from "@/components/PlanViewer";
 import { notFound } from "next/navigation";
 import type { Metadata } from 'next';
 
@@ -59,6 +60,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
   const plans: string[] = Array.isArray(p.floorPlans) && p.floorPlans.length
     ? p.floorPlans
     : (p.floorPlan ? [p.floorPlan] : []);
+  const planImages = plans.filter((d: string) => isImageDocument(d));
+  const planDocs = plans.filter((d: string) => !isImageDocument(d));
 
   // Localisation : en mode EXACT, on affiche l'adresse précise (carte + lien
   // Google Maps). En mode AREA (zone), on n'expose que la ville pour préserver
@@ -129,33 +132,21 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
           {plans.length > 0 && (
             <div className="card p-6 mt-4">
               <h2 className="luxe text-2xl mb-3">{plans.length > 1 ? 'Plans du bien' : 'Plan du bien'}</h2>
-              <div className="grid gap-4">
-                {plans.map((plan, i) => (
-                  isImageDocument(plan) ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      key={i}
-                      src={cldImg(plan, 1200)}
-                      {...(plan.includes('res.cloudinary.com')
-                        ? {
-                            srcSet: `${cldImg(plan, 640)} 640w, ${cldImg(plan, 1200)} 1200w`,
-                            sizes: '(max-width: 768px) 100vw, 66vw',
-                          }
-                        : {})}
-                      alt={`Plan ${i + 1} — ${p.title}`}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-auto rounded-xl border"
-                    />
-                  ) : (
+              {/* Les plans image s'ouvrent en plein écran avec zoom ; les PDF
+                  restent consultables dans un onglet. */}
+              {planImages.length > 0 && <PlanViewer plans={planImages} title={p.title} />}
+              {planDocs.length > 0 && (
+                <div className={`flex flex-wrap gap-3 ${planImages.length ? 'mt-4' : ''}`}>
+                  {planDocs.map((plan, i) => (
                     <a key={i} href={plan} target="_blank" rel="noopener noreferrer" className="btn btn-gold inline-flex w-fit">
-                      Consulter le plan {plans.length > 1 ? i + 1 : ''} (PDF)
+                      Consulter le plan {planDocs.length > 1 ? i + 1 : ''} (PDF)
                     </a>
-                  )
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
+
         </div>
 
         {/* Colonne droite : flex vertical, cartes et bouton PDF pleine largeur,
