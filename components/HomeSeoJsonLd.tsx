@@ -29,7 +29,7 @@ export default function HomeSeoJsonLd(){
     "@context":"https://schema.org",
     "@type":"FAQPage",
     "mainEntity":[
-      {"@type":"Question","name":"Quelle agence immobilière à Rouen pour vendre une maison de caractère ?","acceptedAnswer":{"@type":"Answer","text":"Lemeille Patrimoine est une agence immobilière basée à Rouen (35 rue Ganterie) et Mont-Saint-Aignan, spécialisée dans les maisons et appartements de caractère à Rouen et sur le Plateau Nord. Estimation gratuite et avis de valeur sous 7 jours."}},
+      {"@type":"Question","name":"Quelle agence immobilière à Rouen pour vendre une maison de caractère ?","acceptedAnswer":{"@type":"Answer","text":"Lemeille Patrimoine est une agence immobilière basée à Rouen (35 rue Ganterie) et Mont-Saint-Aignan, spécialisée dans les maisons et appartements de caractère à Rouen et sur le Plateau Nord. Estimation gratuite et avis de valeur sous 3 jours."}},
       {"@type":"Question","name":"Intervenez-vous en location ?","acceptedAnswer":{"@type":"Answer","text":"Non. Lemeille Patrimoine réalise uniquement de la transaction dans l'ancien (achat / vente)."}},
       {"@type":"Question","name":"Proposez-vous des dispositifs de défiscalisation ?","acceptedAnswer":{"@type":"Answer","text":"Oui : Déficit foncier, Loi Malraux, Monument Historique, avec une page programme dédiée pour chaque opération."}},
       {"@type":"Question","name":"Dans quelles zones intervenez-vous ?","acceptedAnswer":{"@type":"Answer","text":"Principalement Rouen et sa métropole : Rouen centre et rive gauche, Mont-Saint-Aignan, Bois-Guillaume, Bihorel, Isneauville, Le Mesnil-Esnard et Franqueville-Saint-Pierre. En complément, nous accompagnons également nos clients à Paris et sur la Côte d'Azur."}},

@@ -93,7 +93,7 @@ export default async function Home() {
           {[
             ["Carte T", "CPI 7606 2024 000 000 038"],
             ["Réponse sous 48h", "Interlocuteur unique"],
-            ["Estimation gratuite", "Avis de valeur sous 7 jours"],
+            ["Estimation gratuite", "Avis de valeur sous 3 jours"],
             ["Rouen & Plateau Nord", "Bureaux à Rouen et Mont-Saint-Aignan"],
           ].map(([t, s], i) => (
             <div key={i}>
