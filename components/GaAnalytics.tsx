@@ -34,7 +34,7 @@ export default function GaAnalytics() {
     <div className="p-4 bg-black/[0.03] rounded-lg text-center">
       <div className="text-2xl font-semibold text-[#1F3B2C]">{value}</div>
       <div className="text-xs opacity-70 mt-1">{label}</div>
-      {sub && <div className="text-[11px] opacity-50">{sub}</div>}
+      {sub && <div className="text-[11px] opacity-75">{sub}</div>}
     </div>
   );
 
@@ -52,14 +52,14 @@ export default function GaAnalytics() {
             ))}
           </tbody>
         </table>
-      ) : <div className="text-xs opacity-50">Aucune donnée.</div>}
+      ) : <div className="text-xs opacity-75">Aucune donnée.</div>}
   </div>
   );
 
   return (
     <div className="mt-8">
       <h2 className="luxe text-2xl mb-1">Statistiques de visite</h2>
-      <p className="text-xs opacity-60 mb-4">
+      <p className="text-xs opacity-75 mb-4">
         Google Analytics — 28 derniers jours{d?.propertyId ? ` · propriété ${d.propertyId}` : ""}
         {" · "}
         <a href="/api/google/oauth/start?return=/admin/kpi" className="underline hover:text-[#1F3B2C]" title="Ré-autoriser Google (ajouter/mettre à jour les droits)">Reconnecter Google</a>
@@ -74,7 +74,7 @@ export default function GaAnalytics() {
             {d.reason === "scope" && "L'accès Analytics n'est pas autorisé (ou le compte connecté n'a pas accès à la propriété GA)."}
             {d.reason === "error" && "Statistiques indisponibles."}
             {" "}
-            <span className="opacity-60 text-xs">{d.message}</span>
+            <span className="opacity-75 text-xs">{d.message}</span>
           </p>
           <a href="/api/google/oauth/start?return=/admin/kpi" className="btn btn-gold text-sm">Connecter / autoriser Google Analytics</a>
         </div>

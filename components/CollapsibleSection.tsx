@@ -24,7 +24,7 @@ export default function CollapsibleSection({
       >
         <span>
           <span className="font-semibold text-sm">{title}</span>
-          {subtitle && <span className="block text-xs opacity-60 mt-0.5">{subtitle}</span>}
+          {subtitle && <span className="block text-xs opacity-75 mt-0.5">{subtitle}</span>}
         </span>
         <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>

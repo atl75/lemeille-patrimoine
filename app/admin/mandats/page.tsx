@@ -202,7 +202,7 @@ export default function Page() {
             </button>
           </div>
         </div>
-        <p className="text-xs opacity-60 mt-3">
+        <p className="text-xs opacity-75 mt-3">
           Registre tenu conformément à la loi n° 70-9 du 2 janvier 1970 (loi Hoguet). Les mandats sont modifiables ici, sans repasser par la fiche du bien.
         </p>
       </div>
@@ -242,7 +242,7 @@ export default function Page() {
                   <Fragment key={m.id}>
                     <tr id={`row-${m.id}`} className={i % 2 ? 'bg-black/[0.03]' : ''} style={{ borderBottom: '1px solid #eee' }}>
                       <td className="px-3 py-2 font-semibold whitespace-nowrap">{m.mandateNumber || '—'}</td>
-                      <td className="px-3 py-2 whitespace-nowrap">{m.mandateSignature?.signedAt ? new Date(m.mandateSignature.signedAt).toLocaleDateString('fr-FR') : <span className="opacity-50">—</span>}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">{m.mandateSignature?.signedAt ? new Date(m.mandateSignature.signedAt).toLocaleDateString('fr-FR') : <span className="opacity-75">—</span>}</td>
                       <td className="px-3 py-2">
                         <div className="font-medium">{mandantOf(m)}</div>
                       </td>
@@ -257,7 +257,7 @@ export default function Page() {
                           const done = (m.signers || []).filter(s => s.dataUrl || s.signedAt).length;
                           if (m.mandateSignStatus === 'SIGNED') return <span className="text-green-700 font-medium">✔ Signé{total > 1 ? ` (${total}/${total})` : ''}</span>;
                           if (m.mandateSignStatus === 'PENDING') return <span className="text-amber-700">En attente{total > 1 ? ` (${done}/${total} signés)` : ''}</span>;
-                          return <span className="opacity-50">Non envoyé</span>;
+                          return <span className="opacity-75">Non envoyé</span>;
                         })()}
                       </td>
                       <td className="px-3 py-2 no-print">
@@ -307,11 +307,11 @@ export default function Page() {
                         <td colSpan={10} className="px-3 py-3 bg-black/[0.02]" style={{ borderBottom: '1px solid #eee' }}>
                           <div className="grid md:grid-cols-3 gap-3">
                             <div>
-                              <label className="block text-xs opacity-60 mb-1">N° de mandat</label>
+                              <label className="block text-xs opacity-75 mb-1">N° de mandat</label>
                               <input value={m.mandateNumber || ''} onChange={e => patchLocal(m.id, { mandateNumber: e.target.value })} className={inputCls} />
                             </div>
                             <div>
-                              <label className="block text-xs opacity-60 mb-1">Type de mandat</label>
+                              <label className="block text-xs opacity-75 mb-1">Type de mandat</label>
                               <select value={m.mandateType || 'SIMPLE'} onChange={e => patchLocal(m.id, { mandateType: e.target.value as any })} className={inputCls}>
                                 <option value="SIMPLE">Simple</option>
                                 <option value="EXCLUSIF">Exclusif</option>
@@ -319,7 +319,7 @@ export default function Page() {
                               </select>
                             </div>
                             <div>
-                              <label className="block text-xs opacity-60 mb-1">Occupation</label>
+                              <label className="block text-xs opacity-75 mb-1">Occupation</label>
                               <select value={m.occupancy || 'LIBRE'} onChange={e => patchLocal(m.id, { occupancy: e.target.value })} className={inputCls}>
                                 <option value="LIBRE">Libre</option>
                                 <option value="OCCUPE">Loué (occupé)</option>
@@ -327,11 +327,11 @@ export default function Page() {
                             </div>
                             <div className="md:col-span-3 grid md:grid-cols-2 gap-3">
                               <div>
-                                <label className="block text-xs opacity-60 mb-1">Désignation du bien</label>
+                                <label className="block text-xs opacity-75 mb-1">Désignation du bien</label>
                                 <input value={m.designation || ''} onChange={e => patchLocal(m.id, { designation: e.target.value })} placeholder={typeLabel(m)} className={inputCls} />
                               </div>
                               <div>
-                                <label className="block text-xs opacity-60 mb-1">Adresse du bien</label>
+                                <label className="block text-xs opacity-75 mb-1">Adresse du bien</label>
                                 <AddressAutocomplete
                                   value={m.map?.query || ''}
                                   onChange={(c) => patchLocal(m.id, { map: { ...(m.map || {}), query: c.address } })}
@@ -343,7 +343,7 @@ export default function Page() {
                             </div>
                             <div className="md:col-span-3">
                               <div className="flex items-center justify-between mb-1">
-                                <label className="text-xs opacity-60">Mandant(s)</label>
+                                <label className="text-xs opacity-75">Mandant(s)</label>
                                 <button type="button" onClick={() => addOwner(m)} className="text-xs text-[#B89C6D] hover:underline">+ Ajouter un mandant</button>
                               </div>
                               <div className="space-y-2">
@@ -365,7 +365,7 @@ export default function Page() {
                                           <input placeholder="SIREN" value={o.siren || ''} onChange={e => setOwner(m, oi, { siren: e.target.value })} className={inputCls} />
                                           <input placeholder="Forme juridique (SCI, SAS…)" value={o.legalForm || ''} onChange={e => setOwner(m, oi, { legalForm: e.target.value })} className={inputCls} />
                                         </div>
-                                        <div className="text-[11px] opacity-60 mt-1">Représentant légal (signataire) :</div>
+                                        <div className="text-[11px] opacity-75 mt-1">Représentant légal (signataire) :</div>
                                         <div className="grid grid-cols-3 gap-1">
                                           <input placeholder="Prénom" value={o.managerFirstName || ''} onChange={e => setOwner(m, oi, { managerFirstName: e.target.value })} className={inputCls} />
                                           <input placeholder="Nom" value={o.managerLastName || ''} onChange={e => setOwner(m, oi, { managerLastName: e.target.value })} className={inputCls} />
@@ -396,26 +396,26 @@ export default function Page() {
                               </div>
                             </div>
                             <div>
-                              <label className="block text-xs opacity-60 mb-1">Honoraires à la charge de</label>
+                              <label className="block text-xs opacity-75 mb-1">Honoraires à la charge de</label>
                               <select value={m.mandateHonorairesCharge || 'ACQUEREUR'} onChange={e => patchLocal(m.id, { mandateHonorairesCharge: e.target.value as any })} className={inputCls}>
                                 <option value="ACQUEREUR">Acquéreur</option>
                                 <option value="VENDEUR">Vendeur</option>
                               </select>
                             </div>
                             <div>
-                              <label className="block text-xs opacity-60 mb-1">Prix net vendeur (€)</label>
+                              <label className="block text-xs opacity-75 mb-1">Prix net vendeur (€)</label>
                               <input inputMode="numeric" value={fmtNum(m.netSellerAmount)} onChange={e => { const v = e.target.value.replace(/[^\d]/g, ''); patchLocal(m.id, { netSellerAmount: v ? Number(v) : undefined }); }} className={inputCls} />
                             </div>
                             <div>
-                              <label className="block text-xs opacity-60 mb-1">Prix FAI (€)</label>
+                              <label className="block text-xs opacity-75 mb-1">Prix FAI (€)</label>
                               <input inputMode="numeric" value={fmtNum(m.price)} onChange={e => { const v = e.target.value.replace(/[^\d]/g, ''); patchLocal(m.id, { price: v ? Number(v) : undefined }); }} className={inputCls} />
                             </div>
                             <div>
-                              <label className="block text-xs opacity-60 mb-1">Honoraires (auto)</label>
+                              <label className="block text-xs opacity-75 mb-1">Honoraires (auto)</label>
                               <div className="px-2 py-1 text-sm bg-black/5 rounded">{eur((m.price || 0) - (m.netSellerAmount || 0))}</div>
                             </div>
                             <div>
-                              <label className="block text-xs opacity-60 mb-1">Ville de signature (« Fait à »)</label>
+                              <label className="block text-xs opacity-75 mb-1">Ville de signature (« Fait à »)</label>
                               <input value={m.mandatePlace || ''} onChange={e => patchLocal(m.id, { mandatePlace: e.target.value })} placeholder={m.city || 'Ville où le mandat est signé'} className={inputCls} />
                             </div>
                           </div>
@@ -433,7 +433,7 @@ export default function Page() {
               </tbody>
             </table>
           </div>
-          <div className="p-3 text-xs opacity-60 border-t hidden print:block">
+          <div className="p-3 text-xs opacity-75 border-t hidden print:block">
             Édité le {new Date().toLocaleDateString('fr-FR')} — {mandats.length} mandat(s) inscrit(s).
           </div>
         </div>

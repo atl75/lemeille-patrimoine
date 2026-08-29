@@ -33,7 +33,7 @@ export default function Page() {
           <h2 className="luxe text-2xl mb-1">Acheteurs</h2>
           <p className="opacity-70 text-sm">Recherche de biens, critères, propositions, suivi.</p>
           <div className="mt-4 text-3xl font-semibold text-teal-700">{acheteurs}</div>
-          <div className="text-xs opacity-60">lead(s) acheteur</div>
+          <div className="text-xs opacity-75">lead(s) acheteur</div>
         </Link>
 
         <Link
@@ -45,12 +45,12 @@ export default function Page() {
           <h2 className="luxe text-2xl mb-1">Vendeurs</h2>
           <p className="opacity-70 text-sm">Estimation, mandat, création du bien, signature.</p>
           <div className="mt-4 text-3xl font-semibold text-amber-700">{vendeurs}</div>
-          <div className="text-xs opacity-60">lead(s) vendeur</div>
+          <div className="text-xs opacity-75">lead(s) vendeur</div>
         </Link>
       </div>
 
       {patrimoine > 0 && (
-        <p className="text-xs opacity-60 mt-4">{patrimoine} lead(s) « patrimoine » ne sont pas listés ici (hors acheteur/vendeur immobilier).</p>
+        <p className="text-xs opacity-75 mt-4">{patrimoine} lead(s) « patrimoine » ne sont pas listés ici (hors acheteur/vendeur immobilier).</p>
       )}
     </AdminShell>
   );

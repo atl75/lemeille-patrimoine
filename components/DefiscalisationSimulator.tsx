@@ -142,7 +142,7 @@ export default function DefiscalisationSimulator() {
               onFocus={(e) => e.target.select()}
               data-testid="input-travaux"
             />
-            <span className="opacity-60">€</span>
+            <span className="opacity-75">€</span>
           </div>
 
           {dispositif === "MALRAUX" && (
@@ -158,7 +158,7 @@ export default function DefiscalisationSimulator() {
                   </button>
                 ))}
               </div>
-              <p className="text-xs opacity-60 mt-1">30 % : site patrimonial remarquable avec plan approuvé (PSMV). 22 % : autres cas.</p>
+              <p className="text-xs opacity-75 mt-1">30 % : site patrimonial remarquable avec plan approuvé (PSMV). 22 % : autres cas.</p>
             </div>
           )}
 
@@ -227,7 +227,7 @@ export default function DefiscalisationSimulator() {
       </div>
 
       {/* Avertissement */}
-      <p className="text-xs opacity-55 mt-6 leading-relaxed">
+      <p className="text-xs opacity-75 mt-6 leading-relaxed">
         Estimation indicative et non contractuelle, fournie à titre informatif. Elle ne constitue pas un conseil
         personnalisé ni une offre. Les avantages fiscaux dépendent de votre situation et de la réglementation en
         vigueur, susceptible d&apos;évoluer. Lemeille Patrimoine — Arthur Lemeille, conseiller en investissements

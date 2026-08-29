@@ -75,7 +75,7 @@ export default function ProjectionsGallery({ items }: { items: Item[] }) {
               type="button"
               onClick={() => setCurrent(i)}
               aria-label={`Voir ${im.title || `l'image ${i + 1}`}`}
-              className={`relative h-14 w-20 shrink-0 rounded-lg overflow-hidden border-2 transition ${i === current ? "border-gold" : "border-transparent opacity-60 hover:opacity-100"}`}
+              className={`relative h-14 w-20 shrink-0 rounded-lg overflow-hidden border-2 transition ${i === current ? "border-gold" : "border-transparent opacity-75 hover:opacity-100"}`}
             >
               <Image src={im.image} alt="" fill sizes="80px" className="object-cover" />
             </button>

@@ -29,7 +29,7 @@ export function Footer() {
   ];
 
   const heading = "text-[11px] font-semibold uppercase tracking-[0.18em] text-luxe/70 mb-4";
-  const link = "text-luxe/70 hover:text-gold transition-colors";
+  const link = "inline-block py-1 text-luxe/70 hover:text-gold transition-colors";
 
   return (
     <footer className="mt-20 border-t border-gold/25 bg-cream/30 text-sm">
@@ -110,9 +110,9 @@ export function Footer() {
       <div className="border-t border-gold/15">
         <div className="container py-5">
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-luxe/70 mb-2">Secteurs d&apos;intervention</div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs">
             {secteurs.map(s => (
-              <Link key={s.href} href={s.href} className="text-luxe/70 hover:text-gold transition-colors">{s.label}</Link>
+              <Link key={s.href} href={s.href} className="inline-block py-1.5 text-luxe/70 hover:text-gold transition-colors">{s.label}</Link>
             ))}
           </div>
         </div>

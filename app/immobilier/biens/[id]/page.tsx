@@ -174,7 +174,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
             courtier peut vous confirmer les conditions réellement accessibles.
           </p>
           <CapaciteEmpruntSimulator propertyPrice={Number(p.price)} />
-          <p className="text-xs opacity-60 mt-4">
+          <p className="text-xs opacity-75 mt-4">
             Estimation indicative fondée sur un taux d&apos;endettement maximal de 35 % (recommandation HCSF).
             Elle ne constitue ni une offre de prêt, ni un accord de financement.{' '}
             <a href="/financement" className="underline">En savoir plus sur le financement</a>.

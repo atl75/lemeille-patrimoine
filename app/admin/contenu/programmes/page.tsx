@@ -378,13 +378,13 @@ export default function Page() {
                 data-testid="input-program-photo"
               />
             )}
-            {uploadingPhoto && <div className="text-xs opacity-60 mt-1">Envoi en cours…</div>}
+            {uploadingPhoto && <div className="text-xs opacity-75 mt-1">Envoi en cours…</div>}
           </div>
 
           {/* Identité enrichie */}
           <div className="grid md:grid-cols-3 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Slug (URL) <span className="opacity-50">— ex : 98-carmes</span></label>
+              <label className="block text-sm font-medium mb-1">Slug (URL) <span className="opacity-75">— ex : 98-carmes</span></label>
               <input type="text" value={editing.slug || ''} onChange={e => updateField('slug', e.target.value)} className="w-full px-3 py-2 border rounded" />
             </div>
             <div>
@@ -399,7 +399,7 @@ export default function Page() {
 
           {/* Dispositifs applicables (multi) */}
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Dispositifs applicables <span className="opacity-50">— le 1er est le principal</span></label>
+            <label className="block text-sm font-medium mb-1">Dispositifs applicables <span className="opacity-75">— le 1er est le principal</span></label>
             <div className="flex flex-wrap gap-3">
               {DISPOS.map(d => (
                 <label key={d.code} className="flex items-center gap-1.5 text-sm border rounded px-2 py-1 cursor-pointer">
@@ -491,14 +491,14 @@ export default function Page() {
             <label className="block text-sm font-medium mb-1">DPE cible (après travaux)</label>
             <div className="flex flex-wrap gap-3">
               <div>
-                <span className="block text-xs opacity-60 mb-0.5">Classe énergie</span>
+                <span className="block text-xs opacity-75 mb-0.5">Classe énergie</span>
                 <select value={editing.dpe?.classEnergy || ''} onChange={e => setDpe('classEnergy', e.target.value)} className="px-3 py-2 border rounded text-sm">
                   <option value="">—</option>
                   {["A","B","C","D","E","F","G"].map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
-                <span className="block text-xs opacity-60 mb-0.5">Classe climat (GES)</span>
+                <span className="block text-xs opacity-75 mb-0.5">Classe climat (GES)</span>
                 <select value={editing.dpe?.classGES || ''} onChange={e => setDpe('classGES', e.target.value)} className="px-3 py-2 border rounded text-sm">
                   <option value="">—</option>
                   {["A","B","C","D","E","F","G"].map(c => <option key={c} value={c}>{c}</option>)}
@@ -581,7 +581,7 @@ export default function Page() {
                     ) : (
                       <input type="file" accept="image/*" onChange={async e => { const url = await uploadImage(e.target.files?.[0]); if (url) setLot(i, 'image', url); }} className="text-xs" />
                     )}
-                    <span className="text-xs opacity-60 ml-3">Plan :</span>
+                    <span className="text-xs opacity-75 ml-3">Plan :</span>
                     {lot.plan ? (
                       <>
                         {/\.pdf($|\?)/i.test(lot.plan) ? (
@@ -597,7 +597,7 @@ export default function Page() {
                     )}
                   </div>
                   <div className="mt-2">
-                    <span className="text-xs opacity-60">Documents du lot (Carrez, plan PDF…)</span>
+                    <span className="text-xs opacity-75">Documents du lot (Carrez, plan PDF…)</span>
                     <div className="space-y-1 mt-1">
                       {lotDocs(i).map((d: any, di: number) => (
                         <div key={di} className="flex items-center gap-2">

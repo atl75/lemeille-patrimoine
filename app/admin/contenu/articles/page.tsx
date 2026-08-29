@@ -169,7 +169,7 @@ export default function Page() {
                 className="w-full px-3 py-2 border rounded"
                 data-testid="input-slug"
               />
-              <p className="text-xs opacity-60 mt-1">/actualites/{editing.slug || "..."}</p>
+              <p className="text-xs opacity-75 mt-1">/actualites/{editing.slug || "..."}</p>
             </div>
 
             <div>

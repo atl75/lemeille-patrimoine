@@ -98,7 +98,7 @@ export default function Page() {
             </div>
           ))}
         </div>
-        <p className="text-xs opacity-60 text-center mt-8 max-w-3xl mx-auto">
+        <p className="text-xs opacity-75 text-center mt-8 max-w-3xl mx-auto">
           Les résultats de ce simulateur sont donnés à titre indicatif et ne constituent ni une offre de prêt,
           ni un accord de financement, ni un conseil en crédit. Seul un établissement prêteur ou un intermédiaire
           en opérations de banque habilité peut vous délivrer une offre.

@@ -55,7 +55,7 @@ export default async function Page(){
                 )}
                 <h2 className="luxe text-xl">{a.title}</h2>
                 <p className="mt-2 text-sm opacity-80 line-clamp-3">{a.excerpt}</p>
-                <div className="mt-3 text-xs opacity-60">
+                <div className="mt-3 text-xs opacity-75">
                   {new Date(a.publishedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </div>
               </div>

@@ -223,7 +223,7 @@ export default async function Page({ searchParams }: {
             height={600}
             sizes="(max-width: 768px) 100vw, 50vw"
             priority={index === 0}
-            className="w-full h-64 object-cover rounded-t-2xl grayscale opacity-60"
+            className="w-full h-64 object-cover rounded-t-2xl grayscale opacity-75"
           />
           <div className="p-6 opacity-70">
             <h3 className="luxe text-2xl">{propertyTypology(p)}{p.surface ? ` · ${p.surface} m²` : ''} · {formatCityWithDistrict(p.city)}</h3>

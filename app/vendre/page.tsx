@@ -179,7 +179,7 @@ export default async function Page() {
                 </li>
               ))}
             </ul>
-            <p className="text-xs opacity-60 mt-5">
+            <p className="text-xs opacity-75 mt-5">
               Nous retouchons la lumière et les perspectives, jamais la réalité du bien : une photo qui promet
               ce que la visite ne tient produit des visites inutiles et des acquéreurs déçus.
             </p>

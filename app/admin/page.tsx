@@ -60,7 +60,7 @@ export default async function Page(){
             <p className="text-3xl font-bold text-[#1F3B2C]" data-testid="stat-active-properties">
               {totalProperties}
             </p>
-            <p className="text-sm opacity-60 mt-1">Annonces en ligne</p>
+            <p className="text-sm opacity-75 mt-1">Annonces en ligne</p>
           </Link>
 
           <div className="card p-6 border-2 border-[#B89C6D]/20">
@@ -73,7 +73,7 @@ export default async function Page(){
             <p className="text-3xl font-bold text-[#1F3B2C]" data-testid="stat-potential-revenue">
               {(totalValue / 1000000).toFixed(1)}M€
             </p>
-            <p className="text-sm opacity-60 mt-1">Valeur du portefeuille</p>
+            <p className="text-sm opacity-75 mt-1">Valeur du portefeuille</p>
           </div>
 
           <div className="card p-6 border-2 border-[#B89C6D]/20">
@@ -86,7 +86,7 @@ export default async function Page(){
             <p className="text-3xl font-bold text-[#1F3B2C]" data-testid="stat-commission">
               {(totalCommission / 1000).toFixed(0)}K€
             </p>
-            <p className="text-sm opacity-60 mt-1">Estimation 5% moyenne</p>
+            <p className="text-sm opacity-75 mt-1">Estimation 5% moyenne</p>
           </div>
         </div>
 

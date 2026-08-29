@@ -649,7 +649,7 @@ export default function Page(){
           {/* Par source — quel canal du site convertit le mieux */}
           <div className="card p-6 mb-4">
             <h3 className="luxe text-xl mb-1">Leads par source</h3>
-            <p className="text-xs opacity-60 mb-4">Quel formulaire / canal du site génère le plus de contacts.</p>
+            <p className="text-xs opacity-75 mb-4">Quel formulaire / canal du site génère le plus de contacts.</p>
             <div className="space-y-2">
               {Object.entries(kpi.bySource)
                 .sort(([, a], [, b]) => b - a)
@@ -659,7 +659,7 @@ export default function Page(){
                     <div key={source} data-testid={`source-${source}`}>
                       <div className="flex justify-between items-center text-sm mb-0.5">
                         <span className="text-gray-700">{sourceLabel(source)}</span>
-                        <span className="font-semibold text-gray-900">{count} <span className="opacity-50 font-normal">· {pct}%</span></span>
+                        <span className="font-semibold text-gray-900">{count} <span className="opacity-75 font-normal">· {pct}%</span></span>
                       </div>
                       <div className="h-2 bg-gray-100 rounded overflow-hidden">
                         <div className="h-full bg-[#1F3B2C]" style={{ width: `${pct}%` }} />
@@ -667,7 +667,7 @@ export default function Page(){
                     </div>
                   );
                 })}
-              {Object.keys(kpi.bySource).length === 0 && <div className="text-sm opacity-50">Aucun lead sur la période.</div>}
+              {Object.keys(kpi.bySource).length === 0 && <div className="text-sm opacity-75">Aucun lead sur la période.</div>}
             </div>
           </div>
 

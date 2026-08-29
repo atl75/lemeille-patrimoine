@@ -135,7 +135,7 @@ export default function Page() {
           <span className={`px-1 rounded text-[10px] ${it.status === 'Vendu' ? 'bg-red-100 text-red-700' : it.status === 'Sous promesse' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>{it.status}</span>
         </a>
       ))}
-      {!items.length && <span className="text-xs opacity-40">—</span>}
+      {!items.length && <span className="text-xs opacity-75">—</span>}
     </div>
   );
 
@@ -144,7 +144,7 @@ export default function Page() {
       {phone && <div>📞 <a href={`tel:${phone}`} className="hover:underline">{phone}</a></div>}
       {email && <div>✉️ <a href={`mailto:${email}`} className="hover:underline">{email}</a></div>}
       {address && <div className="opacity-70">{address}</div>}
-      {!phone && !email && !address && <span className="opacity-40">—</span>}
+      {!phone && !email && !address && <span className="opacity-75">—</span>}
     </div>
   );
 
@@ -189,12 +189,12 @@ export default function Page() {
                   </td>
                   <td className="px-3 py-2"><Contact email={p.email} phone={p.phone} address={p.address} /></td>
                   <td className="px-3 py-2">
-                    {p.properties.length ? <PropChips items={p.properties} /> : (p.note ? <span className="text-xs opacity-70 italic">{p.note}</span> : <span className="text-xs opacity-40">—</span>)}
+                    {p.properties.length ? <PropChips items={p.properties} /> : (p.note ? <span className="text-xs opacity-70 italic">{p.note}</span> : <span className="text-xs opacity-75">—</span>)}
                   </td>
                 </tr>
               ))}
               {!(tab === "sellers" ? fSellers : fBuyers).length && (
-                <tr><td colSpan={3} className="px-3 py-6 text-center opacity-50">Aucun résultat.</td></tr>
+                <tr><td colSpan={3} className="px-3 py-6 text-center opacity-75">Aucun résultat.</td></tr>
               )}
             </tbody>
           </table>
@@ -219,19 +219,19 @@ export default function Page() {
                   <td className="px-3 py-2 font-medium">{n.officeName}</td>
                   <td className="px-3 py-2 whitespace-nowrap">{n.notaryName || "—"}</td>
                   <td className="px-3 py-2"><Contact email={n.email} phone={n.phone} /></td>
-                  <td className="px-3 py-2 text-xs">{n.clerkName || n.clerkEmail ? <>{n.clerkName || ""}{n.clerkEmail && <div>✉️ <a href={`mailto:${n.clerkEmail}`} className="hover:underline">{n.clerkEmail}</a></div>}</> : <span className="opacity-40">—</span>}</td>
+                  <td className="px-3 py-2 text-xs">{n.clerkName || n.clerkEmail ? <>{n.clerkName || ""}{n.clerkEmail && <div>✉️ <a href={`mailto:${n.clerkEmail}`} className="hover:underline">{n.clerkEmail}</a></div>}</> : <span className="opacity-75">—</span>}</td>
                   <td className="px-3 py-2"><PropChips items={n.properties} /></td>
                 </tr>
               ))}
               {!fNotaries.length && (
-                <tr><td colSpan={5} className="px-3 py-6 text-center opacity-50">Aucun notaire enregistré.</td></tr>
+                <tr><td colSpan={5} className="px-3 py-6 text-center opacity-75">Aucun notaire enregistré.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       )}
 
-      <p className="text-xs opacity-50 mt-3">
+      <p className="text-xs opacity-75 mt-3">
         Répertoire construit automatiquement à partir des fiches biens (propriétaires = vendeurs, acquéreurs) et du carnet de contacts notaires. Cliquez sur un bien pour ouvrir sa fiche.
       </p>
     </AdminShell>

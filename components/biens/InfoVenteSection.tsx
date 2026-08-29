@@ -110,7 +110,7 @@ export default function InfoVenteSection({ editing, updateField }: Props) {
         </div>
         {furniture.length ? (
           <table className="w-full text-xs">
-            <thead><tr className="text-left opacity-60"><th className="py-1">Élément</th><th className="py-1 w-28">Valeur (€)</th><th className="w-8"></th></tr></thead>
+            <thead><tr className="text-left opacity-75"><th className="py-1">Élément</th><th className="py-1 w-28">Valeur (€)</th><th className="w-8"></th></tr></thead>
             <tbody>
               {furniture.map((f, i) => (
                 <tr key={i}>
@@ -122,7 +122,7 @@ export default function InfoVenteSection({ editing, updateField }: Props) {
               <tr className="border-t font-semibold"><td className="py-1 text-right pr-2">Total</td><td className="py-1">{furnitureTotal.toLocaleString('fr-FR')} €</td><td></td></tr>
             </tbody>
           </table>
-        ) : <div className="text-xs opacity-50">Aucun élément. Ajoutez le mobilier vendu avec le bien.</div>}
+        ) : <div className="text-xs opacity-75">Aucun élément. Ajoutez le mobilier vendu avec le bien.</div>}
       </div>
     </CollapsibleSection>
   );

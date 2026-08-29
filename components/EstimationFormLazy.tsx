@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 // viewport (le chunk JS n'est pas téléchargé au chargement de la page d'accueil).
 const EstimationForm = dynamic(() => import("@/components/EstimationForm"), {
   ssr: false,
-  loading: () => <div className="card p-6 text-center opacity-60">Chargement du formulaire d’estimation…</div>,
+  loading: () => <div className="card p-6 text-center opacity-75">Chargement du formulaire d’estimation…</div>,
 });
 
 export default function EstimationFormLazy() {
@@ -33,7 +33,7 @@ export default function EstimationFormLazy() {
       {show ? (
         <EstimationForm />
       ) : (
-        <div className="card p-6 text-center opacity-60">Estimation gratuite — le formulaire se charge en approchant…</div>
+        <div className="card p-6 text-center opacity-75">Estimation gratuite — le formulaire se charge en approchant…</div>
       )}
     </div>
   );

@@ -899,7 +899,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                   placeholder="Ex : 12 Promenade des Anglais, 06000 Nice"
                   data-testid="input-address"
                 />
-                <p className="text-xs opacity-60 mt-1">Sert à pré-remplir la fiche bien et le mandat lors de la création depuis ce lead.</p>
+                <p className="text-xs opacity-75 mt-1">Sert à pré-remplir la fiche bien et le mandat lors de la création depuis ce lead.</p>
               </div>
 
               <div>
@@ -980,9 +980,9 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                   <div className="mt-3 space-y-2">
                     {attachments.map(att => (
                       <div key={att.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded border">
-                        <Paperclip className="w-4 h-4 opacity-60" />
+                        <Paperclip className="w-4 h-4 opacity-75" />
                         <span className="flex-1 text-sm">{att.name}</span>
-                        <span className="text-xs opacity-60">{(att.data.length / 1024).toFixed(0)} KB</span>
+                        <span className="text-xs opacity-75">{(att.data.length / 1024).toFixed(0)} KB</span>
                         <button
                           type="button"
                           onClick={() => handleRemoveAttachment(att.id)}
@@ -1076,13 +1076,13 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                     <span className={`pill text-xs ${lead.status === 'new' ? 'border-green-600 text-green-700' : ''}`}>
                       {({ new: 'Nouveau', contacted: 'Contacté', qualified: 'Qualifié', closed: 'Fermé', estimation: 'Estimation', mandate: 'Mandat pris' } as Record<string, string>)[lead.status || 'new'] || lead.status || 'new'}
                     </span>
-                    <span className="pill text-xs opacity-60">
+                    <span className="pill text-xs opacity-75">
                       {lead.source || 'contact-form'}
                     </span>
                     <button
                       type="button"
                       onClick={() => cyclePriority(lead)}
-                      className={`pill text-xs font-semibold transition-colors ${lead.priority ? PRIORITY_META[lead.priority].cls : 'border-dashed opacity-60 hover:opacity-100'}`}
+                      className={`pill text-xs font-semibold transition-colors ${lead.priority ? PRIORITY_META[lead.priority].cls : 'border-dashed opacity-75 hover:opacity-100'}`}
                       data-testid={`priority-${lead.id}`}
                       title="Cliquer pour changer la priorité (chaud / tiède / froid)"
                     >
@@ -1139,7 +1139,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                     {lead.phone && <div>📞 {lead.phone}</div>}
                     {lead.address && <div>📍 {lead.address}</div>}
                     {lead.topic && <div>🏷️ {lead.topic}</div>}
-                    <div className="opacity-60">📅 {formatDate(lead.createdAt)}</div>
+                    <div className="opacity-75">📅 {formatDate(lead.createdAt)}</div>
                   </div>
 
                   {/* Biens reliés au vendeur (résumé permanent) */}
@@ -1242,7 +1242,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                       <div className="mt-3 pt-3 border-t border-teal-200">
                         <label className="block text-xs opacity-70 mb-1">Biens disponibles correspondants ({matchingBiens(currentBuyerCriteria()).length})</label>
                         {matchingBiens(currentBuyerCriteria()).length === 0 ? (
-                          <p className="text-xs opacity-60">Aucun bien ne correspond {hasCriteria(currentBuyerCriteria()) ? 'à ces critères' : '— renseignez des critères ci-dessus'}.</p>
+                          <p className="text-xs opacity-75">Aucun bien ne correspond {hasCriteria(currentBuyerCriteria()) ? 'à ces critères' : '— renseignez des critères ci-dessus'}.</p>
                         ) : (
                           <div className="space-y-1">
                             {matchingBiens(currentBuyerCriteria()).map((b: any) => (
@@ -1348,7 +1348,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                         <FileText className="w-3 h-3" />
                         {creatingMandat === lead.id ? 'Création…' : 'Créer le bien + mandat'}
                       </button>
-                      <p className="text-xs opacity-60 mt-1">
+                      <p className="text-xs opacity-75 mt-1">
                         Crée une fiche bien <strong>masquée</strong> pré-remplie avec ces éléments et le vendeur comme mandant, puis ouvre l&apos;éditeur. Le mandat signé est automatiquement archivé dans les documents du bien.
                       </p>
 
@@ -1415,9 +1415,9 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                             className="flex items-center gap-2 p-2 bg-gray-50 rounded border text-sm"
                             data-testid={`attachment-${att.id}`}
                           >
-                            <Paperclip className="w-4 h-4 opacity-60" />
+                            <Paperclip className="w-4 h-4 opacity-75" />
                             <span className="flex-1">{att.name}</span>
-                            <span className="text-xs opacity-60">
+                            <span className="text-xs opacity-75">
                               {new Date(att.uploadedAt).toLocaleDateString('fr-FR')}
                             </span>
                             <button
@@ -1521,7 +1521,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                                 key={action.id}
                                 className={`flex items-start gap-3 p-3 rounded border ${
                                   action.completed 
-                                    ? 'bg-green-50 border-green-200 opacity-60' 
+                                    ? 'bg-green-50 border-green-200 opacity-75' 
                                     : isPast 
                                     ? 'bg-red-50 border-red-200' 
                                     : 'bg-white border-gray-200'
@@ -1541,11 +1541,11 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                                 </button>
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <span className={action.completed ? 'line-through opacity-60' : ''}>
+                                    <span className={action.completed ? 'line-through opacity-75' : ''}>
                                       {actionIcons[action.type]} {action.description}
                                     </span>
                                   </div>
-                                  <div className="text-xs opacity-60">
+                                  <div className="text-xs opacity-75">
                                     📅 {dueDate.toLocaleDateString('fr-FR', {
                                       day: '2-digit',
                                       month: 'short',
@@ -1563,7 +1563,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                           })}
                       </div>
                     ) : (
-                      <p className="text-sm opacity-60 italic">Aucune action planifiée</p>
+                      <p className="text-sm opacity-75 italic">Aucune action planifiée</p>
                     )}
                   </div>
                 </div>
@@ -1585,7 +1585,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
               >
                 <div className="flex items-center justify-between px-2 py-1.5 mb-2 border-b">
                   <span className="text-sm font-semibold">{STATUS_LABELS[col] || col}</span>
-                  <span className="text-xs opacity-60">{colLeads.length}</span>
+                  <span className="text-xs opacity-75">{colLeads.length}</span>
                 </div>
                 <div className="space-y-2">
                   {colLeads.map(lead => (
@@ -1594,7 +1594,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                       draggable
                       onDragStart={() => setDragLeadId(lead.id)}
                       onDragEnd={() => setDragLeadId(null)}
-                      className={`rounded-lg border bg-white p-3 shadow-sm cursor-grab active:cursor-grabbing ${dragLeadId === lead.id ? 'opacity-50' : ''}`}
+                      className={`rounded-lg border bg-white p-3 shadow-sm cursor-grab active:cursor-grabbing ${dragLeadId === lead.id ? 'opacity-75' : ''}`}
                       data-testid={`pipeline-card-${lead.id}`}
                     >
                       <div className="flex items-center justify-between gap-2 mb-1">
@@ -1603,14 +1603,14 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                       </div>
                       <div className="text-xs opacity-70 truncate">{lead.email}</div>
                       {lead.phone && <div className="text-xs opacity-70">{lead.phone}</div>}
-                      {lead.topic && <div className="text-xs opacity-60 truncate mt-1">🏷️ {lead.topic}</div>}
+                      {lead.topic && <div className="text-xs opacity-75 truncate mt-1">🏷️ {lead.topic}</div>}
                       <div className="mt-2 flex items-center justify-between">
-                        <span className="text-[10px] opacity-50">{formatDate(lead.createdAt)}</span>
+                        <span className="text-[10px] opacity-75">{formatDate(lead.createdAt)}</span>
                         <button type="button" onClick={() => handleEditLead(lead)} className="text-[11px] underline opacity-70 hover:opacity-100">Ouvrir</button>
                       </div>
                     </div>
                   ))}
-                  {colLeads.length === 0 && <div className="text-xs opacity-40 px-2 py-6 text-center">—</div>}
+                  {colLeads.length === 0 && <div className="text-xs opacity-75 px-2 py-6 text-center">—</div>}
                 </div>
               </div>
             );

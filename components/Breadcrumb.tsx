@@ -9,7 +9,7 @@ export default function Breadcrumb({
       <ol className="flex flex-wrap items-center gap-2">
         {items.map((it, i) => (
           <li key={i} className="flex items-center gap-2">
-            {i>0 && <span className="opacity-40">/</span>}
+            {i>0 && <span className="opacity-75">/</span>}
             {it.href ? (
               <Link href={it.href} className="hover:text-[#B89C6D]">{it.label}</Link>
             ) : (

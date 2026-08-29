@@ -236,7 +236,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                 const sold = (lot.statut || "DISPONIBLE") === "VENDU";
                 const surfAfter = Number(lot.surfaceApresTravaux) || 0;
                 const surfNow = Number(lot.surfaceActuelle) || 0;
-                const cls = `card overflow-hidden flex flex-col transition-all ${disponible ? "ring-2 ring-emerald-200 shadow-sm hover:shadow-lg hover:-translate-y-1 cursor-pointer" : "opacity-55"}`;
+                const cls = `card overflow-hidden flex flex-col transition-all ${disponible ? "ring-2 ring-emerald-200 shadow-sm hover:shadow-lg hover:-translate-y-1 cursor-pointer" : "opacity-75"}`;
                 const inner = (
                   <>
                     {lot.image && (

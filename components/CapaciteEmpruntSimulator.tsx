@@ -118,7 +118,8 @@ export default function CapaciteEmpruntSimulator({ propertyPrice }: Props = {}) 
   };
 
   // Champs décimaux (taux, assurance) : saisie numérique classique.
-  const num = (v: number | "", set: (n: number | "") => void, opts: { step?: string; min?: string } = {}) => ({
+  const num = (v: number | "", set: (n: number | "") => void, opts: { step?: string; min?: string } = {}, id?: string) => ({
+    id,
     type: "number" as const,
     className: "input",
     value: v,
@@ -130,7 +131,8 @@ export default function CapaciteEmpruntSimulator({ propertyPrice }: Props = {}) 
   // Champs monétaires : affichage avec séparateurs de milliers (« 350 000 »).
   // Un input type=number ne peut pas les afficher — on passe en texte numérique.
   const fmt = (v: number | "") => (v === "" ? "" : Number(v).toLocaleString("fr-FR"));
-  const euro = (v: number | "", set: (n: number | "") => void) => ({
+  const euro = (v: number | "", set: (n: number | "") => void, id?: string) => ({
+    id,
     type: "text" as const,
     inputMode: "numeric" as const,
     className: "input",
@@ -150,40 +152,40 @@ export default function CapaciteEmpruntSimulator({ propertyPrice }: Props = {}) 
         <div className="space-y-3">
           {modeBien ? (
             <div>
-              <label className="block text-sm mb-1">Prix du bien (€)</label>
-              <input {...euro(prix, setPrix)} />
-              <p className="text-xs opacity-60 mt-1">Prérempli avec le prix affiché de ce bien.</p>
+              <label htmlFor="sim-prix" className="block text-sm mb-1">Prix du bien (€)</label>
+              <input {...euro(prix, setPrix, "sim-prix")} />
+              <p className="text-xs opacity-75 mt-1">Prérempli avec le prix affiché de ce bien.</p>
             </div>
           ) : (
             <div>
-              <label className="block text-sm mb-1">Revenus nets du foyer (€/mois)</label>
-              <input {...euro(revenus, setRevenus)} />
+              <label htmlFor="sim-revenus" className="block text-sm mb-1">Revenus nets du foyer (€/mois)</label>
+              <input {...euro(revenus, setRevenus, "sim-revenus")} />
             </div>
           )}
           <div>
-            <label className="block text-sm mb-1">Crédits en cours (€/mois)</label>
-            <input {...euro(charges, setCharges)} />
-            <p className="text-xs opacity-60 mt-1">Prêt auto, prêt conso, pension versée…</p>
+            <label htmlFor="sim-charges" className="block text-sm mb-1">Crédits en cours (€/mois)</label>
+            <input {...euro(charges, setCharges, "sim-charges")} />
+            <p className="text-xs opacity-75 mt-1">Prêt auto, prêt conso, pension versée…</p>
           </div>
           <div>
-            <label className="block text-sm mb-1">Apport disponible (€)</label>
-            <input {...euro(apport, setApport)} />
+            <label htmlFor="sim-apport" className="block text-sm mb-1">Apport disponible (€)</label>
+            <input {...euro(apport, setApport, "sim-apport")} />
           </div>
           <div>
-            <label className="block text-sm mb-1">Durée du prêt : <strong>{duree} ans</strong></label>
-            <input type="range" min={10} max={25} step={1} value={duree} onChange={(e) => setDuree(Number(e.target.value))} className="w-full accent-[#B89C6D]" />
+            <label htmlFor="sim-duree" className="block text-sm mb-1">Durée du prêt : <strong>{duree} ans</strong></label>
+            <input id="sim-duree" type="range" min={10} max={25} step={1} value={duree} onChange={(e) => setDuree(Number(e.target.value))} className="w-full accent-[#B89C6D]" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm mb-1">Taux du prêt (%)</label>
-              <input {...num(taux, setTaux, { step: "0.05", min: "0" })} />
+              <label htmlFor="sim-taux" className="block text-sm mb-1">Taux du prêt (%)</label>
+              <input {...num(taux, setTaux, { step: "0.05", min: "0" }, "sim-taux")} />
             </div>
             <div>
-              <label className="block text-sm mb-1">Assurance (% / an)</label>
-              <input {...num(assurance, setAssurance, { step: "0.01", min: "0" })} />
+              <label htmlFor="sim-assurance" className="block text-sm mb-1">Assurance (% / an)</label>
+              <input {...num(assurance, setAssurance, { step: "0.01", min: "0" }, "sim-assurance")} />
             </div>
           </div>
-          <p className="text-xs opacity-60">
+          <p className="text-xs opacity-75">
             Le taux et l&apos;assurance sont des hypothèses que vous ajustez : ils dépendent de votre profil,
             de la banque et du moment. Seul un courtier peut vous confirmer les conditions réellement obtenues.
           </p>
@@ -238,7 +240,7 @@ export default function CapaciteEmpruntSimulator({ propertyPrice }: Props = {}) 
             </div>
           )}
 
-          <p className="text-xs opacity-60 mt-4">
+          <p className="text-xs opacity-75 mt-4">
             Estimation indicative fondée sur un taux d&apos;endettement maximal de 35 % (recommandation HCSF),
             assurance comprise. Elle ne vaut ni offre de prêt ni accord de financement.
           </p>
@@ -256,10 +258,10 @@ export default function CapaciteEmpruntSimulator({ propertyPrice }: Props = {}) 
               <div className="luxe text-lg mb-1">Affiner avec un conseiller</div>
               <p className="text-sm opacity-75 mb-3">Recevez une étude personnalisée et, si vous le souhaitez, une mise en relation avec notre courtier partenaire.</p>
               <div className="grid grid-cols-2 gap-2">
-                <input className="input" placeholder="Prénom" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-                <input className="input" placeholder="Nom" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-                <input className="input" placeholder="Téléphone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                <input className="input" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <input className="input" aria-label="Prénom" placeholder="Prénom" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                <input className="input" aria-label="Nom" placeholder="Nom" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                <input className="input" aria-label="Téléphone" placeholder="Téléphone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <input className="input" type="email" aria-label="Email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <label className="flex items-start gap-2 text-xs mt-3">
                 <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5" />

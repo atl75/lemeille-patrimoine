@@ -134,7 +134,7 @@ export default function PlanViewer({ plans, title }: { plans: string[]; title: s
           <div className="flex items-center justify-between gap-3 px-4 py-3 text-white">
             <div className="text-sm opacity-80">
               {plans.length > 1 ? `Plan ${openIndex + 1} / ${plans.length}` : "Plan du bien"}
-              {scale > 1 && <span className="ml-2 opacity-60">{Math.round(scale * 100)} %</span>}
+              {scale > 1 && <span className="ml-2 opacity-75">{Math.round(scale * 100)} %</span>}
             </div>
             <div className="flex items-center gap-1">
               <button type="button" onClick={() => zoomTo(scale / 1.4)} disabled={scale <= MIN_SCALE}

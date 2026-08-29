@@ -64,7 +64,7 @@ export default function GoogleReviews() {
               <div className="font-medium">{rv.author || "Client Google"}</div>
               <Stars value={rv.rating} />
             </div>
-            {rv.time && <div className="text-xs opacity-60 mt-0.5">{rv.time}</div>}
+            {rv.time && <div className="text-xs opacity-75 mt-0.5">{rv.time}</div>}
             <p className="mt-2">{rv.text}</p>
           </div>
         ))}

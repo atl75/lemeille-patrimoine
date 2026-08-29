@@ -47,7 +47,7 @@ export default function GuideDownload() {
           <ul className="text-sm space-y-1 mb-4">
             {g.keyFigures.map((k) => (
               <li key={k.label} className="flex justify-between gap-3 border-b border-black/5 pb-1">
-                <span className="opacity-60">{k.label}</span>
+                <span className="opacity-75">{k.label}</span>
                 <span className="font-medium text-[#1F3B2C]">{k.value}</span>
               </li>
             ))}
