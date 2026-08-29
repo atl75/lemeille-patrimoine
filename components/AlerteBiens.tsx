@@ -47,7 +47,7 @@ export default function AlerteBiens() {
             </div>
           ) : (
             <form onSubmit={submit} className="grid gap-3">
-              <input
+              <input aria-label="Votre email"
                 className="input text-[#1F3B2C]"
                 type="email"
                 placeholder="Votre email"

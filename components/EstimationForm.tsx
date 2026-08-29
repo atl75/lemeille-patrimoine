@@ -282,10 +282,10 @@ export default function EstimationForm(){
       <div className="card p-6">
         <div className="luxe text-lg mb-2">Recevoir mon estimation détaillée et un avis de valeur</div>
         <div className="grid md:grid-cols-4 gap-2">
-          <input className="input" placeholder="Prénom" value={firstName} onChange={e=>setFirstName(e.target.value)} required />
-          <input className="input" placeholder="Nom" value={lastName} onChange={e=>setLastName(e.target.value)} required />
-          <input className="input" placeholder="Téléphone" value={phone} onChange={e=>setPhone(e.target.value)} required />
-          <input className="input" type="email" placeholder="Email (optionnel)" value={email} onChange={e=>setEmail(e.target.value)} />
+          <input aria-label="Prénom" className="input" placeholder="Prénom" value={firstName} onChange={e=>setFirstName(e.target.value)} required />
+          <input aria-label="Nom" className="input" placeholder="Nom" value={lastName} onChange={e=>setLastName(e.target.value)} required />
+          <input aria-label="Téléphone" className="input" placeholder="Téléphone" value={phone} onChange={e=>setPhone(e.target.value)} required />
+          <input aria-label="Email (optionnel)" className="input" type="email" placeholder="Email (optionnel)" value={email} onChange={e=>setEmail(e.target.value)} />
         </div>
         <label className="flex items-center gap-2 text-sm mt-2">
           <input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)} />

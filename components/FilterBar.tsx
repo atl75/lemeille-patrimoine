@@ -194,15 +194,15 @@ export default function FilterBar({
         <div className="grid gap-3 pt-3 border-t">
           <div className="grid md:grid-cols-3 gap-3">
             <div className="grid grid-cols-2 gap-2">
-              <input ref={priceMinRef} type="number" min="0" step="1000" className="input" placeholder="Prix min (€)" defaultValue={params.get("priceMin")||""} onChange={handleInputChange} data-testid="input-price-min" />
-              <input ref={priceMaxRef} type="number" min="0" step="1000" className="input" placeholder="Prix max (€)" defaultValue={params.get("priceMax")||""} onChange={handleInputChange} data-testid="input-price-max" />
+              <input aria-label="Prix min (€)" ref={priceMinRef} type="number" min="0" step="1000" className="input" placeholder="Prix min (€)" defaultValue={params.get("priceMin")||""} onChange={handleInputChange} data-testid="input-price-min" />
+              <input aria-label="Prix max (€)" ref={priceMaxRef} type="number" min="0" step="1000" className="input" placeholder="Prix max (€)" defaultValue={params.get("priceMax")||""} onChange={handleInputChange} data-testid="input-price-max" />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <input ref={surfMinRef} type="number" min="0" step="1" className="input" placeholder="Surface min (m²)" defaultValue={params.get("surfaceMin")||""} onChange={handleInputChange} data-testid="input-surface-min" />
-              <input ref={surfMaxRef} type="number" min="0" step="1" className="input" placeholder="Surface max (m²)" defaultValue={params.get("surfaceMax")||""} onChange={handleInputChange} data-testid="input-surface-max" />
+              <input aria-label="Surface min (m²)" ref={surfMinRef} type="number" min="0" step="1" className="input" placeholder="Surface min (m²)" defaultValue={params.get("surfaceMin")||""} onChange={handleInputChange} data-testid="input-surface-min" />
+              <input aria-label="Surface max (m²)" ref={surfMaxRef} type="number" min="0" step="1" className="input" placeholder="Surface max (m²)" defaultValue={params.get("surfaceMax")||""} onChange={handleInputChange} data-testid="input-surface-max" />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <input ref={roomsMinRef} type="number" min="0" step="1" className="input" placeholder="Pièces min" defaultValue={params.get("roomsMin")||""} onChange={handleInputChange} data-testid="input-rooms-min" />
+              <input aria-label="Pièces min" ref={roomsMinRef} type="number" min="0" step="1" className="input" placeholder="Pièces min" defaultValue={params.get("roomsMin")||""} onChange={handleInputChange} data-testid="input-rooms-min" />
             </div>
           </div>
 

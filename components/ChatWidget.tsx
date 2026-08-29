@@ -106,6 +106,7 @@ export default function ChatWidget() {
           <div className="flex items-center gap-2 border-t border-black/10 p-3">
             <input
               type="text"
+              aria-label="Votre message"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {

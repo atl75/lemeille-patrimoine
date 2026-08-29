@@ -192,7 +192,7 @@ export default function SignMandatPage() {
       {mandateRead && (
         <>
         <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Votre nom et prénom</label>
-        <input value={signerName} onChange={e => setSignerName(e.target.value)}
+        <input aria-label="Vos nom et prénom" value={signerName} onChange={e => setSignerName(e.target.value)}
           autoComplete="name" autoCapitalize="words"
           placeholder="Prénom NOM"
           style={{ width: "100%", padding: "9px 12px", border: "1px solid #ccc", borderRadius: 8, marginBottom: 16, fontSize: 14 }} />

@@ -186,8 +186,8 @@ export default function Page() {
               </p>
             ) : (
               <>
-                <input className={inCls + " mb-2"} value={ownerName} onChange={e => setOwnerName(e.target.value)} placeholder="Nom du propriétaire" data-testid="input-owner-name" />
-                <input className={inCls + " mb-2"} type="email" inputMode="email" autoCapitalize="none" value={ownerEmail} onChange={e => setOwnerEmail(e.target.value)} placeholder="Email du propriétaire" data-testid="input-owner-email" />
+                <input className={inCls + " mb-2"} aria-label="Nom du propriétaire" value={ownerName} onChange={e => setOwnerName(e.target.value)} placeholder="Nom du propriétaire" data-testid="input-owner-name" />
+                <input className={inCls + " mb-2"} type="email" inputMode="email" autoCapitalize="none" aria-label="Email du propriétaire" value={ownerEmail} onChange={e => setOwnerEmail(e.target.value)} placeholder="Email du propriétaire" data-testid="input-owner-email" />
                 <button onClick={sendToOwner} disabled={sendingOwner || !ownerEmail.trim()}
                   className="w-full rounded-lg bg-[#B89C6D] py-2.5 text-sm font-medium text-white disabled:opacity-40"
                   data-testid="button-send-owner">
@@ -224,7 +224,7 @@ export default function Page() {
         {/* Bien */}
         <div>
           <label className="block text-sm font-medium mb-1">Bien concerné</label>
-          <select value={propertyId} onChange={e => setPropertyId(e.target.value)} className={inCls}>
+          <select aria-label="Bien concerné" value={propertyId} onChange={e => setPropertyId(e.target.value)} className={inCls}>
             <option value="">— Choisir un bien —</option>
             {props.map(p => (
               <option key={p.id} value={p.id}>{propertyLabel(p)}</option>
@@ -237,12 +237,12 @@ export default function Page() {
         <div className="space-y-2">
           <label className="block text-sm font-medium">{type === "OFFRE" ? "Acquéreur" : "Visiteur"}</label>
           <div className="grid grid-cols-2 gap-2">
-            <input className={inCls} placeholder="Prénom" value={firstName} onChange={e => setFirstName(e.target.value)} />
-            <input className={inCls} placeholder="Nom" value={lastName} onChange={e => setLastName(e.target.value)} />
+            <input aria-label="Prénom" className={inCls} placeholder="Prénom" value={firstName} onChange={e => setFirstName(e.target.value)} />
+            <input aria-label="Nom" className={inCls} placeholder="Nom" value={lastName} onChange={e => setLastName(e.target.value)} />
           </div>
-          <input className={inCls} type="tel" placeholder="Téléphone" value={phone} onChange={e => setPhone(e.target.value)} />
-          <input className={inCls} type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
-          <input className={inCls} placeholder="Adresse (facultatif)" value={address} onChange={e => setAddress(e.target.value)} />
+          <input aria-label="Téléphone" className={inCls} type="tel" placeholder="Téléphone" value={phone} onChange={e => setPhone(e.target.value)} />
+          <input aria-label="Email" className={inCls} type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
+          <input aria-label="Adresse (facultatif)" className={inCls} placeholder="Adresse (facultatif)" value={address} onChange={e => setAddress(e.target.value)} />
         </div>
 
         {/* Offre */}
@@ -252,16 +252,16 @@ export default function Page() {
             {!atAsking && (
               <div>
                 <label className="block text-sm mb-1">Montant proposé (€)</label>
-                <input className={inCls} inputMode="numeric" value={offerAmount} onChange={e => setOfferAmount(e.target.value.replace(/[^\d]/g, ""))} placeholder="ex : 480000" />
+                <input className={inCls} inputMode="numeric" aria-label="Montant de l'offre en euros" value={offerAmount} onChange={e => setOfferAmount(e.target.value.replace(/[^\d]/g, ""))} placeholder="ex : 480000" />
               </div>
             )}
             <div>
               <label className="block text-sm mb-1">Séquestre (€)</label>
-              <input className={inCls} inputMode="numeric" value={sequestre} onChange={e => setSequestre(e.target.value.replace(/[^\d]/g, ""))} placeholder="ex : 10000 (facultatif)" />
+              <input className={inCls} inputMode="numeric" aria-label="Séquestre en euros" value={sequestre} onChange={e => setSequestre(e.target.value.replace(/[^\d]/g, ""))} placeholder="ex : 10000 (facultatif)" />
             </div>
             <div>
               <label className="block text-sm mb-1">Validité de l’offre (jours)</label>
-              <input className={inCls} inputMode="numeric" value={validityDays} onChange={e => setValidityDays(e.target.value.replace(/[^\d]/g, ""))} placeholder="10" />
+              <input className={inCls} inputMode="numeric" aria-label="Validité de l'offre en jours" value={validityDays} onChange={e => setValidityDays(e.target.value.replace(/[^\d]/g, ""))} placeholder="10" />
             </div>
             <div>
               <label className="block text-sm mb-1">Financement</label>

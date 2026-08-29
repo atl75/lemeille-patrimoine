@@ -21,7 +21,7 @@ export default function SectorFilter({
   }
 
   return (
-    <select className="input w-full md:w-auto" value={value || ""} onChange={onChange} data-testid="select-sector-filter">
+    <select className="input w-full md:w-auto" aria-label="Filtrer par secteur" value={value || ""} onChange={onChange} data-testid="select-sector-filter">
       <option value="">Tous les secteurs</option>
       {options.map((o) => (
         <option key={o.value} value={o.value}>

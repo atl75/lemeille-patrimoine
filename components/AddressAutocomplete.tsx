@@ -128,6 +128,7 @@ export default function AddressAutocomplete({ value, onChange, placeholder, clas
       <input
         ref={inputRef}
         type="text"
+        aria-label="Adresse"
         className={className}
         value={inputValue}
         onChange={handleInputChange}

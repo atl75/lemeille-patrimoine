@@ -78,14 +78,14 @@ export default function Page(){
           <form id="form" onSubmit={onSubmit} className="card p-6">
             <h2 className="luxe text-xl mb-4">Contactez-nous</h2>
             <div className="grid gap-3">
-              <input className="input" name="firstName" placeholder="Prénom" required />
-              <input className="input" name="lastName" placeholder="Nom" required />
-              <input className="input" type="email" name="email" placeholder="Email" required />
-              <input className="input" name="phone" placeholder="Téléphone" />
-              <select className="input" name="topic" defaultValue="Immobilier">
+              <input aria-label="Prénom" className="input" name="firstName" placeholder="Prénom" required />
+              <input aria-label="Nom" className="input" name="lastName" placeholder="Nom" required />
+              <input aria-label="Email" className="input" type="email" name="email" placeholder="Email" required />
+              <input aria-label="Téléphone" className="input" name="phone" placeholder="Téléphone" />
+              <select className="input" name="topic" aria-label="Sujet de votre demande" defaultValue="Immobilier">
                 <option>Immobilier</option><option>Défiscalisation</option><option>Autre</option>
               </select>
-              <textarea className="input" name="message" placeholder="Votre message" rows={5} />
+              <textarea aria-label="Votre message" className="input" name="message" placeholder="Votre message" rows={5} />
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="consent" required /> J&apos;accepte la politique de confidentialité.</label>
               <button className="btn btn-gold mt-2" type="submit">Envoyer</button>
               {ok === true && <div className="text-green-700 text-sm">Merci, votre message a bien été envoyé.</div>}

@@ -64,10 +64,10 @@ export default function GuideDownload() {
             ) : openSlug === g.slug ? (
               <form onSubmit={(e) => submit(e, g)} className="grid gap-2">
                 <div className="grid grid-cols-2 gap-2">
-                  <input className="input" placeholder="Prénom" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
-                  <input className="input" placeholder="Nom" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+                  <input aria-label="Prénom" className="input" placeholder="Prénom" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+                  <input aria-label="Nom" className="input" placeholder="Nom" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
                 </div>
-                <input className="input" type="email" placeholder="Votre email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <input aria-label="Votre email" className="input" type="email" placeholder="Votre email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                 <label className="flex items-start gap-2 text-xs opacity-80">
                   <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} required className="mt-0.5" />
                   <span>J&apos;accepte de recevoir le guide et d&apos;être recontacté (politique de confidentialité).</span>
