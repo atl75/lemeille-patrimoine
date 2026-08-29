@@ -2,6 +2,7 @@
 
 import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
+import DeferredIframe from "@/components/DeferredIframe";
 import { useState } from "react";
 import { trackEvent } from "@/lib/analytics";
 
@@ -101,11 +102,10 @@ export default function Page(){
               <div className="font-semibold">{o.name}</div>
               <div>{o.line}</div>
               <div className="mt-2 rounded-2xl overflow-hidden border relative group">
-                <iframe
+                <DeferredIframe
                   title={`${o.name} — ${o.line}`}
                   src={"https://www.google.com/maps?hl=fr&q="+encodeURIComponent(o.query)+"&z=16&output=embed"}
-                  style={{border:0, width:"100%", height:"240px"}}
-                  loading="lazy"
+                  className="w-full h-60 border-0"
                 />
                 <a
                   href={"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(o.query)}

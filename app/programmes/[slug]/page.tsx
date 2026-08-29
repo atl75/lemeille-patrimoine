@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import DeferredIframe from "@/components/DeferredIframe";
 import Breadcrumb from "@/components/Breadcrumb";
 import ProgramSeoJsonLd from "@/components/ProgramSeoJsonLd";
 import ProjectionsGallery from "@/components/ProjectionsGallery";
@@ -184,7 +185,15 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
             <div className="mt-3 h-px w-14 bg-gold/60" />
             {p.virtualTourUrl && (
               <div className="mt-8 aspect-video w-full overflow-hidden rounded-xl shadow">
-                <iframe src={p.virtualTourUrl} title="Visite virtuelle" className="w-full h-full" allowFullScreen loading="lazy" />
+                <DeferredIframe
+                  src={p.virtualTourUrl}
+                  title={`Visite virtuelle — ${p.title}`}
+                  mode="click"
+                  poster={p.coverImage}
+                  label="Lancer la visite virtuelle"
+                  hint="Contenu externe — environ 11 Mo"
+                  allowFullScreen
+                />
               </div>
             )}
             {plans.length > 0 && (
@@ -419,12 +428,10 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
             )}
           </div>
           <div className="h-80 rounded-xl overflow-hidden shadow">
-            <iframe
+            <DeferredIframe
               title={`Localisation ${p.title}`}
-              className="w-full h-full"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
               src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`}
+              referrerPolicy="no-referrer-when-downgrade"
             />
           </div>
         </div>
