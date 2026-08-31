@@ -27,7 +27,7 @@ type Program = {
   projections?: { title?: string; image?: string }[];
   // Réhabilitations livrées : paires de photos du même cadrage.
   avantApres?: { avant?: string; apres?: string; legende?: string }[];
-  galerie?: { image?: string; legende?: string }[];
+  galerie?: { image?: string; legende?: string; categorie?: 'EXTERIEUR' | 'COMMUNES' | 'PRIVATIVES' }[];
   statut?: 'EN_COURS' | 'LIVRE';
   dpe?: { classEnergy?: string; classGES?: string; consumption?: string; emissions?: string };
   equipements?: { title?: string; subtitle?: string }[];
@@ -65,6 +65,13 @@ const EMPTY_PROGRAM: Partial<Program> = {
   lots: [],
   visible: true
 };
+
+// Classement des photos d'une réalisation, de l'extérieur vers l'intérieur.
+const GAL_CATEGORIES = [
+  { code: 'EXTERIEUR', label: 'Extérieur' },
+  { code: 'COMMUNES', label: 'Parties communes' },
+  { code: 'PRIVATIVES', label: 'Parties privatives' },
+] as const;
 
 export default function Page() {
   const [programs, setPrograms] = useState<Program[]>([]);
@@ -238,6 +245,28 @@ export default function Page() {
   const addGal = () => updateField('galerie', [...galList(), { image: "", legende: "" }]);
   const setGal = (i: number, key: string, v: string) => { const a = [...galList()]; a[i] = { ...a[i], [key]: v }; updateField('galerie', a); };
   const rmGal = (i: number) => updateField('galerie', galList().filter((_, j) => j !== i));
+
+  const [envoiGroupe, setEnvoiGroupe] = useState<{ fait: number; total: number } | null>(null);
+
+  // Ajout groupé : on téléverse en série pour ne pas saturer l'API, et on
+  // ajoute les photos au fur et à mesure plutôt qu'à la fin — si un envoi
+  // échoue, les précédents sont conservés.
+  const addGalMultiple = async (files: FileList | null, categorie: string) => {
+    const liste = Array.from(files || []);
+    if (!liste.length) return;
+    setEnvoiGroupe({ fait: 0, total: liste.length });
+    let ajoutees = 0;
+    for (let i = 0; i < liste.length; i++) {
+      const url = await uploadImage(liste[i]);
+      if (url) {
+        ajoutees++;
+        setEditing(prev => prev ? { ...prev, galerie: [...(prev.galerie || []), { image: url, legende: '', categorie: categorie as any }] } : prev);
+      }
+      setEnvoiGroupe({ fait: i + 1, total: liste.length });
+    }
+    setEnvoiGroupe(null);
+    toast(ajoutees === liste.length ? `${ajoutees} photo(s) ajoutée(s)` : `${ajoutees}/${liste.length} photo(s) ajoutée(s)`);
+  };
 
   // ---- DPE cible ----
   const setDpe = (key: string, v: string) => updateField('dpe', { ...(editing?.dpe || {}), [key]: v });
@@ -557,27 +586,56 @@ export default function Page() {
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">Photos de la réalisation</label>
             <p className="text-xs opacity-70 mb-2">
-              Vues de l&apos;immeuble livré, en complément de l&apos;avant / après — parties communes, logements, façade.
+              Vues de l&apos;immeuble livré, en complément de l&apos;avant / après. Les photos sont
+              regroupées par partie sur la fiche publique.
             </p>
-            <div className="grid md:grid-cols-2 gap-2">
-              {galList().map((g, i) => (
-                <div key={i} className="flex items-center gap-2 border rounded p-2">
-                  {g.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={g.image} alt="" className="w-20 h-14 object-cover rounded" />
-                  ) : (
-                    <input type="file" accept="image/*" aria-label={`Photo ${i + 1} de la réalisation`}
-                      onChange={async e => { const url = await uploadImage(e.target.files?.[0]); if (url) setGal(i, 'image', url); }}
-                      className="text-xs w-24" />
-                  )}
-                  <input value={g.legende || ''} onChange={e => setGal(i, 'legende', e.target.value)}
-                    placeholder="Légende (ex : Cage d'escalier restaurée)" aria-label={`Légende de la photo ${i + 1}`}
-                    className="flex-1 px-2 py-1 text-sm border rounded" />
-                  <button type="button" onClick={() => rmGal(i)} className="px-2 text-red-500 hover:bg-red-50 rounded">✕</button>
-                </div>
+
+            {/* Ajout groupé, une catégorie à la fois : c'est ainsi qu'on trie
+                naturellement les photos d'un chantier. */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              {GAL_CATEGORIES.map(c => (
+                <label key={c.code}
+                  className="cursor-pointer rounded border border-[#B89C6D] px-3 py-1.5 text-xs text-[#B89C6D] hover:bg-[#B89C6D] hover:text-white transition-colors">
+                  + {c.label}
+                  <input type="file" accept="image/*" multiple className="hidden"
+                    aria-label={`Ajouter des photos — ${c.label}`}
+                    onChange={async e => { await addGalMultiple(e.target.files, c.code); e.target.value = ''; }} />
+                </label>
               ))}
             </div>
-            <button type="button" onClick={addGal} className="text-sm text-[#B89C6D] hover:underline mt-2">+ Ajouter une photo</button>
+            {envoiGroupe && (
+              <p className="text-xs text-[#B89C6D] mb-2">Envoi en cours… {envoiGroupe.fait}/{envoiGroupe.total}</p>
+            )}
+
+            {GAL_CATEGORIES.map(c => {
+              const items = galList().map((g, i) => ({ g, i })).filter(x => (x.g.categorie || 'EXTERIEUR') === c.code);
+              if (!items.length) return null;
+              return (
+                <div key={c.code} className="mb-3">
+                  <div className="text-xs font-semibold opacity-80 mb-1">{c.label} ({items.length})</div>
+                  <div className="grid md:grid-cols-2 gap-2">
+                    {items.map(({ g, i }) => (
+                      <div key={i} className="flex items-center gap-2 border rounded p-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {g.image && <img src={g.image} alt="" className="w-20 h-14 object-cover rounded" />}
+                        <div className="flex-1 min-w-0 grid gap-1">
+                          <input value={g.legende || ''} onChange={e => setGal(i, 'legende', e.target.value)}
+                            placeholder="Légende (ex : Cage d'escalier restaurée)"
+                            aria-label={`Légende de la photo ${i + 1}`}
+                            className="px-2 py-1 text-sm border rounded" />
+                          <select value={g.categorie || 'EXTERIEUR'} onChange={e => setGal(i, 'categorie', e.target.value)}
+                            aria-label={`Partie de la photo ${i + 1}`}
+                            className="px-2 py-1 text-xs border rounded">
+                            {GAL_CATEGORIES.map(o => <option key={o.code} value={o.code}>{o.label}</option>)}
+                          </select>
+                        </div>
+                        <button type="button" onClick={() => rmGal(i)} className="px-2 text-red-500 hover:bg-red-50 rounded">✕</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* DPE cible */}
