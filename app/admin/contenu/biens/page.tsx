@@ -13,6 +13,7 @@ import InfoVenteSection from "@/components/biens/InfoVenteSection";
 import { propertyLabel } from "@/lib/propertyLabel";
 import DocumentsSection from "@/components/biens/DocumentsSection";
 import { useEffect, useRef, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 
 type Property = {
   id: string;
@@ -83,7 +84,7 @@ type Property = {
   entreeDeGamme?: boolean;
   visible?: boolean;
   sold?: boolean;
-  status?: 'AVAILABLE' | 'UNDER_OFFER' | 'SOLD';
+  status?: 'AVAILABLE' | 'OFFER_RECEIVED' | 'UNDER_OFFER' | 'SOLD';
   soldDate?: string;
   sortOrder?: number;
   // Informations cadastrales
@@ -839,6 +840,76 @@ export default function Page() {
             {editing.id ? 'Modifier le bien' : 'Nouveau bien'}
           </h2>
 
+          {/* Tiroir de modification rapide — ce qui change le plus souvent au fil
+              d'une commercialisation. Les champs pilotent le même état que ceux
+              du formulaire détaillé ci-dessous : les deux restent synchronisés. */}
+          {editing.id && (
+            <div className="mb-4">
+              <CollapsibleSection
+                title="Modifications rapides"
+                subtitle="Prix · description · photos et vidéo — sans parcourir toute la fiche"
+              >
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <label htmlFor="rapide-prix" className="block text-xs font-medium mb-1">Prix FAI (€)</label>
+                    <MoneyInput
+                      id="rapide-prix"
+                      value={editing.price ?? ''}
+                      onChange={e => updateField('price', e.target.value ? parseInt(e.target.value) : undefined)}
+                      className="w-full px-2 py-1.5 text-sm border rounded"
+                      placeholder="ex : 250 000"
+                      data-testid="input-rapide-prix"
+                    />
+                    <label className="mt-2 flex items-center gap-2 text-xs">
+                      <input
+                        type="checkbox"
+                        checked={!!editing.priceOnRequest}
+                        onChange={e => updateField('priceOnRequest', e.target.checked || undefined)}
+                      />
+                      <span>Prix sur demande — « Nous consulter »</span>
+                    </label>
+                    <p className="mt-2 text-[11px] opacity-70">
+                      Le net vendeur et la commission se recalculent dans la section Finances.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label htmlFor="rapide-video" className="block text-xs font-medium mb-1">Vidéo (YouTube / Vimeo)</label>
+                    <input
+                      id="rapide-video"
+                      type="url"
+                      value={editing.videoUrl || ''}
+                      onChange={e => updateField('videoUrl', e.target.value)}
+                      className="w-full px-2 py-1.5 text-sm border rounded"
+                      placeholder="https://www.youtube.com/watch?v=…"
+                      data-testid="input-rapide-video"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label htmlFor="rapide-description" className="block text-xs font-medium mb-1">Description</label>
+                    <textarea
+                      id="rapide-description"
+                      value={editing.description || ''}
+                      onChange={e => updateField('description', e.target.value)}
+                      className="w-full px-2 py-1.5 text-sm border rounded resize-y min-h-[8rem]"
+                      rows={7}
+                      data-testid="input-rapide-description"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-medium mb-1">Photos</label>
+                    <ImageUploader
+                      images={editing.images || []}
+                      onChange={images => updateField('images', images)}
+                    />
+                  </div>
+                </div>
+              </CollapsibleSection>
+            </div>
+          )}
+
           {/* Infos générales + Propriétaires en 2 colonnes */}
           <div className="grid md:grid-cols-2 gap-3 mb-3">
             {/* Colonne 1: Informations générales */}
@@ -980,8 +1051,7 @@ export default function Page() {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs font-medium mb-1">Taxe foncière (€/an)</label>
-                  <input
-                    type="number"
+                  <MoneyInput
                     value={editing.propertyTaxAmount ?? ''}
                     onChange={e => updateField('propertyTaxAmount', e.target.value ? parseInt(e.target.value) : undefined)}
                     className="w-full px-2 py-1.5 text-sm border rounded"
@@ -992,8 +1062,7 @@ export default function Page() {
                 {editing.type === 'APPARTEMENT' && (
                   <div>
                     <label className="block text-xs font-medium mb-1">Charges copropriété (€/mois)</label>
-                    <input
-                      type="number"
+                    <MoneyInput
                       value={editing.coproChargesMonthly ?? ''}
                       onChange={e => updateField('coproChargesMonthly', e.target.value ? parseInt(e.target.value) : undefined)}
                       className="w-full px-2 py-1.5 text-sm border rounded"
@@ -1041,6 +1110,18 @@ export default function Page() {
                       data-testid="button-status-available"
                     >
                       ✓ En vente
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditing(prev => prev ? { ...prev, status: 'OFFER_RECEIVED', sold: false } : null)}
+                      className={`px-2 py-1.5 rounded text-left transition-colors ${
+                        editing.status === 'OFFER_RECEIVED'
+                          ? 'bg-amber-500 text-white font-medium'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                      data-testid="button-status-offer-received"
+                    >
+                      ✉ Sous offre
                     </button>
                     <button
                       type="button"
@@ -1397,8 +1478,7 @@ export default function Page() {
                 {calculationMode === 'FROM_NET' ? (
                   <>
                     <label className="block text-sm font-medium mb-1">Montant Net Vendeur (€)</label>
-                    <input
-                      type="number"
+                    <MoneyInput
                       value={editing.netSellerAmount || ''}
                       onChange={(e) => {
                         const netAmount = e.target.value ? parseFloat(e.target.value) : undefined;
@@ -1438,8 +1518,7 @@ export default function Page() {
                 ) : (
                   <>
                     <label className="block text-sm font-medium mb-1">Prix FAI (€)</label>
-                    <input
-                      type="number"
+                    <MoneyInput
                       value={editing.price || ''}
                       onChange={(e) => {
                         const faiAmount = e.target.value ? parseFloat(e.target.value) : 0;
@@ -1529,8 +1608,7 @@ export default function Page() {
 
                   {/* Champ commission en € */}
                   {editing.commissionAmount !== undefined && (
-                    <input
-                      type="number"
+                    <MoneyInput
                       value={editing.commissionAmount || ''}
                       onChange={(e) => {
                         const commissionAbs = e.target.value ? parseInt(e.target.value) : 0;

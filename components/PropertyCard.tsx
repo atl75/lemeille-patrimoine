@@ -51,6 +51,14 @@ export default function PropertyCard({
             priority={priority}
             className="w-full h-64 object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.04]"
           />
+          {/* Sous offre : le bien reste commercialisé — une offre peut ne pas
+              aboutir — mais le visiteur doit le savoir. */}
+          {(property as any).status === "OFFER_RECEIVED" && (
+            <span className="absolute left-3 top-3 rounded-full bg-amber-500 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white shadow"
+              data-testid="badge-sous-offre">
+              Sous offre
+            </span>
+          )}
           <button
             type="button"
             onClick={(e) => {

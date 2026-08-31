@@ -16,7 +16,7 @@ type Notary = { officeName: string; notaryName?: string; phone?: string; email?:
 
 const eur = (n?: number) => (n || n === 0) ? Math.round(Number(n)).toLocaleString("fr-FR") + " €" : "—";
 const typeLabel = (p: Prop) => ((p.type || "APPARTEMENT") === "MAISON" ? "Maison" : "Appartement") + (p.rooms ? ` T${p.rooms}` : "");
-const statusLabel = (p: Prop) => p.status === "SOLD" || p.sold ? "Vendu" : p.status === "UNDER_OFFER" ? "Sous promesse" : "En vente";
+const statusLabel = (p: Prop) => p.status === "SOLD" || p.sold ? "Vendu" : p.status === "UNDER_OFFER" ? "Sous promesse" : p.status === "OFFER_RECEIVED" ? "Sous offre" : "En vente";
 const propLabel = (p: Prop) => p.title || typeLabel(p);
 
 export default function Page() {
@@ -132,7 +132,7 @@ export default function Page() {
       {items.map((it, i) => (
         <a key={i} href={`/admin/contenu/biens?edit=${it.id}`} className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded border border-[#B89C6D]/40 hover:bg-[#B89C6D]/10" title={`${it.label}${it.city ? ' — ' + it.city : ''} · ${eur(it.price)}`}>
           <span className="truncate max-w-[180px]">{it.label}</span>
-          <span className={`px-1 rounded text-[10px] ${it.status === 'Vendu' ? 'bg-red-100 text-red-700' : it.status === 'Sous promesse' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>{it.status}</span>
+          <span className={`px-1 rounded text-[10px] ${it.status === 'Vendu' ? 'bg-red-100 text-red-700' : it.status === 'Sous promesse' ? 'bg-orange-100 text-orange-700' : it.status === 'Sous offre' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-700'}`}>{it.status}</span>
         </a>
       ))}
       {!items.length && <span className="text-xs opacity-75">—</span>}

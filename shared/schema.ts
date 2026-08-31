@@ -111,7 +111,7 @@ export const properties = pgTable("properties", {
   entreeDeGamme: boolean("entree_de_gamme").default(false), // Bien « entrée de gamme » (section distincte)
   visible: boolean("visible").default(true),
   sold: boolean("sold").default(false),
-  status: text("status").default('AVAILABLE'), // AVAILABLE, UNDER_OFFER, SOLD
+  status: text("status").default('AVAILABLE'), // AVAILABLE, OFFER_RECEIVED (sous offre), UNDER_OFFER (sous promesse), SOLD
   soldDate: text("sold_date"), // Date de vente (format YYYY-MM-DD)
   // Informations cadastrales
   cadastralReference: text("cadastral_reference"), // Référence cadastrale (ex: AB 0123)
@@ -143,7 +143,7 @@ export const insertPropertySchema = createInsertSchema(properties, {
   features: z.array(z.string()),
   map: mapConfigSchema,
   dpe: dpeSchema,
-  status: z.enum(['AVAILABLE', 'UNDER_OFFER', 'SOLD']).default('AVAILABLE'),
+  status: z.enum(['AVAILABLE', 'OFFER_RECEIVED', 'UNDER_OFFER', 'SOLD']).default('AVAILABLE'),
   soldDate: z.string().optional(),
   cadastralReference: z.string().optional(),
   annexSurface: z.number().optional(),

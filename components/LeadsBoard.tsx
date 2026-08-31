@@ -6,6 +6,7 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import CompanyAutocomplete from "@/components/CompanyAutocomplete";
 import { useEffect, useState } from "react";
 import { Plus, X, Calendar, CheckCircle2, Circle, Edit2, Trash2, Paperclip, Download, Eye, FileText, Search, Mail } from "lucide-react";
+import MoneyInput from "@/components/MoneyInput";
 
 type Action = {
   id: string;
@@ -1313,14 +1314,14 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                           <option value="OCCUPE">Bien occupé / loué</option>
                         </select>
                         <textarea className="input text-sm md:col-span-3" rows={2} placeholder="Description du bien" value={mandatForm.description} onChange={e => setMandatForm({ ...mandatForm, description: e.target.value })} />
-                        <input className="input text-sm" type="number" min="0" placeholder="Prix net vendeur (€)" value={mandatForm.netSellerAmount} onChange={e => setMandatForm({ ...mandatForm, netSellerAmount: e.target.value })} />
+                        <MoneyInput className="input text-sm" aria-label="Prix net vendeur en euros" placeholder="Prix net vendeur (€)" value={mandatForm.netSellerAmount} onChange={e => setMandatForm({ ...mandatForm, netSellerAmount: e.target.value })} />
                         <div className="flex gap-1">
                           <button type="button" onClick={() => setMandatForm({ ...mandatForm, commissionMode: 'PCT' })} className={`px-2 rounded text-sm border ${mandatForm.commissionMode === 'PCT' ? 'bg-[#B89C6D] text-white border-[#B89C6D]' : 'bg-white border-gray-300'}`}>%</button>
                           <button type="button" onClick={() => setMandatForm({ ...mandatForm, commissionMode: 'EUR' })} className={`px-2 rounded text-sm border ${mandatForm.commissionMode === 'EUR' ? 'bg-[#B89C6D] text-white border-[#B89C6D]' : 'bg-white border-gray-300'}`}>€</button>
                           {mandatForm.commissionMode === 'PCT' ? (
                             <input className="input text-sm flex-1" type="number" min="0" step="0.1" placeholder="Honoraires (%)" value={mandatForm.commissionPercentage} onChange={e => setMandatForm({ ...mandatForm, commissionPercentage: e.target.value })} />
                           ) : (
-                            <input className="input text-sm flex-1" type="number" min="0" placeholder="Honoraires (€)" value={mandatForm.commissionAmount} onChange={e => setMandatForm({ ...mandatForm, commissionAmount: e.target.value })} />
+                            <MoneyInput className="input text-sm flex-1" aria-label="Honoraires en euros" placeholder="Honoraires (€)" value={mandatForm.commissionAmount} onChange={e => setMandatForm({ ...mandatForm, commissionAmount: e.target.value })} />
                           )}
                         </div>
                         <select className="input text-sm" value={mandatForm.mandateHonorairesCharge} onChange={e => setMandatForm({ ...mandatForm, mandateHonorairesCharge: e.target.value })}>

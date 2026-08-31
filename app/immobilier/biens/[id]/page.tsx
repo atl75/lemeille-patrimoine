@@ -110,7 +110,12 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
       <PropertySeoJsonLd property={p} />
       <Hero
         title={`${propertyTypology(p)}${p.surface ? ` · ${p.surface} m²` : ''}${p.city ? ` · ${p.city}` : ''}`}
-        subtitle={<span>{p.title}{p.region?` · ${String(p.region).replaceAll('_',' ')}`:''}</span>}
+        subtitle={<span>
+          {p.status === 'OFFER_RECEIVED' && (
+            <span className="mr-2 inline-block rounded-full bg-amber-500 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-white align-middle">Sous offre</span>
+          )}
+          {p.title}{p.region?` · ${String(p.region).replaceAll('_',' ')}`:''}
+        </span>}
         primary={{label:"Consulter la fiche PDF", href:`/api/properties/${p.id}/pdf`, blank:true}}
         secondary={{label:"Contact", href:`/contact?ref=${encodeURIComponent(p.id)}`}}
       />
