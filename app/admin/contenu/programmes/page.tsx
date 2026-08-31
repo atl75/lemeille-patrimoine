@@ -246,6 +246,20 @@ export default function Page() {
   const setGal = (i: number, key: string, v: string) => { const a = [...galList()]; a[i] = { ...a[i], [key]: v }; updateField('galerie', a); };
   const rmGal = (i: number) => updateField('galerie', galList().filter((_, j) => j !== i));
 
+  // Réordonnancement : on permute avec la photo voisine DE LA MÊME PARTIE.
+  // Permuter avec l'index adjacent du tableau ferait sauter la photo d'une
+  // catégorie à l'autre, ce qui n'est pas ce qu'on voit à l'écran.
+  const moveGal = (i: number, sens: -1 | 1) => {
+    const a = [...galList()];
+    const cat = a[i]?.categorie || 'EXTERIEUR';
+    const memeCat = a.map((g, k) => ({ g, k })).filter(x => (x.g.categorie || 'EXTERIEUR') === cat).map(x => x.k);
+    const pos = memeCat.indexOf(i);
+    const cible = memeCat[pos + sens];
+    if (cible === undefined) return;
+    [a[i], a[cible]] = [a[cible], a[i]];
+    updateField('galerie', a);
+  };
+
   const [envoiGroupe, setEnvoiGroupe] = useState<{ fait: number; total: number } | null>(null);
 
   // Ajout groupé : on téléverse en série pour ne pas saturer l'API, et on
@@ -629,7 +643,20 @@ export default function Page() {
                             {GAL_CATEGORIES.map(o => <option key={o.code} value={o.code}>{o.label}</option>)}
                           </select>
                         </div>
-                        <button type="button" onClick={() => rmGal(i)} className="px-2 text-red-500 hover:bg-red-50 rounded">✕</button>
+                        <div className="flex flex-col gap-0.5">
+                          <button type="button" onClick={() => moveGal(i, -1)}
+                            disabled={items[0].i === i}
+                            aria-label={`Monter la photo ${i + 1}`} title="Monter"
+                            className="px-1.5 leading-none text-gray-600 hover:bg-gray-100 rounded disabled:opacity-25"
+                            data-testid={`button-gal-up-${i}`}>▲</button>
+                          <button type="button" onClick={() => moveGal(i, 1)}
+                            disabled={items[items.length - 1].i === i}
+                            aria-label={`Descendre la photo ${i + 1}`} title="Descendre"
+                            className="px-1.5 leading-none text-gray-600 hover:bg-gray-100 rounded disabled:opacity-25"
+                            data-testid={`button-gal-down-${i}`}>▼</button>
+                        </div>
+                        <button type="button" onClick={() => rmGal(i)} aria-label={`Supprimer la photo ${i + 1}`}
+                          className="px-2 text-red-500 hover:bg-red-50 rounded">✕</button>
                       </div>
                     ))}
                   </div>

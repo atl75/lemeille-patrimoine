@@ -293,7 +293,9 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
                   </div>
 
                   {/* Contrôles (apparaissent au survol) */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                  {/* Sur écran tactile il n'y a pas de survol : les contrôles restent
+                      visibles, sinon ils sont inatteignables sur iPad. */}
+                  <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/25 opacity-100 transition-colors md:bg-black/0 md:opacity-0 md:group-hover:bg-black/40 md:group-hover:opacity-100">
                     {/* Réorganisation */}
                     <div className="flex gap-1 bg-white rounded shadow-lg">
                       <button
