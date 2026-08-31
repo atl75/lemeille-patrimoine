@@ -5,8 +5,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Questions fréquentes | Lemeille Patrimoine",
-  description:
-    "Achat, vente, défiscalisation, honoraires : les réponses aux questions les plus fréquentes sur l'accompagnement immobilier et patrimonial de Lemeille Patrimoine.",
+  description: "Achat, vente, défiscalisation, honoraires : les réponses aux questions les plus fréquentes posées à votre agence immobilière à Rouen.",
   alternates: { canonical: "/faq" },
 };
 

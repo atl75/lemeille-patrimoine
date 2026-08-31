@@ -22,7 +22,7 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = {
   title: 'Lemeille Patrimoine — Agence immobilière à Rouen',
-  description: "Agence immobilière à Rouen, Mont-Saint-Aignan et Bois-Guillaume. Maisons et appartements de caractère, estimation gratuite, défiscalisation (Malraux, Monument Historique, Déficit Foncier).",
+  description: "Agence immobilière à Rouen, Mont-Saint-Aignan et Bois-Guillaume. Maisons et appartements de caractère, conseil en défiscalisation.",
   // Pas de canonical global ici : il serait hérité par toutes les pages
   // (chaque page définit son propre canonical ; l'accueil le fait ci-dessous).
   openGraph: {

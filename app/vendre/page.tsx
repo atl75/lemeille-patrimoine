@@ -8,8 +8,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Vendre son bien à Rouen | Lemeille Patrimoine",
-  description:
-    "Vous vendez une maison ou un appartement à Rouen, Mont-Saint-Aignan, Bois-Guillaume ou sur le Plateau Nord ? Estimation gratuite, avis de valeur sous 3 jours, honoraires transparents et accompagnement jusqu'à la signature.",
+  description: "Vendre votre maison ou appartement à Rouen et sur le Plateau Nord : estimation gratuite sous 3 jours, photos professionnelles, accompagnement complet.",
   alternates: { canonical: "/vendre" },
   openGraph: {
     title: "Vendre son bien à Rouen — estimation gratuite",

@@ -4,6 +4,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import PropertyCard from "@/components/PropertyCard";
 import { getPropertyCards } from "@/lib/propertiesData";
 import { notFound } from "next/navigation";
+import { seoTitle } from '@/lib/seoTitle';
 
 // ISR : régénérée au plus toutes les 5 min (+ revalidation immédiate à l'édition d'un bien).
 export const revalidate = 300;
@@ -163,7 +164,8 @@ function matchesSector(p:any, s: Sector){
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const s = SECTORS[slug];
-  const title = s ? `${s.title} — Immobilier | Lemeille Patrimoine` : "Secteur — Immobilier";
+  // Au-delà de 65 caractères Google tronque : on raccourcit le suffixe.
+  const title = s ? seoTitle([s.title]) : seoTitle(["Secteur"]);
   const description = (s?.description || s?.subtitle || "Biens dans le secteur sélectionné.").slice(0, 155);
   return { title, description, alternates: { canonical: `/secteurs/${slug}` } };
 }

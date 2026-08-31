@@ -5,6 +5,7 @@ import Img from "@/components/Img";
 import ArticleSeoJsonLd from "@/components/ArticleSeoJsonLd";
 import { notFound } from "next/navigation";
 import type { Metadata } from 'next';
+import { seoTitle } from '@/lib/seoTitle';
 
 async function getArticle(slug: string) {
   const base = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT || '3000'}`;
@@ -18,8 +19,12 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   const { slug } = await props.params;
   const a = await getArticle(slug);
   if (!a) return { title: "Article introuvable | Lemeille Patrimoine" };
-  const title = a.seoTitle || `${a.title} | Lemeille Patrimoine`;
-  const description = a.seoDescription || a.excerpt;
+  // Un titre d'article est long par nature : seoTitle sacrifie la marque
+  // plutôt que de laisser Google couper la fin de la phrase.
+  // Le titre SEO saisi en base passe par le même plafonnement : rien ne sert
+  // d'écrire un titre que Google tronquera.
+  const title = seoTitle([a.seoTitle || a.title]);
+  const description = String(a.seoDescription || a.excerpt || '').slice(0, 158);
   return {
     title,
     description,

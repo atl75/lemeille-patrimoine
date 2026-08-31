@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Contact — Agence immobilière à Rouen | Lemeille Patrimoine',
-  description: 'Contactez Lemeille Patrimoine, agence immobilière à Rouen (35 rue Ganterie) et Mont-Saint-Aignan. Tél : +33 6 87 15 72 59. Estimation gratuite et conseil patrimonial.',
+  description: 'Contactez Lemeille Patrimoine à Rouen : estimation gratuite, achat, vente et défiscalisation. Réponse sous 48 h, bureaux à Rouen et Mont-Saint-Aignan.',
   alternates: {
     canonical: '/contact'
   },

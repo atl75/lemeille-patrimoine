@@ -10,7 +10,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Défiscalisation immobilière | Lemeille Patrimoine',
-  description: "Réduisez votre imposition grâce à l'immobilier de caractère : Loi Malraux, Monument Historique, Déficit Foncier. Sélection d'opérations et accompagnement sur mesure à Rouen et en Normandie.",
+  description: "Réduisez votre imposition grâce à l'immobilier de caractère : Loi Malraux, Monument Historique, Déficit Foncier. Opérations à Rouen et en Normandie.",
   alternates: {
     canonical: '/programmes'
   },

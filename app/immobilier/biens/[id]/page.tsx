@@ -11,6 +11,7 @@ import { propertyLabel, propertyTypology } from "@/lib/propertyLabel";
 import CapaciteEmpruntSimulator from "@/components/CapaciteEmpruntSimulator";
 import PlanViewer from "@/components/PlanViewer";
 import { notFound } from "next/navigation";
+import { seoTitle } from '@/lib/seoTitle';
 import type { Metadata } from 'next';
 
 async function getProperty(id: string){
@@ -27,10 +28,18 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
   if (!p) notFound();
 
   const region = p.region ? String(p.region).replaceAll('_', ' ') : '';
-  const title = `${propertyLabel(p, { withPrice: false })}${region ? `, ${region}` : ''} | Lemeille Patrimoine`;
-  const description = p.description
-    ? p.description.slice(0, 155)
-    : `${p.type === 'MAISON' ? 'Maison' : 'Appartement'} à ${p.city}, ${p.surface ?? '—'} m², ${p.rooms ?? '—'} pièces.`;
+  // Ville avant surface : c'est elle qui porte la recherche locale.
+  const title = seoTitle([`${propertyTypology(p)}${p.city ? ` · ${p.city}` : ''}`, p.surface ? `${p.surface} m²` : null, region]);
+  // Une description de remplissage (« . », quelques caractères) n'en est pas une :
+  // on lui préfère un résumé construit à partir des caractéristiques du bien.
+  const saisie = String(p.description || '').trim();
+  const description = saisie.length >= 40
+    ? saisie.slice(0, 155)
+    : [
+        `${p.type === 'MAISON' ? 'Maison' : 'Appartement'}${p.rooms ? ` T${p.rooms}` : ''} à ${p.city}`,
+        p.surface ? `${p.surface} m²` : null,
+        p.price && !p.priceOnRequest ? `${Number(p.price).toLocaleString('fr-FR')} €` : null,
+      ].filter(Boolean).join(' · ') + '. Visite sur rendez-vous avec Lemeille Patrimoine.';
   const coverImage = Array.isArray(p.images) && p.images.length ? p.images[0] : undefined;
 
   return {

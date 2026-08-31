@@ -21,6 +21,7 @@ function DpeLetter({ c, kind }: { c?: string; kind: "energy" | "ges" }) {
     </span>
   );
 }
+import { seoTitle } from '@/lib/seoTitle';
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +48,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!p || p.visible === false) notFound();
   const dispo = dispositifsOf(p).map(d => d.nom).join(", ");
   return {
-    title: `${p.title} — ${p.city} | Défiscalisation ${dispo} | Lemeille Patrimoine`,
+    title: seoTitle([`${p.title}`, p.city, dispo ? `Défiscalisation ${dispo}` : null]),
     description: p.summary || p.accroche || `Programme de défiscalisation à ${p.city}.`,
     alternates: { canonical: `/programmes/${p.slug || p.id}` },
     openGraph: {

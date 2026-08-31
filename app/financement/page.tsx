@@ -7,8 +7,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Capacité d'emprunt à Rouen | Lemeille Patrimoine",
-  description:
-    "Calculez votre capacité d'emprunt et votre budget d'achat immobilier à Rouen : mensualité maximale, montant empruntable, frais de notaire. Simulateur gratuit et mise en relation avec notre courtier partenaire.",
+  description: "Calculez votre capacité d'emprunt pour un achat immobilier à Rouen : mensualité, budget maximal et apport nécessaire, selon la règle des 35 %.",
   alternates: { canonical: "/financement" },
   openGraph: {
     title: "Simulateur de capacité d'emprunt — Lemeille Patrimoine",

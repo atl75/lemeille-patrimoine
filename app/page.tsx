@@ -3,15 +3,13 @@ import Link from "next/link";
 import Section from "@/components/Section";
 import HeroSlideshow from "@/components/HeroSlideshow";
 import PropertyCard from "@/components/PropertyCard";
-import HomeSeoJsonLd from "@/components/HomeSeoJsonLd";
 import EstimationForm from "@/components/EstimationFormLazy";
 import { getPropertyCards } from "@/lib/propertiesData";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Agence immobilière à Rouen | Lemeille Patrimoine",
-  description:
-    "Agence immobilière à Rouen, Mont-Saint-Aignan, Bois-Guillaume et Plateau Nord. Vente de maisons et appartements de caractère, estimation gratuite, défiscalisation (Malraux, Monument Historique, Déficit Foncier).",
+  description: "Agence immobilière à Rouen, Mont-Saint-Aignan et Bois-Guillaume. Vente de maisons et appartements de caractère, estimation gratuite sous 3 jours.",
   alternates: { canonical: "/" },
   openGraph: {
     title: "Agence immobilière à Rouen & Plateau Nord | Lemeille Patrimoine",
@@ -276,7 +274,6 @@ export default async function Home() {
       </Section>
 
       {/* SEO JSON-LD */}
-      <HomeSeoJsonLd />
     </main>
   );
 }
