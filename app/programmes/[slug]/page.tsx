@@ -24,6 +24,7 @@ function DpeLetter({ c, kind }: { c?: string; kind: "energy" | "ges" }) {
 }
 import { seoTitle } from '@/lib/seoTitle';
 import type { Metadata } from "next";
+import { cldImg } from "@/lib/cldImg";
 
 export const dynamic = "force-dynamic";
 
@@ -194,6 +195,27 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           </p>
           <div className="mt-8">
             <AvantApres paires={p.avantApres} />
+          </div>
+        </section>
+      )}
+
+      {/* PHOTOS DE LA RÉALISATION */}
+      {Array.isArray(p.galerie) && p.galerie.some((g: any) => g?.image) && (
+        <section className="bg-white/50 border-y border-gold/20 py-14">
+          <div className="container">
+            <h2 className="luxe text-3xl md:text-4xl text-luxe">La réalisation</h2>
+            <div className="mt-3 h-px w-14 bg-gold/60" />
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {p.galerie.filter((g: any) => g?.image).map((g: any, i: number) => (
+                <figure key={i} className="m-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={cldImg(g.image, 1200)} alt={g.legende || `Réalisation ${i + 1} — ${p.title}`}
+                    loading="lazy" decoding="async"
+                    className="w-full rounded-xl border object-cover" style={{ aspectRatio: "3 / 2" }} />
+                  {g.legende && <figcaption className="mt-2 text-sm text-luxe/70">{g.legende}</figcaption>}
+                </figure>
+              ))}
+            </div>
           </div>
         </section>
       )}

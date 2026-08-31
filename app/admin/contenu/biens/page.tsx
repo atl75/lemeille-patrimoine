@@ -843,11 +843,10 @@ export default function Page() {
           {/* Tiroir de modification rapide — ce qui change le plus souvent au fil
               d'une commercialisation. Les champs pilotent le même état que ceux
               du formulaire détaillé ci-dessous : les deux restent synchronisés. */}
-          {editing.id && (
-            <div className="mb-4">
+          <div className="mb-4">
               <CollapsibleSection
                 title="Modifications rapides"
-                subtitle="Prix · description · photos et vidéo — sans parcourir toute la fiche"
+                subtitle="Prix · description · prestations · photos et vidéo — sans parcourir toute la fiche"
               >
                 <div className="grid gap-3 md:grid-cols-2">
                   <div>
@@ -899,6 +898,14 @@ export default function Page() {
                   </div>
 
                   <div className="md:col-span-2">
+                    <label className="block text-xs font-medium mb-1">Prestations</label>
+                    <FeaturePicker
+                      value={editing.features || []}
+                      onChange={features => updateField('features', features)}
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
                     <label className="block text-xs font-medium mb-1">Photos</label>
                     <ImageUploader
                       images={editing.images || []}
@@ -907,8 +914,7 @@ export default function Page() {
                   </div>
                 </div>
               </CollapsibleSection>
-            </div>
-          )}
+          </div>
 
           {/* Infos générales + Propriétaires en 2 colonnes */}
           <div className="grid md:grid-cols-2 gap-3 mb-3">

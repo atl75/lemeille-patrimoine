@@ -236,6 +236,8 @@ export const insertProgramSchema = createInsertSchema(programs, {
     projections: z.array(z.any()).optional(),
     // Réhabilitations livrées : paires { avant, apres, legende } du même cadrage.
     avantApres: z.array(z.any()).optional(),
+    // Photos de la réalisation achevée, en complément de l'avant / après.
+    galerie: z.array(z.any()).optional(),
     // EN_COURS : opération commercialisée. LIVRE : réalisation achevée,
     // présentée comme référence et non comme offre d'investissement.
     statut: z.enum(['EN_COURS', 'LIVRE']).optional(),

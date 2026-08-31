@@ -27,6 +27,7 @@ type Program = {
   projections?: { title?: string; image?: string }[];
   // Réhabilitations livrées : paires de photos du même cadrage.
   avantApres?: { avant?: string; apres?: string; legende?: string }[];
+  galerie?: { image?: string; legende?: string }[];
   statut?: 'EN_COURS' | 'LIVRE';
   dpe?: { classEnergy?: string; classGES?: string; consumption?: string; emissions?: string };
   equipements?: { title?: string; subtitle?: string }[];
@@ -232,6 +233,11 @@ export default function Page() {
   const addAa = () => updateField('avantApres', [...aaList(), { avant: "", apres: "", legende: "" }]);
   const setAa = (i: number, key: string, v: string) => { const a = [...aaList()]; a[i] = { ...a[i], [key]: v }; updateField('avantApres', a); };
   const rmAa = (i: number) => updateField('avantApres', aaList().filter((_, j) => j !== i));
+
+  const galList = (): any[] => Array.isArray(editing?.galerie) ? editing!.galerie! : [];
+  const addGal = () => updateField('galerie', [...galList(), { image: "", legende: "" }]);
+  const setGal = (i: number, key: string, v: string) => { const a = [...galList()]; a[i] = { ...a[i], [key]: v }; updateField('galerie', a); };
+  const rmGal = (i: number) => updateField('galerie', galList().filter((_, j) => j !== i));
 
   // ---- DPE cible ----
   const setDpe = (key: string, v: string) => updateField('dpe', { ...(editing?.dpe || {}), [key]: v });
@@ -545,6 +551,33 @@ export default function Page() {
               ))}
             </div>
             <button type="button" onClick={addAa} className="text-sm text-[#B89C6D] hover:underline mt-2">+ Ajouter une paire avant / après</button>
+          </div>
+
+          {/* Galerie de la réalisation */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Photos de la réalisation</label>
+            <p className="text-xs opacity-70 mb-2">
+              Vues de l&apos;immeuble livré, en complément de l&apos;avant / après — parties communes, logements, façade.
+            </p>
+            <div className="grid md:grid-cols-2 gap-2">
+              {galList().map((g, i) => (
+                <div key={i} className="flex items-center gap-2 border rounded p-2">
+                  {g.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={g.image} alt="" className="w-20 h-14 object-cover rounded" />
+                  ) : (
+                    <input type="file" accept="image/*" aria-label={`Photo ${i + 1} de la réalisation`}
+                      onChange={async e => { const url = await uploadImage(e.target.files?.[0]); if (url) setGal(i, 'image', url); }}
+                      className="text-xs w-24" />
+                  )}
+                  <input value={g.legende || ''} onChange={e => setGal(i, 'legende', e.target.value)}
+                    placeholder="Légende (ex : Cage d'escalier restaurée)" aria-label={`Légende de la photo ${i + 1}`}
+                    className="flex-1 px-2 py-1 text-sm border rounded" />
+                  <button type="button" onClick={() => rmGal(i)} className="px-2 text-red-500 hover:bg-red-50 rounded">✕</button>
+                </div>
+              ))}
+            </div>
+            <button type="button" onClick={addGal} className="text-sm text-[#B89C6D] hover:underline mt-2">+ Ajouter une photo</button>
           </div>
 
           {/* DPE cible */}
