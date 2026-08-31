@@ -116,6 +116,10 @@ export default async function Page(){
             <h3 className="luxe text-xl">Registre des mandats</h3>
             <p className="opacity-80 mt-2">Le livre des mandats — tous les mandats, statut de signature, impression PDF.</p>
           </Link>
+          <Link className="card p-6 hover:border-[#B89C6D]" href="/admin/documents" data-testid="link-documents">
+            <h3 className="luxe text-xl">Documents</h3>
+            <p className="opacity-80 mt-2">Bons de visite et offres d&apos;achat signés sur le terrain, avec le suivi de l&apos;acceptation vendeur.</p>
+          </Link>
         </div>
       </AdminShell>
     </main>

@@ -32,6 +32,7 @@ export default function AdminShell({ title, children }: { title: string; childre
             <NavLink href="/admin/crm" label="CRM" isActive={pathname === "/admin/crm"} />
             <NavLink href="/admin/repertoire" label="Répertoire" isActive={pathname === "/admin/repertoire"} />
             <NavLink href="/admin/mandats" label="Registre des mandats" isActive={pathname === "/admin/mandats"} />
+            <NavLink href="/admin/documents" label="Documents" isActive={pathname === "/admin/documents"} />
             <NavLink href="/admin/kpi" label="Indicateurs" isActive={pathname === "/admin/kpi"} />
           </div>
         </div>

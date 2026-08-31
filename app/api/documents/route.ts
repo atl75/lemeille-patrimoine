@@ -42,7 +42,11 @@ export async function GET(req: NextRequest) {
   if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const data = await readJSON(FILE);
   // Sans le PDF (trop lourd) — le PDF est servi via /api/documents/[id]/pdf.
-  const list = (Array.isArray(data) ? data : []).map(({ pdf, ...rest }: any) => rest);
+  // Ni le PDF ni les signatures : docData embarque des images base64 qui
+  // alourdiraient inutilement la liste.
+  const list = (Array.isArray(data) ? data : []).map(
+    ({ pdf, docData, ownerSignature, ownerSignToken, ...rest }: any) => rest
+  );
   return NextResponse.json(list);
 }
 

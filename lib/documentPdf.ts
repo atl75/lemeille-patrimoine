@@ -1,5 +1,5 @@
 import { eurosEnLettres } from '@/lib/enLettres';
-import { NOVUS_LOGO_BASE64 } from '@/lib/novusLogo';
+import { LEMEILLE_LOGO_BASE64, LEMEILLE_LOGO_RATIO } from '@/lib/lemeilleLogo';
 import { SIGNATURE_MANDATAIRE_B64 } from '@/lib/signatureMandataire';
 
 export type DocData = {
@@ -28,7 +28,7 @@ export async function buildDocumentPdf(d: DocData): Promise<Uint8Array> {
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const timesBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
-  const logoImg = await pdfDoc.embedPng(Buffer.from(NOVUS_LOGO_BASE64, 'base64'));
+  const lpLogo = await pdfDoc.embedPng(Buffer.from(LEMEILLE_LOGO_BASE64, 'base64'));
 
   const navy = rgb(0.122, 0.231, 0.173), gold = rgb(0.722, 0.612, 0.427), dark = rgb(0.13, 0.13, 0.13), grey = rgb(0.42, 0.42, 0.42), rule = rgb(0.8, 0.8, 0.8), white = rgb(1, 1, 1);
   const PW = 595, PH = 842, M = 52, CW = PW - M * 2;
@@ -57,12 +57,21 @@ export async function buildDocumentPdf(d: DocData): Promise<Uint8Array> {
   };
 
   // ---- En-tête ----
-  page.drawRectangle({ x: 0, y: PH - 66, width: PW, height: 66, color: navy });
-  const lw = 40, lh = lw * (logoImg.height / logoImg.width);
-  page.drawImage(logoImg, { x: M, y: PH - 33 - lh / 2, width: lw, height: lh });
-  page.drawText('NOVUS CAPITAL', { x: M + lw + 12, y: PH - 30, size: 14, font: timesBold, color: white });
-  page.drawText('Lemeille Patrimoine - Immobilier & defiscalisation', { x: M + lw + 12, y: PH - 46, size: 8.5, font, color: rgb(0.85, 0.85, 0.85) });
-  y = PH - 66 - 24;
+  // En-tête clair plutôt qu'un aplat vert pleine largeur : le logo porte
+  // l'identité, un filet doré suffit à asseoir le document. Un bandeau plein
+  // alourdit un document contractuel et écrase le logo.
+  const lpH = 34, lpW = lpH * LEMEILLE_LOGO_RATIO;
+  page.drawImage(lpLogo, { x: M, y: PH - 20 - lpH, width: lpW, height: lpH });
+  page.drawText(clean('Immobilier & défiscalisation'), { x: M + 4, y: PH - 20 - lpH - 12, size: 7.5, font, color: grey });
+
+  // Entité juridique, à droite et discrète.
+  const legal = 'NOVUS CAPITAL SAS';
+  page.drawText(legal, { x: PW - M - fontBold.widthOfTextAtSize(legal, 9), y: PH - 30, size: 9, font: fontBold, color: navy });
+  const cpi = 'CPI 7606 2024 000 000 038';
+  page.drawText(cpi, { x: PW - M - font.widthOfTextAtSize(cpi, 7.5), y: PH - 42, size: 7.5, font, color: grey });
+
+  page.drawLine({ start: { x: M, y: PH - 78 }, end: { x: PW - M, y: PH - 78 }, thickness: 1.2, color: gold });
+  y = PH - 78 - 26;
 
   const isOffre = d.type === 'OFFRE';
   const title = isOffre ? "OFFRE D'ACHAT" : 'BON DE VISITE';
