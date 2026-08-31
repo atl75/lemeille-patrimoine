@@ -80,6 +80,8 @@
 
 /* === Lemeille Patrimoine — Contraste & branding === */
 :root{
+  /* Hauteur unique des bandeaux de pages intérieures (l'accueil garde le sien). */
+  --hero-h: 420px;
   --luxe:#1F3B2C;     /* vert foncé */
   --gold:#B89C6D;     /* or assombri pour contraste WCAG 4.5:1 */
   --cream:#F4F1EB;    /* crème */

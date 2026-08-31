@@ -100,22 +100,22 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       <section className="relative isolate overflow-hidden">
         <Image src={hero} alt={p.title} fill priority sizes="100vw" className="object-cover object-center" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#12241b]/90 via-[#1F3B2C]/65 to-[#1F3B2C]/25" />
-        <div className="container relative flex min-h-[60vh] md:min-h-[70vh] flex-col justify-center py-20">
-          <div className="flex flex-wrap gap-2 mb-4">
+        <div className="container relative flex min-h-[var(--hero-h)] w-full flex-col justify-center py-8 md:py-12">
+          <div className="flex flex-wrap gap-2 mb-3">
             {dispositifs.map(d => (
               <span key={d.code} className="text-[11px] font-medium uppercase tracking-[0.18em] text-luxe bg-gold/90 rounded-full px-3 py-1">
                 {d.nom}
               </span>
             ))}
           </div>
-          <h1 className="text-4xl md:text-6xl luxe text-cream leading-[1.05]">{p.title}</h1>
+          <h1 className="text-4xl md:text-5xl luxe text-cream leading-tight">{p.title}</h1>
           <div className="mt-3 text-cream/80">{p.address || `${p.city}`}</div>
-          {p.accroche && <p className="mt-5 max-w-xl text-base md:text-lg text-cream/90 leading-relaxed">{p.accroche}</p>}
-          <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-cream/85">
+          {p.accroche && <p className="mt-4 max-w-xl text-sm md:text-lg text-cream/90 leading-relaxed">{p.accroche}</p>}
+          <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-cream/85">
             {lots.length > 0 && <span>{lots.length} lot{lots.length > 1 ? "s" : ""}{dispo > 0 ? ` · ${dispo} disponible${dispo > 1 ? "s" : ""}` : ""}</span>}
             {p.livraison && <span>Livraison {p.livraison}</span>}
           </div>
-          <div className="mt-8 flex flex-wrap items-center gap-x-7 gap-y-4">
+          <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2.5">
             <Link href={contactHref} className="btn btn-gold">Être recontacté</Link>
             {p.externalUrl && /^https?:\/\//.test(p.externalUrl) && (
               <a href={p.externalUrl} target="_blank" rel="noopener noreferrer" className="group inline-flex items-center gap-2 rounded-full border border-cream/40 px-4 py-2 text-sm font-medium text-cream hover:bg-cream/10 transition-colors">
