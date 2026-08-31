@@ -2,6 +2,7 @@
 import { useToast } from "@/components/Toast";
 import { useState, useRef, useEffect, DragEvent } from "react";
 import { Upload, X, Image as ImageIcon, ChevronUp, ChevronDown, GripVertical } from "lucide-react";
+import { useDragReorder } from "@/lib/useDragReorder";
 
 type ImageUploaderProps = {
   images: string[];
@@ -175,6 +176,17 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
     onChange(newImages);
   };
 
+  // Glisser-déposer : la photo est réinsérée à la position de dépôt, les
+  // autres se décalent. La première photo servant de vignette, pouvoir la
+  // désigner d'un geste compte.
+  const drag = useDragReorder((de, vers) => {
+    const a = [...images];
+    if (de === vers || !a[de]) return;
+    const [img] = a.splice(de, 1);
+    a.splice(vers, 0, img);
+    onChange(a);
+  });
+
   const handleBrowse = () => {
     fileInputRef.current?.click();
   };
@@ -262,9 +274,10 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {images.map((img, idx) => (
-              <div 
-                key={idx} 
-                className="group relative border rounded-lg overflow-hidden hover:border-[#B89C6D] transition bg-white"
+              <div
+                key={idx}
+                {...drag.zone(idx)}
+                className={`group relative border rounded-lg overflow-hidden hover:border-[#B89C6D] transition bg-white ${drag.zone(idx).className}`}
               >
                 {/* Image de prévisualisation */}
                 <div className="aspect-video bg-gray-100 relative">
@@ -281,7 +294,11 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
                   )}
                   
                   {/* Badge numéro et image principale */}
-                  <div className="absolute top-2 left-2 flex gap-2">
+                  <div className="absolute top-2 left-2 flex items-center gap-2">
+                    <span {...drag.poignee(idx)}
+                      title="Glisser pour déplacer" aria-label={`Déplacer l'image ${idx + 1}`}
+                      className="select-none rounded bg-black/70 px-2 py-1 text-xs text-white"
+                      data-testid={`handle-image-${idx}`}>⠿</span>
                     <span className="bg-black/70 text-white text-xs font-medium px-2 py-1 rounded">
                       #{idx + 1}
                     </span>

@@ -5,6 +5,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import DocumentUploader from "@/components/DocumentUploader";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useEffect, useState } from "react";
+import { useDragReorder } from "@/lib/useDragReorder";
 
 type Program = {
   id: string;
@@ -249,6 +250,18 @@ export default function Page() {
   // Réordonnancement : on permute avec la photo voisine DE LA MÊME PARTIE.
   // Permuter avec l'index adjacent du tableau ferait sauter la photo d'une
   // catégorie à l'autre, ce qui n'est pas ce qu'on voit à l'écran.
+  // Glisser-déposer : la photo est retirée de sa position et réinsérée à la
+  // cible, et adopte la partie de celle-ci — déposer dans « Parties communes »
+  // doit reclasser la photo, c'est le geste attendu.
+  const reorderGal = (de: number, vers: number) => {
+    const a = [...galList()];
+    if (de === vers || !a[de] || !a[vers]) return;
+    const cible = a[vers].categorie || 'EXTERIEUR';
+    const [photo] = a.splice(de, 1);
+    a.splice(vers, 0, { ...photo, categorie: cible });
+    updateField('galerie', a);
+  };
+
   const moveGal = (i: number, sens: -1 | 1) => {
     const a = [...galList()];
     const cat = a[i]?.categorie || 'EXTERIEUR';
@@ -261,6 +274,7 @@ export default function Page() {
   };
 
   const [envoiGroupe, setEnvoiGroupe] = useState<{ fait: number; total: number } | null>(null);
+  const dragGal = useDragReorder((de, vers) => reorderGal(de, vers));
 
   // Ajout groupé : on téléverse en série pour ne pas saturer l'API, et on
   // ajoute les photos au fur et à mesure plutôt qu'à la fin — si un envoi
@@ -629,9 +643,14 @@ export default function Page() {
                   <div className="text-xs font-semibold opacity-80 mb-1">{c.label} ({items.length})</div>
                   <div className="grid md:grid-cols-2 gap-2">
                     {items.map(({ g, i }) => (
-                      <div key={i} className="flex items-center gap-2 border rounded p-2">
+                      <div key={i} {...dragGal.zone(i)}
+                        className={`flex items-center gap-2 border rounded p-2 transition-all ${dragGal.zone(i).className}`}>
+                        <span {...dragGal.poignee(i)}
+                          title="Glisser pour déplacer" aria-label={`Déplacer la photo ${i + 1}`}
+                          className="select-none px-1 text-gray-400 hover:text-gray-700"
+                          data-testid={`handle-gal-${i}`}>⠿</span>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        {g.image && <img src={g.image} alt="" className="w-20 h-14 object-cover rounded" />}
+                        {g.image && <img src={g.image} alt="" className="w-20 h-14 object-cover rounded pointer-events-none" />}
                         <div className="flex-1 min-w-0 grid gap-1">
                           <input value={g.legende || ''} onChange={e => setGal(i, 'legende', e.target.value)}
                             placeholder="Légende (ex : Cage d'escalier restaurée)"
