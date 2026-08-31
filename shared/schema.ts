@@ -234,6 +234,11 @@ export const insertProgramSchema = createInsertSchema(programs, {
     lots: z.array(z.any()).optional(),
     plans: z.array(z.any()).optional(),
     projections: z.array(z.any()).optional(),
+    // Réhabilitations livrées : paires { avant, apres, legende } du même cadrage.
+    avantApres: z.array(z.any()).optional(),
+    // EN_COURS : opération commercialisée. LIVRE : réalisation achevée,
+    // présentée comme référence et non comme offre d'investissement.
+    statut: z.enum(['EN_COURS', 'LIVRE']).optional(),
     proximite: z.array(z.any()).optional(),
     mapQuery: z.string().optional(),
     virtualTourUrl: z.string().optional(),

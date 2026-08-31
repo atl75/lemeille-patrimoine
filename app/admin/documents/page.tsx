@@ -4,13 +4,14 @@ import Breadcrumb from "@/components/Breadcrumb";
 import { useToast } from "@/components/Toast";
 import { useEffect, useMemo, useState } from "react";
 import { FileText, Search, Send, CheckCircle2, Clock } from "lucide-react";
+import { propertyTypology } from "@/lib/propertyLabel";
 
 // Registre des documents signés sur le terrain (bons de visite, offres d'achat).
 // Ils étaient jusqu'ici enregistrés sans être consultables ailleurs que sur
 // l'écran de création.
 type Doc = {
   id: string; createdAt?: string; type: "VISITE" | "OFFRE"; number?: string;
-  propertyId?: string; propertyTitle?: string; propertyCity?: string;
+  propertyId?: string; propertyTitle?: string; propertyCity?: string; propertyLabel?: string;
   client?: { firstName?: string; lastName?: string; email?: string; phone?: string };
   offerAmount?: number; atAskingPrice?: boolean; sequestreAmount?: number;
   validityDays?: number; financing?: string; signedAt?: string;
@@ -30,6 +31,9 @@ export default function Page() {
   const [q, setQ] = useState("");
   const [filtre, setFiltre] = useState<"TOUS" | "VISITE" | "OFFRE">("TOUS");
   const [envoi, setEnvoi] = useState<string | null>(null);
+  // Le document n'enregistre que le titre libre du bien : on rapproche par
+  // identifiant pour afficher la désignation normalisée du site.
+  const [biens, setBiens] = useState<Record<string, any>>({});
 
   const charger = () => {
     setLoading(true);
@@ -40,6 +44,23 @@ export default function Page() {
       .finally(() => setLoading(false));
   };
   useEffect(charger, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    fetch("/api/properties")
+      .then(r => r.json())
+      .then((l: any[]) => setBiens(Object.fromEntries((Array.isArray(l) ? l : []).map(p => [p.id, p]))))
+      .catch(() => {});
+  }, []);
+
+  // « Appartement T3 · 106 m² » — même registre que la désignation du site.
+  const designation = (d: Doc) => {
+    if (d.propertyLabel) return d.propertyLabel;
+    const p = d.propertyId ? biens[d.propertyId] : null;
+    if (!p) return d.propertyTitle || "—";
+    const typo = propertyTypology(p);
+    const tete = p.type === "MAISON" ? typo : `Appartement ${typo}`;
+    return [tete, p.surface ? `${p.surface} m²` : null].filter(Boolean).join(" · ");
+  };
 
   const liste = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -86,7 +107,7 @@ export default function Page() {
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 opacity-50" />
-                <input className="input pl-8" aria-label="Rechercher un document" placeholder="N°, client, bien…"
+                <input className="input" style={{ paddingLeft: "2.25rem" }} aria-label="Rechercher un document" placeholder="N°, client, bien…"
                   value={q} onChange={e => setQ(e.target.value)} data-testid="input-search-documents" />
               </div>
               <select className="input" aria-label="Filtrer par type de document" value={filtre}
@@ -140,7 +161,7 @@ export default function Page() {
                       {d.client?.email && <div className="text-xs opacity-75">{d.client.email}</div>}
                     </td>
                     <td className="p-3">
-                      <div>{d.propertyTitle || "—"}</div>
+                      <div>{designation(d)}</div>
                       {d.propertyCity && <div className="text-xs opacity-75">{d.propertyCity}</div>}
                     </td>
                     <td className="p-3 whitespace-nowrap">

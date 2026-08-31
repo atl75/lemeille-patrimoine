@@ -25,6 +25,9 @@ type Program = {
   proximite?: { nom: string; distance?: string }[];
   lots?: any[];
   projections?: { title?: string; image?: string }[];
+  // Réhabilitations livrées : paires de photos du même cadrage.
+  avantApres?: { avant?: string; apres?: string; legende?: string }[];
+  statut?: 'EN_COURS' | 'LIVRE';
   dpe?: { classEnergy?: string; classGES?: string; consumption?: string; emissions?: string };
   equipements?: { title?: string; subtitle?: string }[];
   documents?: { name?: string; subtitle?: string; url?: string }[];
@@ -224,6 +227,11 @@ export default function Page() {
   const addProj = () => updateField('projections', [...projList(), { title: "", image: "" }]);
   const setProj = (i: number, key: string, v: string) => { const a = [...projList()]; a[i] = { ...a[i], [key]: v }; updateField('projections', a); };
   const rmProj = (i: number) => updateField('projections', projList().filter((_, j) => j !== i));
+
+  const aaList = (): any[] => Array.isArray(editing?.avantApres) ? editing!.avantApres! : [];
+  const addAa = () => updateField('avantApres', [...aaList(), { avant: "", apres: "", legende: "" }]);
+  const setAa = (i: number, key: string, v: string) => { const a = [...aaList()]; a[i] = { ...a[i], [key]: v }; updateField('avantApres', a); };
+  const rmAa = (i: number) => updateField('avantApres', aaList().filter((_, j) => j !== i));
 
   // ---- DPE cible ----
   const setDpe = (key: string, v: string) => updateField('dpe', { ...(editing?.dpe || {}), [key]: v });
@@ -484,6 +492,59 @@ export default function Page() {
               ))}
             </div>
             <button type="button" onClick={addProj} className="text-sm text-[#B89C6D] hover:underline mt-2">+ Ajouter une image</button>
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="prog-statut" className="block text-sm font-medium mb-1">Statut de l&apos;opération</label>
+            <select id="prog-statut" className="input" value={editing?.statut || 'EN_COURS'}
+              onChange={e => updateField('statut', e.target.value)} data-testid="select-statut-programme">
+              <option value="EN_COURS">En cours de rénovation — commercialisé</option>
+              <option value="LIVRE">Livré — présenté comme réalisation</option>
+            </select>
+            <p className="text-xs opacity-70 mt-1">
+              Une opération livrée n&apos;est plus une offre d&apos;investissement : elle est signalée comme référence, et l&apos;avant / après y prend la première place.
+            </p>
+          </div>
+
+          {/* Avant / après — réhabilitations livrées */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Avant / après (réhabilitation)</label>
+            <p className="text-xs opacity-70 mb-2">
+              Deux photos du <strong>même cadrage</strong> : le curseur de comparaison n&apos;a de sens que si le point de vue est identique.
+            </p>
+            <div className="grid gap-2">
+              {aaList().map((pa, i) => (
+                <div key={i} className="flex flex-wrap items-center gap-2 border rounded p-2">
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs w-12 opacity-70">Avant</span>
+                    {pa.avant ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={pa.avant} alt="" className="w-20 h-14 object-cover rounded" />
+                    ) : (
+                      <input type="file" accept="image/*" aria-label={`Photo avant ${i + 1}`}
+                        onChange={async e => { const url = await uploadImage(e.target.files?.[0]); if (url) setAa(i, 'avant', url); }}
+                        className="text-xs w-24" />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs w-12 opacity-70">Après</span>
+                    {pa.apres ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={pa.apres} alt="" className="w-20 h-14 object-cover rounded" />
+                    ) : (
+                      <input type="file" accept="image/*" aria-label={`Photo après ${i + 1}`}
+                        onChange={async e => { const url = await uploadImage(e.target.files?.[0]); if (url) setAa(i, 'apres', url); }}
+                        className="text-xs w-24" />
+                    )}
+                  </div>
+                  <input value={pa.legende || ''} onChange={e => setAa(i, 'legende', e.target.value)}
+                    placeholder="Légende (ex : Séjour, façade sur rue…)" aria-label={`Légende de la paire ${i + 1}`}
+                    className="flex-1 min-w-[10rem] px-2 py-1 text-sm border rounded" />
+                  <button type="button" onClick={() => rmAa(i)} className="px-2 text-red-500 hover:bg-red-50 rounded">✕</button>
+                </div>
+              ))}
+            </div>
+            <button type="button" onClick={addAa} className="text-sm text-[#B89C6D] hover:underline mt-2">+ Ajouter une paire avant / après</button>
           </div>
 
           {/* DPE cible */}

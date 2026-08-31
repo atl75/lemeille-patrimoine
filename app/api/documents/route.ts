@@ -5,7 +5,7 @@ import { isAdmin } from '@/lib/adminGuard';
 import { buildDocumentPdf, type DocData } from '@/lib/documentPdf';
 import { MAIL_COPY } from '@/lib/mailCopy';
 import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
-import { propertyLabel } from '@/lib/propertyLabel';
+import { propertyLabel, propertyTypology } from '@/lib/propertyLabel';
 
 // Envoie une copie du document signé au client (PDF en pièce jointe), Arthur en copie.
 async function emailDocumentToClient(record: any, pdfB64: string, property: any) {
@@ -100,6 +100,10 @@ export async function POST(req: NextRequest) {
   const record = {
     id: uid('doc'), createdAt: now.toISOString(), type, number,
     propertyId: p.id, propertyTitle: p.title || '', propertyCity: p.city || '',
+    // Désignation figée à la création : le document reste lisible même si le
+    // bien est retiré du portefeuille par la suite.
+    propertyLabel: [p.type === 'MAISON' ? propertyTypology(p) : `Appartement ${propertyTypology(p)}`,
+                    p.surface ? `${p.surface} m²` : null].filter(Boolean).join(' · '),
     client: b.client || {}, offerAmount: docData.offerAmount, atAskingPrice: docData.atAskingPrice,
     sequestreAmount: docData.sequestreAmount, validityDays: docData.validityDays, financing: docData.financing,
     signedAt: now.toISOString(), pdf: pdfDataUrl,

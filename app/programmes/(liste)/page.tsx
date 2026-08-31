@@ -66,7 +66,7 @@ export default async function Page(){
       {items.length > 0 && (
         <Section title="Nos programmes" subtitle="Des opérations de restauration sélectionnées, éligibles aux dispositifs de défiscalisation. Découvrez le détail, les lots et l'emplacement de chacune.">
           <div className="grid md:grid-cols-2 gap-6">
-            {items.map((p:any)=>{
+            {[...items].sort((a:any,b:any)=>Number(a.statut==="LIVRE")-Number(b.statut==="LIVRE")).map((p:any)=>{
               const href = `/programmes/${p.slug || p.id}`;
               const dispos = dispositifsOf(p).map(d => d.nom).join(" · ");
               const img = p.heroImage || p.coverImage;
@@ -75,6 +75,11 @@ export default async function Page(){
                   {img ? (
                     <div className="relative w-full h-48">
                       <Image src={img} alt={`Programme — ${p.title}`} fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover" />
+                      {p.statut === "LIVRE" && (
+                        <span className="absolute left-3 top-3 rounded-full bg-emerald-700 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-white">
+                          Livré
+                        </span>
+                      )}
                     </div>
                   ) : (
                     <div className="w-full h-48 bg-gradient-to-br from-[#1F3B2C] to-[#2e5140] flex items-center justify-center px-4 text-center">

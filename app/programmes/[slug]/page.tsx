@@ -5,6 +5,7 @@ import DeferredIframe from "@/components/DeferredIframe";
 import Breadcrumb from "@/components/Breadcrumb";
 import ProgramSeoJsonLd from "@/components/ProgramSeoJsonLd";
 import ProjectionsGallery from "@/components/ProjectionsGallery";
+import AvantApres from "@/components/AvantApres";
 import { dispositifsOf, dispositifLabel } from "@/lib/dispositifs";
 import { Zap, Wrench, CalendarDays, ExternalLink, Camera } from "lucide-react";
 
@@ -103,6 +104,11 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
         <div className="absolute inset-0 bg-gradient-to-r from-[#12241b]/90 via-[#1F3B2C]/65 to-[#1F3B2C]/25" />
         <div className="container relative flex min-h-[var(--hero-h-programme)] w-full flex-col justify-center py-8 md:min-h-[var(--hero-h)] md:py-12">
           <div className="flex flex-wrap gap-2 mb-3">
+            {p.statut === 'LIVRE' && (
+              <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-white bg-emerald-700 rounded-full px-3 py-1">
+                Réalisation livrée
+              </span>
+            )}
             {dispositifs.map(d => (
               <span key={d.code} className="text-[11px] font-medium uppercase tracking-[0.18em] text-luxe bg-gold/90 rounded-full px-3 py-1">
                 {d.nom}
@@ -175,6 +181,20 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
             )}
           </div>
 
+        </section>
+      )}
+
+      {/* AVANT / APRÈS — sur une opération livrée, c'est l'argument principal */}
+      {Array.isArray(p.avantApres) && p.avantApres.some((a: any) => a?.avant && a?.apres) && (
+        <section className="container py-14">
+          <h2 className="luxe text-3xl md:text-4xl text-luxe">Avant / après</h2>
+          <div className="mt-3 h-px w-14 bg-gold/60" />
+          <p className="mt-4 max-w-2xl text-luxe/70">
+            Faites glisser le curseur pour comparer l&apos;état d&apos;origine et la réhabilitation, au même cadrage.
+          </p>
+          <div className="mt-8">
+            <AvantApres paires={p.avantApres} />
+          </div>
         </section>
       )}
 
