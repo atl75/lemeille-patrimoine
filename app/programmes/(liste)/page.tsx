@@ -62,44 +62,72 @@ export default async function Page(){
         <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Défiscalisation"}]} />
       </section>
 
-      {/* Nos programmes — les opérations concrètes, mises en avant en tête */}
-      {items.length > 0 && (
-        <Section title="Nos programmes" subtitle="Des opérations de restauration sélectionnées, éligibles aux dispositifs de défiscalisation. Découvrez le détail, les lots et l'emplacement de chacune.">
-          <div className="grid md:grid-cols-2 gap-6">
-            {[...items].sort((a:any,b:any)=>Number(a.statut==="LIVRE")-Number(b.statut==="LIVRE")).map((p:any)=>{
-              const href = `/programmes/${p.slug || p.id}`;
-              const dispos = dispositifsOf(p).map(d => d.nom).join(" · ");
-              const img = p.heroImage || p.coverImage;
-              return (
-                <Link key={p.id} className="card p-0 overflow-hidden hover:border-[#B89C6D] transition group" href={href}>
-                  {img ? (
-                    <div className="relative w-full h-48">
-                      <Image src={img} alt={`Programme — ${p.title}`} fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover" />
-                      {p.statut === "LIVRE" && (
-                        <span className="absolute left-3 top-3 rounded-full bg-emerald-700 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-white">
-                          Livré
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="w-full h-48 bg-gradient-to-br from-[#1F3B2C] to-[#2e5140] flex items-center justify-center px-4 text-center">
-                      <span className="text-cream/75 text-xs uppercase tracking-[0.22em]">{dispos || "Défiscalisation"}</span>
-                    </div>
-                  )}
-                  <div className="p-6">
-                    <h3 className="luxe text-2xl">{p.title}</h3>
-                    <div className="opacity-70 text-sm mt-1">{p.city}{dispos ? ` · ${dispos}` : ""}</div>
-                    {p.summary && <p className="mt-2 text-sm opacity-80">{p.summary}</p>}
-                    <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-[#B89C6D] group-hover:gap-2.5 transition-all">
-                      Découvrir le programme →
+      {/* Deux ensembles distincts : ce qu'on commercialise, et ce qu'on a livré.
+          Une opération achevée n'est plus une offre d'investissement — la
+          mélanger aux programmes en cours brouillerait le message. */}
+      {(() => {
+        const enCours = items.filter((p: any) => p.statut !== "LIVRE");
+        const livres = items.filter((p: any) => p.statut === "LIVRE");
+
+        const carte = (p: any) => {
+          const href = `/programmes/${p.slug || p.id}`;
+          const dispos = dispositifsOf(p).map((d: any) => d.nom).join(" · ");
+          const img = p.heroImage || p.coverImage;
+          const livre = p.statut === "LIVRE";
+          return (
+            <Link key={p.id} className="card p-0 overflow-hidden hover:border-[#B89C6D] transition group" href={href}>
+              {img ? (
+                <div className="relative w-full h-48">
+                  <Image src={img} alt={`Programme — ${p.title}`} fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover" />
+                  {livre && (
+                    <span className="absolute left-3 top-3 rounded-full bg-emerald-700 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-white">
+                      Livré
                     </span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </Section>
-      )}
+                  )}
+                </div>
+              ) : (
+                <div className="w-full h-48 bg-gradient-to-br from-[#1F3B2C] to-[#2e5140] flex items-center justify-center px-4 text-center">
+                  <span className="text-cream/75 text-xs uppercase tracking-[0.22em]">{dispos || "Défiscalisation"}</span>
+                </div>
+              )}
+              <div className="p-6">
+                <h3 className="luxe text-2xl">{p.title}</h3>
+                <div className="opacity-70 text-sm mt-1">{p.city}{dispos ? ` · ${dispos}` : ""}</div>
+                {p.summary && <p className="mt-2 text-sm opacity-80">{p.summary}</p>}
+                <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-[#B89C6D] group-hover:gap-2.5 transition-all">
+                  {livre ? "Découvrir la réalisation" : "Découvrir le programme"} →
+                </span>
+              </div>
+            </Link>
+          );
+        };
+
+        return (
+          <>
+            {enCours.length > 0 && (
+              <Section
+                title="Programmes en cours"
+                subtitle="Des opérations de restauration en commercialisation, éligibles aux dispositifs de défiscalisation. Découvrez le détail, les lots et l'emplacement de chacune."
+              >
+                <div className="grid md:grid-cols-2 gap-6" data-testid="grid-programmes-en-cours">
+                  {enCours.map(carte)}
+                </div>
+              </Section>
+            )}
+
+            {livres.length > 0 && (
+              <Section
+                title="Nos réalisations"
+                subtitle="Des opérations menées à leur terme et livrées. Le meilleur aperçu de notre travail : l'état d'origine, les travaux engagés et le résultat."
+              >
+                <div className="grid md:grid-cols-2 gap-6" data-testid="grid-programmes-livres">
+                  {livres.map(carte)}
+                </div>
+              </Section>
+            )}
+          </>
+        );
+      })()}
 
       <Section
         title="Les dispositifs de défiscalisation"
