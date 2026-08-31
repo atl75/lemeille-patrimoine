@@ -183,12 +183,8 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
     .filter((p:any) => enVente(p) && String(p.region || '') === String(sector.region || ''))
     .slice(0, 4);
 
-  const REGION_IMAGE: Record<string, string> = {
-    PARIS: "/hero-accueil.jpg",
-    NORMANDIE: "/hero-normandie.jpg",
-    COTE_D_AZUR: "/hero-cote-azur.jpg",
-  };
-  const heroImage = REGION_IMAGE[String(sector.region || "")] || "/hero-accueil.jpg";
+  // Visuel commun à tous les bandeaux institutionnels du site.
+  const heroImage = "/hero-normandie.jpg";
 
   return (
     <main>

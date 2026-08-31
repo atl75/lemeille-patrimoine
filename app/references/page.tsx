@@ -65,7 +65,7 @@ export default async function Page() {
         subtitle="Nos dernières ventes — le reflet de notre savoir-faire et de la confiance de nos clients."
         primary={{ label: "Confier mon projet", href: "/contact" }}
         secondary={{ label: "Nos biens en vente", href: "/immobilier" }}
-        image="/hero-accueil.jpg"
+        image="/hero-normandie.jpg"
       />
       <section className="container py-6">
         <Breadcrumb items={[{ label: "Accueil", href: "/" }, { label: "Références" }]} />
