@@ -82,6 +82,10 @@
 :root{
   /* Hauteur unique des bandeaux de pages intérieures (l'accueil garde le sien). */
   --hero-h: 420px;
+  /* Les fiches programme portent plus de contenu (badges, adresse, accroche,
+     lots, 3 boutons) : sur écran étroit elles ont leur propre hauteur, commune
+     à toutes, pour qu'aucune ne dépasse de quelques pixels sur les autres. */
+  --hero-h-programme: 470px;
   --luxe:#1F3B2C;     /* vert foncé */
   --gold:#B89C6D;     /* or assombri pour contraste WCAG 4.5:1 */
   --cream:#F4F1EB;    /* crème */

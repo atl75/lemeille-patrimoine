@@ -100,7 +100,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       <section className="relative isolate overflow-hidden">
         <Image src={hero} alt={p.title} fill priority sizes="100vw" className="object-cover object-center" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#12241b]/90 via-[#1F3B2C]/65 to-[#1F3B2C]/25" />
-        <div className="container relative flex min-h-[var(--hero-h)] w-full flex-col justify-center py-8 md:py-12">
+        <div className="container relative flex min-h-[var(--hero-h-programme)] w-full flex-col justify-center py-8 md:min-h-[var(--hero-h)] md:py-12">
           <div className="flex flex-wrap gap-2 mb-3">
             {dispositifs.map(d => (
               <span key={d.code} className="text-[11px] font-medium uppercase tracking-[0.18em] text-luxe bg-gold/90 rounded-full px-3 py-1">
