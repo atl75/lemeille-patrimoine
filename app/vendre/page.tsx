@@ -6,6 +6,9 @@ import EstimationForm from "@/components/EstimationFormLazy";
 import { getPropertyCards } from "@/lib/propertiesData";
 import type { Metadata } from "next";
 
+// Chiffre annoncé, aligné sur l'accueil — voir app/page.tsx.
+const VENTES_REALISEES = '50+';
+
 export const metadata: Metadata = {
   title: "Vendre son bien à Rouen | Lemeille Patrimoine",
   description: "Vendre votre maison ou appartement à Rouen et sur le Plateau Nord : estimation gratuite sous 3 jours, photos professionnelles, accompagnement complet.",
@@ -79,7 +82,7 @@ export default async function Page() {
       <section className="border-y border-black/5 bg-white/70">
         <div className="container py-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           {[
-            [soldCount > 0 ? `${soldCount} ventes réalisées` : "Expertise locale", "Rouen & Plateau Nord"],
+            [`${soldCount > 50 ? soldCount : VENTES_REALISEES} ventes réalisées`, "Rouen & Plateau Nord"],
             ["Avis de valeur sous 3 jours", "Gratuit et sans engagement"],
             ["Honoraires transparents", "Barème public, annoncés par écrit"],
             ["Interlocuteur unique", "Réponse sous 48h"],

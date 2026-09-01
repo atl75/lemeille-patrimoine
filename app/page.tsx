@@ -24,7 +24,14 @@ export const metadata: Metadata = {
 // la page serait figée sans aucun bien pendant toute la fenêtre de revalidation.
 export const dynamic = 'force-dynamic';
 
-// Nombre de biens vendus / sous promesse : preuve sociale affichée sur l'accueil.
+// Ventes réalisées annoncées sur l'accueil. Le site ne publie qu'une partie du
+// portefeuille vendu : ce chiffre reflète l'activité réelle du cabinet, pas le
+// contenu de la base. À mettre à jour ici.
+const VENTES_REALISEES = '50+';
+
+// Nombre de biens vendus / sous promesse effectivement publiés. Sert de garde-fou :
+// si un jour les ventes en ligne dépassent le chiffre annoncé, on affiche le réel
+// plutôt qu'un chiffre qui sous-estimerait.
 async function getSoldCount() {
   try {
     const all = await getPropertyCards();
@@ -99,7 +106,7 @@ export default async function Home() {
       <section className="border-b border-black/5 bg-white/70">
         <div className="container py-7 grid grid-cols-2 md:grid-cols-5 gap-y-6 gap-x-4 text-center divide-y-0 md:divide-x md:divide-black/[0.06]">
           {[
-            [soldCount > 0 ? `${soldCount} ventes réalisées` : "Rouen & Plateau Nord", soldCount > 0 ? "Biens vendus ou sous promesse" : "Bureaux à Rouen et Mont-Saint-Aignan"],
+            [`${soldCount > 50 ? soldCount : VENTES_REALISEES} ventes réalisées`, "Rouen, Plateau Nord et au-delà"],
             ["8 ans d'expérience", "Master école de commerce"],
             ["Carte T", "CPI 7606 2024 000 000 038"],
             ["Réponse sous 48h", "Interlocuteur unique"],
