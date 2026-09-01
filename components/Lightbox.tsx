@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
-import Img from "./Img";
+import { cldImg } from "@/lib/cldImg";
 
 interface LightboxProps {
   images: string[];
@@ -40,21 +40,37 @@ export default function Lightbox({
     };
   }, [handleKeyDown]);
 
-  // Précharge les images adjacentes pour une navigation instantanée.
+  // Largeur unique pour tout le lecteur, fixée une fois selon l'écran. Sans
+  // cela, next/image laissait le navigateur choisir dans un jeu de largeurs
+  // (1200, 1600, 2400…) tandis que le préchargement en visait une seule : les
+  // URLs ne coïncidaient jamais et rien n'était réellement mis en cache.
+  const largeur = useMemo(() => {
+    if (typeof window === "undefined") return 1600;
+    const px = Math.round(window.innerWidth * 0.92 * Math.min(window.devicePixelRatio || 1, 2));
+    return px <= 900 ? 828 : px <= 1400 ? 1200 : px <= 1900 ? 1600 : 2400;
+  }, []);
+
+  const urlDe = useCallback((i: number) => cldImg(images[i], largeur), [images, largeur]);
+
+  const [chargement, setChargement] = useState(true);
+
+  // Précharge les voisines à la MÊME largeur que l'affichage. Deux de chaque
+  // côté : on parcourt une galerie dans les deux sens.
   useEffect(() => {
-    const optim = (src: string, w = 1600) =>
-      typeof src === "string" && src.includes("res.cloudinary.com") && src.includes("/upload/")
-        ? src.replace("/upload/", `/upload/f_auto,q_auto,c_limit,w_${w}/`)
-        : src;
-    const neighbors = [currentIndex + 1, currentIndex - 1, currentIndex + 2]
-      .map((i) => (i + images.length) % images.length)
-      .filter((i, idx, arr) => arr.indexOf(i) === idx && i !== currentIndex);
-    for (const i of neighbors) {
+    const voisines = [1, -1, 2, -2]
+      .map((d) => (currentIndex + d + images.length) % images.length)
+      .filter((i, k, arr) => arr.indexOf(i) === k && i !== currentIndex);
+    for (const i of voisines) {
       if (!images[i]) continue;
       const im = new window.Image();
-      im.src = optim(images[i]);
+      im.decoding = "async";
+      im.src = urlDe(i);
     }
-  }, [currentIndex, images]);
+  }, [currentIndex, images, urlDe]);
+
+  // Une image déjà en cache s'affiche sans transition : on ne montre
+  // l'indicateur que si le chargement dure réellement.
+  useEffect(() => { setChargement(true); }, [currentIndex]);
 
   return (
     <div
@@ -95,16 +111,22 @@ export default function Lightbox({
         className="relative max-w-[90vw] max-h-[85vh] flex items-center justify-center"
         onClick={(e) => e.stopPropagation()}
       >
-        <Img
-          src={images[currentIndex]}
+        {chargement && (
+          <div className="absolute inset-0 flex items-center justify-center" aria-hidden>
+            <span className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white/90" />
+          </div>
+        )}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={urlDe(currentIndex)}
           alt={title ? `${title} - Image ${currentIndex + 1}` : `Image ${currentIndex + 1}`}
-          width={1600}
-          height={1000}
-          sizes="90vw"
-          priority
-          className="max-w-full max-h-[85vh] object-contain rounded-lg"
+          decoding="async"
+          onLoad={() => setChargement(false)}
+          onError={() => setChargement(false)}
+          className={`max-h-[85vh] max-w-full rounded-lg object-contain transition-opacity duration-150 ${chargement ? "opacity-0" : "opacity-100"}`}
           data-testid={`lightbox-image-${currentIndex}`}
         />
+
         
         {/* Counter */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-full text-sm">

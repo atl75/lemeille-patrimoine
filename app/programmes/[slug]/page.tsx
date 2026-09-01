@@ -122,7 +122,9 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           {p.accroche && <p className="mt-4 max-w-xl text-sm md:text-lg text-cream/90 leading-relaxed">{p.accroche}</p>}
           <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-cream/85">
             {lots.length > 0 && <span>{lots.length} lot{lots.length > 1 ? "s" : ""}{dispo > 0 ? ` · ${dispo} disponible${dispo > 1 ? "s" : ""}` : ""}</span>}
-            {p.livraison && <span>Livraison {p.livraison}</span>}
+            {/* Sur une opération achevée, « Livraison Livré » n'a pas de sens :
+                le champ se suffit à lui-même (« Livré », « Livré en 2025 »). */}
+            {p.livraison && <span>{p.statut === 'LIVRE' ? p.livraison : `Livraison ${p.livraison}`}</span>}
           </div>
           <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2.5">
             <Link href={contactHref} className="btn btn-gold">Être recontacté</Link>
