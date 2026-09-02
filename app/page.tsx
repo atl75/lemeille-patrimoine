@@ -252,18 +252,25 @@ export default async function Home() {
             />
           </div>
 
-          {/* Texte */}
+          {/* Texte — version courte : le récit complet vit sur /qui-suis-je,
+              pour éviter de dupliquer le même paragraphe sur deux pages. */}
           <div className="order-1 md:order-2">
             <h3 className="luxe text-2xl md:text-3xl mb-4 text-luxe">Arthur Lemeille</h3>
             <p className="text-gray-700 leading-relaxed mb-4">
-              <strong>Arthur Lemeille</strong> est le fondateur de Lemeille Patrimoine. Formé en école de commerce — <strong>Bachelor à NEOMA Business School (Rouen)</strong> puis <strong>Master à KEDGE Business School (Bordeaux)</strong> — il totalise aujourd&apos;hui <strong>huit années d&apos;expérience commerciale</strong>. Il débute sa carrière par trois années de conseil en supply chain et logistique, qui lui transmettent le sens de la précision et la rigueur des processus. Il poursuit par le développement commercial au sein d&apos;une start-up, où il cultive le goût du terrain, de la relation et de la négociation. Il choisit ensuite de se consacrer à l&apos;immobilier de caractère et à la défiscalisation immobilière, de retour sur ses terres rouennaises.
+              Fondateur de Lemeille Patrimoine. Formé en école de commerce — <strong>Bachelor à NEOMA
+              Business School (Rouen)</strong> puis <strong>Master à KEDGE Business School
+              (Bordeaux)</strong> — et fort de <strong>huit années d&apos;expérience commerciale</strong>,
+              d&apos;abord dans le conseil en supply chain, puis dans le développement commercial.
             </p>
-            <p className="text-gray-700 leading-relaxed mb-4">
-              De ce double parcours naît une approche à la fois humaine et rigoureuse, à la croisée de la <em>transaction et de l&apos;optimisation fiscale</em>. Arthur accompagne chaque client de bout en bout — écoute, analyse, action et suivi — avec la même exigence : rester <strong>proactif, actif et réactif</strong> à chaque étape.
+            <p className="text-gray-700 leading-relaxed mb-6">
+              De retour sur ses terres rouennaises, il se consacre à l&apos;immobilier de caractère et à
+              la défiscalisation, avec un principe simple : un seul interlocuteur, de la première
+              estimation à l&apos;acte authentique.
             </p>
-            <p className="text-gray-700 leading-relaxed">
-              Passionné d&apos;entrepreneuriat, il s&apos;appuie sur un réseau de partenaires de confiance — notaires, banquiers, fiscalistes, artisans — pour sécuriser chaque étape, de l&apos;estimation à l&apos;arbitrage, et transformer sereinement les objectifs de ses clients en décisions justes.
-            </p>
+            <Link href="/qui-suis-je" className="group inline-flex items-center gap-1.5 font-medium text-[#B89C6D] hover:gap-2.5 transition-all" data-testid="link-qui-suis-je">
+              Mon parcours, ma méthode et mon cadre d&apos;exercice
+              <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
+            </Link>
           </div>
         </div>
       </Section>

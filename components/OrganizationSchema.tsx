@@ -20,6 +20,14 @@ export function OrganizationSchema() {
       "@type": "Person",
       "name": "Arthur Lemeille",
       "jobTitle": "Agent immobilier — fondateur",
+      // Sans photo ni profils rattachés, Google ne peut relier la personne à
+      // aucune identité vérifiable — c'est le signal d'expertise qui manquait.
+      "url": `${baseUrl}/qui-suis-je`,
+      "image": `${baseUrl}/images/arthur-lemeille.jpg`,
+      "sameAs": [
+        "https://www.instagram.com/lempatrimoine",
+        "https://www.orias.fr/home/showIntermediaire/89"
+      ],
       "worksFor": { "@type": "Organization", "name": "Lemeille Patrimoine" },
       "alumniOf": [
         { "@type": "CollegeOrUniversity", "name": "NEOMA Business School", "address": { "@type": "PostalAddress", "addressLocality": "Rouen", "addressCountry": "FR" } },

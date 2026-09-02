@@ -28,6 +28,7 @@ const STATIC_PATHS = [
   '',
   '/immobilier',
   '/immobilier/estimation',
+  '/qui-suis-je',
   '/vendre',
   '/financement',
   '/programmes',
