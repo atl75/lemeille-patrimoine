@@ -9,16 +9,18 @@
 // dépasse.
 export default function BandeauReassurance({ soldCount }: { soldCount?: number }) {
   const ventes = soldCount && soldCount > 50 ? String(soldCount) : "50+";
+  // Quatre signaux et non cinq : à 1440 px, cinq colonnes forçaient trois
+  // libellés sur deux lignes. « Réponse sous 48h » a été retiré — c'est le
+  // moins différenciant, et il figure déjà dans les engagements et sur /vendre.
   const signaux: [string, string][] = [
     [`${ventes} ventes réalisées`, "Rouen, Plateau Nord et au-delà"],
     ["8 ans d'expérience", "Master école de commerce"],
     ["Carte T", "CPI 7606 2024 000 000 038"],
-    ["Réponse sous 48h", "Interlocuteur unique"],
     ["Estimation gratuite", "Avis de valeur sous 3 jours"],
   ];
   return (
     <section className="border-b border-black/5 bg-white/70" data-testid="bandeau-reassurance">
-      <div className="container py-7 grid grid-cols-2 md:grid-cols-5 gap-y-6 gap-x-4 text-center divide-y-0 md:divide-x md:divide-black/[0.06]">
+      <div className="container py-7 grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-6 text-center divide-y-0 md:divide-x md:divide-black/[0.06]">
         {signaux.map(([t, s], i) => (
           <div key={i} className="px-2">
             <div className="luxe text-lg md:text-xl text-luxe leading-tight">{t}</div>
