@@ -1,6 +1,7 @@
 import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import type { Metadata } from 'next';
+import BandeauReassurance from "@/components/BandeauReassurance";
 
 export const metadata: Metadata = {
   title: "Gestion des cookies | Lemeille Patrimoine",
@@ -14,6 +15,7 @@ export default function Page(){
   return (
     <main>
       <Hero title="Cookies" subtitle="Gestion des cookies et traceurs." />
+      <BandeauReassurance />
       <section className="container py-6">
         <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Cookies"}]} />
       </section>

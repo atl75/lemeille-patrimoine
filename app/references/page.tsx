@@ -4,6 +4,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
+import BandeauReassurance from "@/components/BandeauReassurance";
 
 export const metadata: Metadata = {
   title: "Nos références & ventes | Lemeille Patrimoine",
@@ -67,6 +68,7 @@ export default async function Page() {
         secondary={{ label: "Nos biens en vente", href: "/immobilier" }}
         image="/hero-normandie.jpg"
       />
+      <BandeauReassurance />
       <section className="container py-6">
         <Breadcrumb items={[{ label: "Accueil", href: "/" }, { label: "Références" }]} />
       </section>

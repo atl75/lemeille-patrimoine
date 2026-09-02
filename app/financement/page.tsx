@@ -4,6 +4,7 @@ import CapaciteEmpruntSimulator from "@/components/CapaciteEmpruntSimulator";
 import Breadcrumb from "@/components/Breadcrumb";
 import Section from "@/components/Section";
 import type { Metadata } from "next";
+import BandeauReassurance from "@/components/BandeauReassurance";
 
 export const metadata: Metadata = {
   title: "Capacité d'emprunt à Rouen | Lemeille Patrimoine",
@@ -42,6 +43,7 @@ export default function Page() {
         secondary={{ label: "Voir nos biens", href: "/immobilier" }}
         image="/hero-normandie.jpg"
       />
+      <BandeauReassurance />
 
       <section className="container py-6">
         <Breadcrumb items={[{ label: "Accueil", href: "/" }, { label: "Financement" }]} />

@@ -2,6 +2,7 @@ import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import Link from "next/link";
 import type { Metadata } from "next";
+import BandeauReassurance from "@/components/BandeauReassurance";
 
 export const metadata: Metadata = {
   title: "Questions fréquentes | Lemeille Patrimoine",
@@ -96,6 +97,7 @@ export default function Page() {
         subtitle="Achat, vente, défiscalisation, honoraires — l'essentiel pour bien démarrer votre projet."
         primary={{ label: "Nous contacter", href: "/contact" }}
       />
+      <BandeauReassurance />
       <section className="container py-6">
         <Breadcrumb items={[{ label: "Accueil", href: "/" }, { label: "FAQ" }]} />
       </section>

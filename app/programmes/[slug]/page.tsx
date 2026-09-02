@@ -26,6 +26,7 @@ import { seoTitle } from '@/lib/seoTitle';
 import type { Metadata } from "next";
 import { cldImg } from "@/lib/cldImg";
 import GalerieRealisation from "@/components/GalerieRealisation";
+import BandeauReassurance from "@/components/BandeauReassurance";
 
 export const dynamic = "force-dynamic";
 
@@ -147,6 +148,8 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
         </div>
       </section>
 
+
+      <BandeauReassurance />
       <section className="container py-6">
         <Breadcrumb items={[{ label: "Accueil", href: "/" }, { label: "Défiscalisation", href: "/programmes" }, { label: p.title }]} />
       </section>

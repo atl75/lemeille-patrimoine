@@ -13,6 +13,7 @@ import PlanViewer from "@/components/PlanViewer";
 import { notFound } from "next/navigation";
 import { seoTitle } from '@/lib/seoTitle';
 import type { Metadata } from 'next';
+import BandeauReassurance from "@/components/BandeauReassurance";
 
 async function getProperty(id: string){
   const base = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT||'3000'}`;
@@ -119,6 +120,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
         primary={{label:"Consulter la fiche PDF", href:`/api/properties/${p.id}/pdf`, blank:true}}
         secondary={{label:"Contact", href:`/contact?ref=${encodeURIComponent(p.id)}`}}
       />
+      <BandeauReassurance />
       <section className="container py-6">
         <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Immobilier", href:"/immobilier"},{label: propertyLabel(p, { withPrice: false })}]} />
       </section>

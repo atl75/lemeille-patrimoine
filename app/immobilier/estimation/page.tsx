@@ -2,6 +2,7 @@ import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import Section from "@/components/Section";
 import EstimationForm from "@/components/EstimationFormLoader";
+import BandeauReassurance from "@/components/BandeauReassurance";
 
 export const metadata = {
   title: "Estimation gratuite — Lemeille Patrimoine",
@@ -17,6 +18,7 @@ export default function Page(){
         subtitle="Obtenez immédiatement une fourchette indicative, puis un avis de valeur précis par un conseiller."
         primary={{ label: "Nous contacter", href: "/contact?topic=Estimation" }}
       />
+      <BandeauReassurance />
       <section className="container py-6">
         <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Immobilier", href:"/immobilier"},{label:"Estimation gratuite"}]} />
       </section>

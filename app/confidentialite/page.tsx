@@ -2,6 +2,7 @@ import Link from "next/link";
 import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import type { Metadata } from 'next';
+import BandeauReassurance from "@/components/BandeauReassurance";
 
 export const metadata: Metadata = {
   title: "Politique de confidentialité | Lemeille Patrimoine",
@@ -15,6 +16,7 @@ export default function Page(){
   return (
     <main>
       <Hero title="Politique de confidentialité" subtitle="Transparence sur l'utilisation de vos données." />
+      <BandeauReassurance />
       <section className="container py-6">
         <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Confidentialité"}]} />
       </section>

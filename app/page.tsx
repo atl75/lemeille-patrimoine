@@ -6,6 +6,7 @@ import PropertyCard from "@/components/PropertyCard";
 import EstimationForm from "@/components/EstimationFormLazy";
 import { getPropertyCards } from "@/lib/propertiesData";
 import type { Metadata } from "next";
+import BandeauReassurance from "@/components/BandeauReassurance";
 
 export const metadata: Metadata = {
   title: "Agence immobilière à Rouen | Lemeille Patrimoine",
@@ -102,23 +103,7 @@ export default async function Home() {
       </section>
 
 
-      {/* Bandeau de réassurance — signaux de confiance (SEO local + conversion) */}
-      <section className="border-b border-black/5 bg-white/70">
-        <div className="container py-7 grid grid-cols-2 md:grid-cols-5 gap-y-6 gap-x-4 text-center divide-y-0 md:divide-x md:divide-black/[0.06]">
-          {[
-            [`${soldCount > 50 ? soldCount : VENTES_REALISEES} ventes réalisées`, "Rouen, Plateau Nord et au-delà"],
-            ["8 ans d'expérience", "Master école de commerce"],
-            ["Carte T", "CPI 7606 2024 000 000 038"],
-            ["Réponse sous 48h", "Interlocuteur unique"],
-            ["Estimation gratuite", "Avis de valeur sous 3 jours"],
-          ].map(([t, s], i) => (
-            <div key={i} className="px-2">
-              <div className="luxe text-lg md:text-xl text-luxe leading-tight">{t}</div>
-              <div className="text-[11px] uppercase tracking-[0.14em] text-luxe/70 mt-1.5">{s}</div>
-            </div>
-          ))}
-        </div>
-      </section>
+      <BandeauReassurance soldCount={soldCount} />
 
       {/* Biens à la une */}
       {featured.length > 0 && (

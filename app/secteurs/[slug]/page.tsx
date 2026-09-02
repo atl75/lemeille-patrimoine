@@ -5,6 +5,7 @@ import PropertyCard from "@/components/PropertyCard";
 import { getPropertyCards } from "@/lib/propertiesData";
 import { notFound } from "next/navigation";
 import { seoTitle } from '@/lib/seoTitle';
+import BandeauReassurance from "@/components/BandeauReassurance";
 
 // ISR : régénérée au plus toutes les 5 min (+ revalidation immédiate à l'édition d'un bien).
 export const revalidate = 300;
@@ -191,6 +192,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   return (
     <main>
       <Hero title={sector.title} subtitle={sector.subtitle} primary={{label:"Tous nos biens", href:"/immobilier"}} image={heroImage} />
+      <BandeauReassurance />
       <section className="container py-6">
         <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Immobilier", href:"/immobilier"},{label: sector.title}]} />
       </section>

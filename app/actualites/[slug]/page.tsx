@@ -6,6 +6,7 @@ import ArticleSeoJsonLd from "@/components/ArticleSeoJsonLd";
 import { notFound } from "next/navigation";
 import type { Metadata } from 'next';
 import { seoTitle } from '@/lib/seoTitle';
+import BandeauReassurance from "@/components/BandeauReassurance";
 
 async function getArticle(slug: string) {
   const base = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT || '3000'}`;
@@ -81,6 +82,7 @@ export default async function Page(props: { params: Promise<{ slug: string }> })
         subtitle={new Date(a.publishedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) + (a.author ? ` · ${a.author}` : '')}
         secondary={{ label: "Toutes les actualités", href: "/actualites" }}
       />
+      <BandeauReassurance />
       <section className="container py-6">
         <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Actualités", href:"/actualites"},{label:a.title}]} />
       </section>

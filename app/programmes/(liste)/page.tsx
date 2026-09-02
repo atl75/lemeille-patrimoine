@@ -7,6 +7,7 @@ import DefiscalisationSimulator from "@/components/DefiscalisationSimulator";
 import GuideDownload from "@/components/GuideDownload";
 import { dispositifsOf } from "@/lib/dispositifs";
 import type { Metadata } from 'next';
+import BandeauReassurance from "@/components/BandeauReassurance";
 
 export const metadata: Metadata = {
   title: 'Défiscalisation immobilière | Lemeille Patrimoine',
@@ -58,6 +59,7 @@ export default async function Page(){
         subtitle="Réduisez votre imposition grâce à l'immobilier ancien de caractère : Malraux, Monument Historique, Déficit Foncier."
         primary={{ label: "Étudier mon projet", href: "/contact?topic=Défiscalisation" }}
       />
+      <BandeauReassurance />
       <section className="container py-6">
         <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Défiscalisation"}]} />
       </section>
