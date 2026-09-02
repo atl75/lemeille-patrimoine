@@ -14,6 +14,9 @@ import { notFound } from "next/navigation";
 import { seoTitle } from '@/lib/seoTitle';
 import type { Metadata } from 'next';
 import BandeauReassurance from "@/components/BandeauReassurance";
+import { isThinListing } from '@/lib/thinListing';
+import Link from "next/link";
+import { SECTORS, sectorSlugFor } from "@/lib/sectors";
 
 async function getProperty(id: string){
   const base = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT||'3000'}`;
@@ -46,6 +49,8 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
   return {
     title,
     description,
+    // Fiche vendue sans contenu : retirée de l'index sans casser l'URL.
+    robots: isThinListing(p) ? { index: false, follow: true } : undefined,
     alternates: { canonical: `/immobilier/biens/${p.id}` },
     openGraph: {
       title,
@@ -76,6 +81,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
   // Localisation : en mode EXACT, on affiche l'adresse précise (carte + lien
   // Google Maps). En mode AREA (zone), on n'expose que la ville pour préserver
   // la confidentialité — le clic vers Google Maps ne révèle pas l'adresse.
+  const secteur = sectorSlugFor(p);
   const mapPrecision: 'EXACT' | 'AREA' = p.map?.precision === 'EXACT' ? 'EXACT' : 'AREA';
   const mapQuery = mapPrecision === 'EXACT' ? p.map?.query : (p.city || p.map?.query);
 
@@ -137,9 +143,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
             </div>
           )}
 
-          {/* Caractéristiques — mobile uniquement (desktop : colonne de droite, au-dessus du DPE) */}
-          <div className="md:hidden mt-6">{caracteristiquesCard}</div>
-
           <div className="card p-6 mt-4">
             <h2 className="luxe text-2xl mb-3">Description</h2>
             <p className="whitespace-pre-line">{p.description}</p>
@@ -168,14 +171,22 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
         {/* Colonne droite : flex vertical, cartes et bouton PDF pleine largeur,
             empilés naturellement (pas d'espace vide sous la dernière carte). */}
         <div className="flex flex-col gap-4">
-          {/* Caractéristiques au-dessus du DPE — desktop uniquement */}
-          <div className="hidden md:block">{caracteristiquesCard}</div>
+          {/* Rendu une seule fois : en mobile la colonne de droite passe sous la
+              galerie, l'ordre visuel d'origine est donc conservé. */}
+          {caracteristiquesCard}
           <DPECard dpe={p.dpe} />
           <div className="card p-6">
             <h3 className="luxe text-xl mb-3">Localisation</h3>
             {mapQuery
               ? <MapEmbed query={mapQuery} precision={mapPrecision}/>
               : <div className="text-sm opacity-80">Adresse non communiquée.</div>}
+            {/* Lien vers le secteur : c'est le maillage qu'attend Google pour
+                comprendre notre ancrage quartier par quartier. */}
+            {secteur && (
+              <Link href={`/secteurs/${secteur}`} className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-[#B89C6D] hover:gap-2.5 transition-all" data-testid="link-secteur">
+                Le marché à {SECTORS[secteur].title} →
+              </Link>
+            )}
           </div>
           <a className="btn btn-gold text-center w-full" href={`/api/properties/${p.id}/pdf`} target="_blank" rel="noopener noreferrer">Consulter la fiche PDF</a>
         </div>

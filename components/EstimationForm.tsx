@@ -10,11 +10,6 @@ const BASE_M2: Record<string, number> = {
   "cote-azur": 6500,   // Moyenne Côte d'Azur
 };
 
-const SECTORS = [
-  { value: "paris", label: "Paris" },
-  { value: "normandie", label: "Normandie" },
-  { value: "cote-azur", label: "Côte d'Azur" },
-];
 
 type TInput = {
   sector: string;
@@ -44,7 +39,7 @@ const fmt = (n:number)=> n.toLocaleString("fr-FR");
 
 export default function EstimationForm(){
   const [inp, setInp] = useState<TInput>({
-    sector: "paris",
+    sector: "normandie",
     type: "Appartement",
     city: "",
     surface: "",
@@ -189,12 +184,15 @@ export default function EstimationForm(){
               <AddressAutocomplete 
                 value={inp.city} 
                 onChange={(components) => {
-                  const sector = components.region === 'PARIS' ? 'paris' 
-                    : components.region === 'NORMANDIE' ? 'normandie' 
-                    : 'cote-azur';
+                  // Repli sur la Normandie, marché de référence du cabinet :
+                  // basculer sur la Côte d'Azur appliquait 6 500 €/m² à
+                  // n'importe quelle adresse hors Paris et Normandie.
+                  const sector = components.region === 'PARIS' ? 'paris'
+                    : components.region === 'COTE_D_AZUR' ? 'cote-azur'
+                    : 'normandie';
                   setInp(s => ({...s, city: components.address, sector}));
                 }}
-                placeholder="Ex: 10 rue de la Paix, Paris..."
+                placeholder="Ex : 35 rue Ganterie, Rouen"
                 className="input"
               />
             </label>

@@ -222,7 +222,13 @@ export default async function Page() {
             </div>
           ))}
         </div>
-        <div className="mt-8 text-center">
+        {/* Ces deux pages n'étaient liées depuis aucun contenu : elles répondent
+            pourtant aux questions que se pose un vendeur juste ici. */}
+        <p className="mt-8 text-center text-sm text-luxe/70">
+          D&apos;autres questions ? Consultez notre <Link href="/faq" className="underline hover:text-[#B89C6D]">foire aux questions</Link>{" "}
+          ou notre <Link href="/bareme-honoraires" className="underline hover:text-[#B89C6D]">barème d&apos;honoraires</Link>.
+        </p>
+        <div className="mt-6 text-center">
           <Link href="/contact?topic=Vendre" className="btn btn-gold">Parler à un conseiller</Link>
         </div>
       </Section>

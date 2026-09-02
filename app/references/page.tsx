@@ -57,8 +57,6 @@ export default async function Page() {
       return String(b.soldDate || "").localeCompare(String(a.soldDate || ""));
     });
 
-  const regions = new Set(refs.map((p: any) => String(p.region || "").replaceAll("_", " ")).filter(Boolean));
-
   return (
     <main>
       <Hero
@@ -78,11 +76,12 @@ export default async function Page() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="card p-6 text-center">
               <div className="luxe text-4xl text-[#1F3B2C]">{refs.length}</div>
-              <div className="text-sm opacity-70 mt-1">biens vendus ou sous compromis</div>
+              <div className="text-sm opacity-70 mt-1">ventes présentées ci-dessous</div>
             </div>
+            {/* « Régions couvertes » retiré : le site est positionné sur Rouen. */}
             <div className="card p-6 text-center">
-              <div className="luxe text-4xl text-[#1F3B2C]">{regions.size || 3}</div>
-              <div className="text-sm opacity-70 mt-1">régions couvertes</div>
+              <div className="luxe text-4xl text-[#1F3B2C]">3 j</div>
+              <div className="text-sm opacity-70 mt-1">pour un avis de valeur</div>
             </div>
             <div className="card p-6 text-center col-span-2 md:col-span-1">
               <div className="luxe text-4xl text-[#1F3B2C]">48h</div>

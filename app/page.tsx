@@ -48,8 +48,11 @@ async function getFeatured() {
     const available = all.filter(
       (p: any) => p && p.visible !== false && !p.sold && p.status !== 'UNDER_OFFER' && p.status !== 'SOLD'
     );
-    const featured = available.filter((p: any) => p.featured);
-    const list = featured.length ? featured : [...available].sort((a: any, b: any) => (b.price || 0) - (a.price || 0));
+    // Le site est positionné sur Rouen : les biens normands passent devant,
+    // quel que soit leur prix. Sans cela, le tri par prix faisait remonter
+    // Cannes et Paris sous un H1 « Agence immobilière à Rouen ».
+    const rang = (p: any) => (p.featured ? 0 : 1) + (String(p.region || '').toUpperCase() === 'NORMANDIE' ? 0 : 10);
+    const list = [...available].sort((a: any, b: any) => rang(a) - rang(b) || (b.price || 0) - (a.price || 0));
     return list.slice(0, 3);
   } catch {
     return [];
