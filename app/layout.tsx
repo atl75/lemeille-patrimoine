@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     title: 'Lemeille Patrimoine — Agence immobilière à Rouen & Plateau Nord',
     description: "Agence immobilière de caractère à Rouen, Mont-Saint-Aignan, Bois-Guillaume et Plateau Nord.",
     images: [{
-      url: '/og-image.jpg?v=4',
+      url: '/og-image.jpg?v=5',
       width: 1200,
       height: 630,
       alt: 'Lemeille Patrimoine — Immobilier de caractère & défiscalisation'
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Lemeille Patrimoine — Immobilier & défiscalisation',
     description: "Agence immobilière à Rouen — maisons et appartements de caractère",
-    images: ['/og-image.jpg?v=4'],
+    images: ['/og-image.jpg?v=5'],
   },
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://lemeillepatrimoine.com'),
   // PWA installable (écran d'accueil iPhone/Android) pour la webapp /terrain.
