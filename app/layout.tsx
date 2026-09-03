@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
 import Script from 'next/script';
+import RevealOnScroll from '@/components/RevealOnScroll';
 import { SiteChrome } from '@/components/SiteChrome';
 import { OrganizationSchema } from '@/components/OrganizationSchema';
 import { Providers } from './providers';
@@ -60,6 +61,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="fr" className={`${inter.variable} ${playfair.variable}`}>
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        {/* Apparition des sections au défilement — voir components/RevealOnScroll.
+            Ce script est volontairement en <head> et synchrone : il pose la
+            classe AVANT le premier rendu, donc pas de clignotement. Et comme
+            c'est lui qui la pose, une page servie sans JavaScript — un robot
+            d'indexation, par exemple — n'a rien de masqué.
+            Le garde-fou de 3 s rend le contenu visible si le composant ne
+            démarre pas : mieux vaut une page sans animation qu'une page vide. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches){" +
+              "document.documentElement.classList.add('anim');" +
+              "setTimeout(function(){if(document.body&&document.body.dataset.revealPret!=='1')" +
+              "document.documentElement.classList.remove('anim');},3000);}}catch(e){}",
+          }}
+        />
       </head>
       <body className={inter.className}>
         <OrganizationSchema />
@@ -79,6 +96,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Script>
           </>
         )}
+        <RevealOnScroll />
         <Providers>
           <SiteChrome>{children}</SiteChrome>
         </Providers>

@@ -196,3 +196,49 @@ header .logo-text{ transition: fill 0.3s ease; }
   padding:2px 8px; border-radius:9999px; border:1px solid #e6e3dd; background:#fff;
   font-size:12px; color:#6b6b6b;
 }
+
+/* ── Apparition des sections au défilement ────────────────────────────────
+   L'état masqué dépend de la classe .anim, posée sur <html> par le script du
+   <head> UNIQUEMENT si JavaScript s'exécute et que le visiteur n'a pas demandé
+   moins d'animations. Sans cette classe — sans JS, robots d'indexation compris
+   — rien n'est masqué. La première section de chaque page (le Hero) est
+   exclue : elle doit s'afficher tout de suite. */
+.anim main > section:nth-of-type(n+2),
+.anim main > div > section {
+  opacity: 0;
+  transform: translateY(18px);
+  will-change: opacity, transform;
+  /* Filet de sécurité, en CSS pur : si le script d'apparition ne tourne pas —
+     erreur JavaScript, navigateur exotique, API de trames inerte — la section
+     redevient visible d'elle-même au bout de 6 s. Le pire cas d'un effet
+     d'apparition est une page blanche sous la ligne de flottaison ; il ne doit
+     dépendre d'aucun script. Quand le script fonctionne, `.vu` arrive bien
+     avant et coupe cette animation. */
+  animation: apparition-secours 0.01s linear 6s forwards;
+}
+@keyframes apparition-secours {
+  to { opacity: 1; transform: none; }
+}
+.anim main > section.vu,
+.anim main > div > section.vu {
+  opacity: 1;
+  transform: none;
+  animation: none;                 /* le filet de secours n'a plus lieu d'être */
+  transition: opacity .6s ease-out, transform .6s cubic-bezier(.22, .61, .36, 1);
+  will-change: auto;
+}
+/* Première passe : ce qui est déjà à l'écran apparaît sans rejouer l'animation. */
+.anim .sans-transition { transition: none !important; }
+
+/* Si la préférence système change après le chargement, l'effet cesse. */
+@media (prefers-reduced-motion: reduce) {
+  .anim main > section:nth-of-type(n+2),
+  .anim main > div > section,
+  .anim main > section.vu,
+  .anim main > div > section.vu {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}
