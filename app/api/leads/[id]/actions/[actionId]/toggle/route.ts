@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { readJSON, writeJSON } from '@/lib/utils';
+import { updateJSON, SANS_ECRITURE } from '@/lib/utils';
 import { isAdmin } from '@/lib/adminGuard';
 
 export async function PATCH(
@@ -9,25 +9,30 @@ export async function PATCH(
   if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const { id, actionId } = await params;
-    const leads = await readJSON('leads.json');
 
-    const leadIndex = leads.findIndex((l: any) => l.id === id);
-    if (leadIndex === -1) {
-      return NextResponse.json({ error: 'Lead non trouvé' }, { status: 404 });
-    }
+    // Le message d'erreur est décidé DANS le verrou, sur la donnée fraîche.
+    let erreur: string | null = 'Lead non trouvé';
+    await updateJSON('leads.json', (leads: any[]) => {
+      const leadIndex = leads.findIndex((l: any) => l.id === id);
+      if (leadIndex === -1) return SANS_ECRITURE;
 
-    if (!leads[leadIndex].actions) {
-      return NextResponse.json({ error: 'Aucune action trouvée' }, { status: 404 });
-    }
+      if (!leads[leadIndex].actions) {
+        erreur = 'Aucune action trouvée';
+        return SANS_ECRITURE;
+      }
 
-    const actionIndex = leads[leadIndex].actions.findIndex((a: any) => a.id === actionId);
-    if (actionIndex === -1) {
-      return NextResponse.json({ error: 'Action non trouvée' }, { status: 404 });
-    }
+      const actionIndex = leads[leadIndex].actions.findIndex((a: any) => a.id === actionId);
+      if (actionIndex === -1) {
+        erreur = 'Action non trouvée';
+        return SANS_ECRITURE;
+      }
 
-    leads[leadIndex].actions[actionIndex].completed = !leads[leadIndex].actions[actionIndex].completed;
-    await writeJSON('leads.json', leads);
+      erreur = null;
+      leads[leadIndex].actions[actionIndex].completed = !leads[leadIndex].actions[actionIndex].completed;
+      return leads;
+    });
 
+    if (erreur) return NextResponse.json({ error: erreur }, { status: 404 });
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });

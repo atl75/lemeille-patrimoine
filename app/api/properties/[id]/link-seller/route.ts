@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { readJSON, writeJSON } from '@/lib/utils';
+import { readJSON, updateJSON, SANS_ECRITURE } from '@/lib/utils';
 import { isAdmin } from '@/lib/adminGuard';
 
 // Relie (POST) ou délie (DELETE) un lead « vendeur » à un bien. Un bien peut
@@ -17,35 +17,44 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { leadId } = await req.json().catch(() => ({}));
   if (!leadId) return NextResponse.json({ error: 'leadId requis' }, { status: 400 });
 
-  const data = await readJSON('properties.json');
-  const idx = data.findIndex((x: any) => x.id === id);
-  if (idx < 0) return NextResponse.json({ error: 'Bien introuvable' }, { status: 404 });
+  // Le lead est chargé AVANT d'ouvrir le verrou : c'est une lecture d'un autre
+  // fichier, elle n'a pas à rallonger la section critique sur properties.json.
   const lead = await loadLead(leadId);
   if (!lead) return NextResponse.json({ error: 'Lead introuvable' }, { status: 404 });
 
-  const p = data[idx];
-  const sellerLeadIds: string[] = Array.isArray(p.sellerLeadIds) ? [...p.sellerLeadIds] : [];
-  if (!sellerLeadIds.includes(leadId)) sellerLeadIds.push(leadId);
+  let trouve = false;
+  let sellerLeadIds: string[] = [];
+  await updateJSON('properties.json', (data: any[]) => {
+    const idx = data.findIndex((x: any) => x.id === id);
+    if (idx < 0) return SANS_ECRITURE;
+    trouve = true;
 
-  // Ajoute le vendeur aux propriétaires s'il n'y figure pas déjà (par nom/email).
-  const owners: any[] = Array.isArray(p.owners) ? [...p.owners] : [];
-  const full = [lead.firstName, lead.lastName].filter(Boolean).join(' ').toLowerCase();
-  const exists = owners.some((o) =>
-    (o.email && lead.email && o.email.toLowerCase() === lead.email.toLowerCase()) ||
-    ([o.firstName, o.lastName].filter(Boolean).join(' ').toLowerCase() === full && !!full));
-  if (!exists) {
-    owners.push({
-      type: 'INDIVIDUAL',
-      firstName: lead.firstName || '',
-      lastName: lead.lastName || '',
-      email: lead.email || '',
-      phone: lead.phone || '',
-      address: lead.address || '',
-    });
-  }
+    const p = data[idx];
+    sellerLeadIds = Array.isArray(p.sellerLeadIds) ? [...p.sellerLeadIds] : [];
+    if (!sellerLeadIds.includes(leadId)) sellerLeadIds.push(leadId);
 
-  data[idx] = { ...p, sellerLeadIds, owners };
-  await writeJSON('properties.json', data);
+    // Ajoute le vendeur aux propriétaires s'il n'y figure pas déjà (par nom/email).
+    const owners: any[] = Array.isArray(p.owners) ? [...p.owners] : [];
+    const full = [lead.firstName, lead.lastName].filter(Boolean).join(' ').toLowerCase();
+    const exists = owners.some((o) =>
+      (o.email && lead.email && o.email.toLowerCase() === lead.email.toLowerCase()) ||
+      ([o.firstName, o.lastName].filter(Boolean).join(' ').toLowerCase() === full && !!full));
+    if (!exists) {
+      owners.push({
+        type: 'INDIVIDUAL',
+        firstName: lead.firstName || '',
+        lastName: lead.lastName || '',
+        email: lead.email || '',
+        phone: lead.phone || '',
+        address: lead.address || '',
+      });
+    }
+
+    data[idx] = { ...p, sellerLeadIds, owners };
+    return data;
+  });
+
+  if (!trouve) return NextResponse.json({ error: 'Bien introuvable' }, { status: 404 });
   return NextResponse.json({ ok: true, sellerLeadIds });
 }
 
@@ -55,13 +64,19 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const { leadId } = await req.json().catch(() => ({}));
   if (!leadId) return NextResponse.json({ error: 'leadId requis' }, { status: 400 });
 
-  const data = await readJSON('properties.json');
-  const idx = data.findIndex((x: any) => x.id === id);
-  if (idx < 0) return NextResponse.json({ error: 'Bien introuvable' }, { status: 404 });
+  let trouve = false;
+  let sellerLeadIds: string[] = [];
+  await updateJSON('properties.json', (data: any[]) => {
+    const idx = data.findIndex((x: any) => x.id === id);
+    if (idx < 0) return SANS_ECRITURE;
+    trouve = true;
 
-  const p = data[idx];
-  const sellerLeadIds: string[] = (Array.isArray(p.sellerLeadIds) ? p.sellerLeadIds : []).filter((x: string) => x !== leadId);
-  data[idx] = { ...p, sellerLeadIds };
-  await writeJSON('properties.json', data);
+    const p = data[idx];
+    sellerLeadIds = (Array.isArray(p.sellerLeadIds) ? p.sellerLeadIds : []).filter((x: string) => x !== leadId);
+    data[idx] = { ...p, sellerLeadIds };
+    return data;
+  });
+
+  if (!trouve) return NextResponse.json({ error: 'Bien introuvable' }, { status: 404 });
   return NextResponse.json({ ok: true, sellerLeadIds });
 }

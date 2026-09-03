@@ -33,16 +33,32 @@ export function writeJSON(file: string, data: any): Promise<void> {
   return withFileLock(file, async () => { await ensureDataDir(); await atomicWrite(p, data); });
 }
 
+// Sentinelle à renvoyer depuis le mutateur d'updateJSON pour ressortir SANS
+// écrire — cas « rien trouvé, rien à changer ». Sans elle, une route qui répond
+// 404 réécrivait quand même le fichier à l'identique : une version de plus dans
+// l'historique du bucket à chaque requête sur un identifiant inexistant.
+export const SANS_ECRITURE: unique symbol = Symbol('sans-ecriture');
+
 // Lecture-modification-écriture ATOMIQUE (verrou + écriture atomique).
-// À utiliser pour toute écriture susceptible d'être concurrente (endpoints
-// publics : leads, abonnés, analytics…) : `mutate` reçoit la donnée à jour et
-// renvoie le tableau à écrire (ou modifie en place).
-export async function updateJSON<T = any>(file: string, mutate: (data: any[]) => T | Promise<T>): Promise<T> {
+//
+// C'est la SEULE façon correcte de modifier un fichier de données. Le couple
+// readJSON(...) puis writeJSON(...) écrit par-dessus ce qu'une autre requête a
+// pu enregistrer entre les deux : la lecture rend la main (await), une autre
+// requête passe, et l'écriture finale l'efface. Le lead ainsi perdu ne laisse
+// aucune trace. Voir lib/README-donnees.md.
+//
+// `mutate` reçoit la donnée fraîche, sous verrou, et renvoie le tableau à
+// écrire — ou SANS_ECRITURE pour ne rien écrire du tout.
+export async function updateJSON<T = any>(
+  file: string,
+  mutate: (data: any[]) => T | typeof SANS_ECRITURE | Promise<T | typeof SANS_ECRITURE>
+): Promise<T | typeof SANS_ECRITURE> {
   const p = path.join(DATA_DIR, file);
   return withFileLock(file, async () => {
     await ensureDataDir();
     const data = await readJSON(file);
     const result = await mutate(data);
+    if (result === SANS_ECRITURE) return result;
     await atomicWrite(p, Array.isArray(result) ? result : data);
     return result;
   });

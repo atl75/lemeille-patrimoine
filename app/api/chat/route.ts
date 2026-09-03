@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { readJSON, writeJSON, uid } from "@/lib/utils";
+import { updateJSON, uid } from "@/lib/utils";
 import { CHAT_MODEL, SAVE_LEAD_TOOL, buildSystemPrompt } from "@/lib/chatbot";
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
@@ -13,7 +13,6 @@ const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
 async function saveLeadFromChat(input: any) {
-  const leads = await readJSON("leads.json");
   const lead = {
     id: uid("chat"),
     category: input.category || "immobilier",
@@ -26,8 +25,13 @@ async function saveLeadFromChat(input: any) {
     status: "new",
     createdAt: new Date().toISOString(),
   };
-  leads.push(lead);
-  await writeJSON("leads.json", leads);
+  // Endpoint PUBLIC : deux visiteurs peuvent enregistrer un lead à la même
+  // seconde. En lisant puis en écrivant séparément, le second effaçait le
+  // premier — sans erreur, sans trace. L'ajout se fait sous verrou.
+  await updateJSON("leads.json", (leads: any[]) => {
+    leads.push(lead);
+    return leads;
+  });
   return lead;
 }
 

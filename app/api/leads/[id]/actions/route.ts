@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { readJSON, writeJSON } from '@/lib/utils';
+import { updateJSON, SANS_ECRITURE } from '@/lib/utils';
 import { isAdmin } from '@/lib/adminGuard';
 
 export async function POST(
@@ -10,20 +10,21 @@ export async function POST(
   try {
     const { id } = await params;
     const action = await req.json();
-    const leads = await readJSON('leads.json');
 
-    const leadIndex = leads.findIndex((l: any) => l.id === id);
-    if (leadIndex === -1) {
-      return NextResponse.json({ error: 'Lead non trouvé' }, { status: 404 });
-    }
+    let trouve = false;
+    await updateJSON('leads.json', (leads: any[]) => {
+      const leadIndex = leads.findIndex((l: any) => l.id === id);
+      if (leadIndex === -1) return SANS_ECRITURE;
+      trouve = true;
 
-    if (!leads[leadIndex].actions) {
-      leads[leadIndex].actions = [];
-    }
+      if (!leads[leadIndex].actions) {
+        leads[leadIndex].actions = [];
+      }
+      leads[leadIndex].actions.push(action);
+      return leads;
+    });
 
-    leads[leadIndex].actions.push(action);
-    await writeJSON('leads.json', leads);
-
+    if (!trouve) return NextResponse.json({ error: 'Lead non trouvé' }, { status: 404 });
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
