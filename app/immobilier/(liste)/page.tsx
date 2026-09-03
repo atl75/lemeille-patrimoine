@@ -201,9 +201,22 @@ export default async function Page({ searchParams }: {
     });
   }
 
-  // Séparer les biens principaux des biens « entrée de gamme » (vue en vente).
+  // Séparer les biens principaux des biens d'investissement (vue en vente).
+  //
+  // Le champ s'appelle encore `entreeDeGamme` : c'est le nom d'origine, présent
+  // dans les données et dans shared/schema. Seul le LIBELLÉ a changé le
+  // 3 septembre 2026 — « entrée de gamme » situait le bien par le bas de
+  // gamme, « investissement » le situe par son usage. Renommer le champ
+  // supposerait de migrer les fiches concernées : à faire à part.
   const principaux = items.filter((p: any) => !p.entreeDeGamme);
   const entree = items.filter((p: any) => p.entreeDeGamme);
+
+  // Le cabinet est rouennais : les biens normands passent devant, les autres
+  // régions dans une section séparée. Sans cela, un appartement parisien ou
+  // cannois pouvait ouvrir une page dont le H1 annonce Rouen.
+  const estNormand = (p: any) => String(p.region || '').toUpperCase() === 'NORMANDIE';
+  const normands = principaux.filter(estNormand);
+  const ailleurs = principaux.filter((p: any) => !estNormand(p));
 
   // Rendu d'une carte (vue vendus = grisée non cliquable ; vue en vente = PropertyCard).
   const renderItem = (p: any, index: number) => {
@@ -306,26 +319,46 @@ export default async function Page({ searchParams }: {
       ) : (
         <>
           <section className="container pb-12">
-            {entree.length > 0 && principaux.length > 0 && (
-              <h2 className="luxe text-2xl md:text-3xl text-luxe mb-6">Nos biens de caractère</h2>
+            {/* Le titre régional ne s'affiche que s'il y a effectivement deux
+                groupes à distinguer : sur un portefeuille tout normand, il
+                n'apporterait rien. */}
+            {(ailleurs.length > 0 || entree.length > 0) && normands.length > 0 && (
+              <h2 className="luxe text-2xl md:text-3xl text-luxe mb-6">
+                {ailleurs.length > 0 ? 'Rouen et Plateau Nord' : 'Nos biens de caractère'}
+              </h2>
             )}
             <div className="grid md:grid-cols-2 gap-6">
-              {principaux.map(renderItem)}
+              {normands.map(renderItem)}
               {!items.length && (
                 <div className="opacity-70">Aucun bien ne correspond à ces filtres.</div>
               )}
             </div>
           </section>
 
+          {ailleurs.length > 0 && (
+            <section className="container pb-12">
+              <div className="border-t border-gold/20 pt-8">
+                <h2 className="luxe text-2xl md:text-3xl text-luxe">Paris et Côte d&apos;Azur</h2>
+                <p className="mt-1 text-sm text-luxe/70 max-w-2xl">
+                  Des biens suivis hors de Normandie, pour les clients du cabinet qui investissent
+                  ou s&apos;installent ailleurs.
+                </p>
+                <div className="mt-6 grid md:grid-cols-2 gap-6">
+                  {ailleurs.map((p: any, i: number) => renderItem(p, i + normands.length))}
+                </div>
+              </div>
+            </section>
+          )}
+
           {entree.length > 0 && (
             <section className="container pb-12">
               <div className="border-t border-gold/20 pt-8">
-                <h2 className="luxe text-2xl md:text-3xl text-luxe">Entrée de gamme</h2>
+                <h2 className="luxe text-2xl md:text-3xl text-luxe">Biens d'investissement</h2>
                 <p className="mt-1 text-sm text-luxe/70 max-w-2xl">
                   Des biens plus accessibles — idéals pour un premier achat, un pied-à-terre ou un investissement à budget maîtrisé.
                 </p>
                 <div className="mt-6 grid md:grid-cols-2 gap-6">
-                  {entree.map((p: any, i: number) => renderItem(p, i + 1))}
+                  {entree.map((p: any, i: number) => renderItem(p, i + normands.length + ailleurs.length))}
                 </div>
               </div>
             </section>
