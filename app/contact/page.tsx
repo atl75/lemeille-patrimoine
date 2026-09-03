@@ -34,7 +34,7 @@ export default function Page(){
         subtitle="Écrivez-nous, appelez-nous ou prenons rendez-vous — nos conseillers vous répondent sous 48h."
         primary={{ label: "Appeler", href: "tel:+33687157259" }}
         secondary={{ label: "Écrire", href: "#form" }}
-        image="/hero-chaumiere.jpg"
+        image="/hero-normandie.jpg"
       />
       <section className="container py-6">
         <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Contact"}]} />
