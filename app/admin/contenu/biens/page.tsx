@@ -12,107 +12,13 @@ import { useToast } from "@/components/Toast";
 import InfoVenteSection from "@/components/biens/InfoVenteSection";
 import { propertyLabel } from "@/lib/propertyLabel";
 import DocumentsSection from "@/components/biens/DocumentsSection";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import MoneyInput from "@/components/MoneyInput";
+// Le type vivait ici, en tête de 2 227 lignes. Il est partagé depuis le
+// 3 septembre 2026 avec la page par bien, qui manipule la même forme.
+import type { Bien as Property } from "@/lib/typesBien";
 
-type Property = {
-  id: string;
-  title: string;
-  type: string;
-  city: string;
-  region: string;
-  price: number;
-  priceOnRequest?: boolean;
-  surface: number;
-  rooms: number;
-  landSize?: number;
-  annexSurface?: number;
-  propertyTaxAmount?: number;
-  coproChargesMonthly?: number;
-  netSellerAmount?: number;
-  commissionAmount?: number;
-  commissionPercentage?: number;
-  finalSalePrice?: number;
-  negotiatedCommission?: number;
-  sequestreAmount?: number;
-  notaryClerk?: { name?: string; email?: string };
-  buyerFirstName?: string;
-  buyerLastName?: string;
-  buyerEmail?: string;
-  buyerPhone?: string;
-  buyerAddress?: string;
-  sellerNotary?: {
-    officeName?: string;
-    notaryName?: string;
-    address?: string;
-    city?: string;
-    postalCode?: string;
-    phone?: string;
-    email?: string;
-    clerkName?: string;
-    clerkEmail?: string;
-  };
-  buyerNotary?: {
-    officeName?: string;
-    notaryName?: string;
-    address?: string;
-    city?: string;
-    postalCode?: string;
-    phone?: string;
-    email?: string;
-    clerkName?: string;
-    clerkEmail?: string;
-  };
-  furniture?: { label?: string; value?: number }[];
-  description: string;
-  images: string[];
-  features: string[];
-  map: {
-    precision: string;
-    query: string;
-    zoom: number;
-  };
-  dpe: {
-    classEnergy: string;
-    classGES: string;
-    consumptionKwh: number;
-    emissionsKg: number;
-    date: string;
-    ref: string;
-  };
-  featured?: boolean;
-  entreeDeGamme?: boolean;
-  visible?: boolean;
-  sold?: boolean;
-  status?: 'AVAILABLE' | 'OFFER_RECEIVED' | 'UNDER_OFFER' | 'SOLD';
-  soldDate?: string;
-  sortOrder?: number;
-  // Informations cadastrales
-  cadastralReference?: string;
-  // Propriétaires
-  owners?: Array<{type: string, firstName?: string, lastName?: string, name?: string, siren?: string, legalForm?: string, managerFirstName?: string, managerLastName?: string, managerRole?: string, email?: string, phone?: string, address?: string}>;
-  mandateType?: 'SIMPLE' | 'EXCLUSIF' | 'SUCCES';
-  mandateNumber?: string;
-  mandateHonorairesCharge?: 'VENDEUR' | 'ACQUEREUR';
-  occupancy?: 'LIBRE' | 'OCCUPE';
-  mandatePlace?: string;
-  mandateSignToken?: string;
-  mandateSignStatus?: 'PENDING' | 'SIGNED';
-  mandateSignature?: { signedAt?: string };
-  // Documents
-  titleDeed?: string;
-  dpeDocument?: string;
-  propertyTax?: string;
-  mandate?: string;
-  estimation?: string;
-  propertyRules?: string;
-  agMinutes?: string[];
-  chargesStatement?: string;
-  // Plan et vidéo
-  floorPlan?: string;
-  floorPlans?: string[];
-  videoUrl?: string;
-};
 
 const EMPTY_PROPERTY: Partial<Property> = {
   title: "",
@@ -158,7 +64,6 @@ export default function Page() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Property> | null>(null);
-  const [viewing, setViewing] = useState<Property | null>(null);
   const [saving, setSaving] = useState(false);
   const [showSoldView, setShowSoldView] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -307,37 +212,6 @@ export default function Page() {
   };
 
   // Fonction pour ouvrir un document dans un nouvel onglet
-  const openDocument = (url: string) => {
-    if (url.startsWith('data:')) {
-      // Convertir Base64 en blob URL pour les documents encodés
-      try {
-        const [header, base64Data] = url.split(',');
-        const mimeMatch = header.match(/data:(.*?);/);
-        const mimeType = mimeMatch ? mimeMatch[1] : 'application/pdf';
-        
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: mimeType });
-        const blobUrl = URL.createObjectURL(blob);
-        
-        // Ouvrir dans un nouvel onglet
-        window.open(blobUrl, '_blank');
-        
-        // Nettoyer l'URL après un délai
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-      } catch (error) {
-        console.error('Erreur de conversion Base64:', error);
-        toast('❌ Erreur lors de l\'ouverture du document');
-      }
-    } else {
-      // URL externe - ouvrir directement
-      window.open(url, '_blank');
-    }
-  };
 
   const fetchProperties = async () => {
     try {
@@ -582,258 +456,6 @@ export default function Page() {
 
 
       {/* Modal de lecture complète du bien */}
-      {viewing && (
-        <div className="card p-6 mb-6" data-testid="view-property">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold">Fiche complète - {viewing.title}</h2>
-            <button
-              onClick={() => setViewing(null)}
-              className="px-4 py-2 border rounded hover:bg-gray-50"
-              data-testid="button-close-view"
-            >
-              Fermer
-            </button>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Colonne gauche */}
-            <div className="space-y-6">
-              {/* Informations générales */}
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h3 className="font-semibold text-lg mb-3">Informations générales</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Type :</span>
-                    <span className="font-medium">{viewing.type === 'APPARTEMENT' ? 'Appartement' : 'Maison'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Ville :</span>
-                    <span className="font-medium">{viewing.city}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Région :</span>
-                    <span className="font-medium">{viewing.region}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Prix :</span>
-                    <span className="font-medium text-[#B89C6D]">{viewing.priceOnRequest ? 'Nous consulter' : `${viewing.price.toLocaleString('fr-FR')} €`}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Surface :</span>
-                    <span className="font-medium">{viewing.surface} m²</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Pièces :</span>
-                    <span className="font-medium">{viewing.rooms}</span>
-                  </div>
-                  {viewing.landSize && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Terrain :</span>
-                      <span className="font-medium">{viewing.landSize} m²</span>
-                    </div>
-                  )}
-                  {viewing.annexSurface && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Surface hors Carrez :</span>
-                      <span className="font-medium">{viewing.annexSurface} m²</span>
-                    </div>
-                  )}
-                  {viewing.propertyTaxAmount ? (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Taxe foncière :</span>
-                      <span className="font-medium">{viewing.propertyTaxAmount.toLocaleString('fr-FR')} €/an</span>
-                    </div>
-                  ) : null}
-                  {viewing.coproChargesMonthly ? (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Charges copropriété :</span>
-                      <span className="font-medium">{viewing.coproChargesMonthly.toLocaleString('fr-FR')} €/mois</span>
-                    </div>
-                  ) : null}
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Référence :</span>
-                    <span className="font-medium">{viewing.id}</span>
-                  </div>
-                  {viewing.cadastralReference && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Parcelle cadastrale :</span>
-                      <span className="font-medium">{viewing.cadastralReference}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h3 className="font-semibold text-lg mb-3">Description</h3>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{viewing.description}</p>
-              </div>
-
-              {/* Prestations */}
-              {viewing.features && viewing.features.length > 0 && (
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h3 className="font-semibold text-lg mb-3">Prestations</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {viewing.features.map((feature, idx) => (
-                      <span key={idx} className="px-3 py-1 bg-white border rounded-lg text-sm">
-                        {feature}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* DPE */}
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h3 className="font-semibold text-lg mb-3">Diagnostic de Performance Énergétique</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Classe énergie :</span>
-                    <span className="font-medium">{viewing.dpe.classEnergy}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Classe GES :</span>
-                    <span className="font-medium">{viewing.dpe.classGES}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Consommation :</span>
-                    <span className="font-medium">{viewing.dpe.consumptionKwh} kWh</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Émissions :</span>
-                    <span className="font-medium">{viewing.dpe.emissionsKg} kg</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Date :</span>
-                    <span className="font-medium">{viewing.dpe.date}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Configuration carte */}
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h3 className="font-semibold text-lg mb-3">Configuration carte</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Précision :</span>
-                    <span className="font-medium">{viewing.map.precision === 'EXACT' ? 'Exacte' : 'Zone'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Zoom :</span>
-                    <span className="font-medium">{viewing.map.zoom}</span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-gray-600">Requête :</span>
-                    <p className="font-medium text-xs mt-1 break-words">{viewing.map.query}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Colonne droite */}
-            <div className="space-y-6">
-              {/* Images */}
-              {viewing.images && viewing.images.length > 0 && (
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h3 className="font-semibold text-lg mb-3">Images ({viewing.images.length})</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {viewing.images.map((img, idx) => (
-                      <div key={idx} className="relative group">
-                        <img
-                          src={img}
-                          alt={`Image ${idx + 1}`}
-                          className="w-full h-32 object-cover rounded-lg border"
-                        />
-                        {idx === 0 && (
-                          <span className="absolute top-2 left-2 bg-[#B89C6D] text-white text-xs px-2 py-1 rounded">
-                            Principale
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Documents administratifs */}
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h3 className="font-semibold text-lg mb-3">Documents administratifs</h3>
-                {(() => {
-                  const docs = [];
-                  
-                  if (viewing.titleDeed) docs.push({ name: "Titre de propriété", url: viewing.titleDeed });
-                  if (viewing.dpeDocument) docs.push({ name: "Document DPE", url: viewing.dpeDocument });
-                  if (viewing.propertyTax) docs.push({ name: "Taxe foncière", url: viewing.propertyTax });
-                  if (viewing.mandate) docs.push({ name: "Mandat", url: viewing.mandate });
-                  if (viewing.estimation) docs.push({ name: "Estimation", url: viewing.estimation });
-                  {
-                    const vplans = (Array.isArray(viewing.floorPlans) && viewing.floorPlans.length)
-                      ? viewing.floorPlans
-                      : (viewing.floorPlan ? [viewing.floorPlan] : []);
-                    vplans.forEach((plan: string, idx: number) => {
-                      docs.push({ name: vplans.length > 1 ? `Plan ${idx + 1}` : "Plan du bien", url: plan });
-                    });
-                  }
-
-                  if (viewing.type === 'APPARTEMENT') {
-                    if (viewing.propertyRules) docs.push({ name: "Règlement de propriété", url: viewing.propertyRules });
-                    if (viewing.chargesStatement) docs.push({ name: "Relevé de charges", url: viewing.chargesStatement });
-                    if (Array.isArray(viewing.agMinutes) && viewing.agMinutes.length > 0) {
-                      viewing.agMinutes.forEach((doc: string, idx: number) => {
-                        docs.push({ name: `PV d'AG ${idx + 1}`, url: doc });
-                      });
-                    }
-                  }
-                  
-                  if (docs.length === 0) {
-                    return (
-                      <p className="text-sm text-gray-500 text-center py-4">
-                        Aucun document disponible
-                      </p>
-                    );
-                  }
-                  
-                  return (
-                    <div className="space-y-2">
-                      {docs.map((doc, idx) => (
-                        <div
-                          key={idx}
-                          className="p-3 border bg-white rounded-lg"
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg">📄</span>
-                              <span className="text-sm font-medium">{doc.name}</span>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => openDocument(doc.url)}
-                              className="flex-1 px-3 py-2 text-sm border border-[#B89C6D] text-[#B89C6D] rounded hover:bg-[#B89C6D] hover:text-white transition text-center"
-                              data-testid={`button-read-document-${idx}`}
-                            >
-                              👁️ Lire
-                            </button>
-                            <a
-                              href={doc.url}
-                              download
-                              className="flex-1 px-3 py-2 text-sm bg-[#B89C6D] text-white rounded hover:bg-[#A68B5D] transition text-center"
-                              data-testid={`button-download-document-${idx}`}
-                            >
-                              ⬇️ Télécharger
-                            </a>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {editing && (
         <div className="card p-6 mb-6" data-testid="form-property">
           <h2 className="text-2xl font-semibold mb-4">
@@ -2182,13 +1804,17 @@ export default function Page() {
                             </button>
                           </div>
                         )}
-                        <button
-                          onClick={() => setViewing(property)}
+                        {/* La lecture a désormais sa propre adresse : le lien
+                            peut être mis en favori, envoyé, ou rouvert après un
+                            rafraîchissement — ce que le panneau dépliant ne
+                            permettait pas. */}
+                        <Link
+                          href={`/admin/contenu/biens/${property.id}`}
                           className="px-3 py-1 border border-gray-400 text-gray-700 rounded hover:bg-gray-100"
                           data-testid={`button-view-${property.id}`}
                         >
                           Lecture
-                        </button>
+                        </Link>
                         <button
                           onClick={() => sendNotaireDraft(property)}
                           disabled={notaireBusy === property.id}
