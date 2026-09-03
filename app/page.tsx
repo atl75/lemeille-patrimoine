@@ -132,7 +132,52 @@ export default async function Home() {
         </Section>
       )}
 
-      {/* Engagements Immobilier */}
+      {/* RESPIRATION — bandeau photo pleine largeur.
+          La page enchaînait quatre grilles de cartes identiques (biens,
+          engagements, démarche, secteurs). Ce bloc bord à bord coupe la série
+          au premier tiers : pas de carte, pas de conteneur, une photo et une
+          phrase. Texte repris de /qui-suis-je pour ne rien affirmer de neuf. */}
+      <section className="relative isolate overflow-hidden">
+        <Image
+          src="/hero-chaumiere.jpg"
+          alt="Chaumière normande à colombages dans la campagne rouennaise"
+          fill
+          sizes="100vw"
+          quality={80}
+          className="object-cover object-[center_58%]"
+        />
+        {/* Voile calé sur le contraste, pas sur l'œil. La chaumière a des pixels
+            très clairs (ciel, crépi) : un dégradé horizontal seul laissait le
+            texte à 3,1:1 sur mobile, où les lignes vont jusqu'au bord droit.
+            D'où deux régimes — voile uniforme tant que le texte occupe toute la
+            largeur, dégradé horizontal seulement à partir de md, où le texte
+            s'arrête avant que le voile ne s'ouvre. Au pire pixel de la photo, le
+            texte courant reste au-dessus de 4,5:1 à toutes les largeurs. */}
+        <div
+          className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(18,36,27,0.88),rgba(18,36,27,0.86))] md:bg-[linear-gradient(to_right,rgba(18,36,27,0.95)_0%,rgba(18,36,27,0.86)_70%,rgba(31,59,44,0.35)_100%)]"
+        />
+        <div className="container relative py-16 md:py-24">
+          {/* Même largeur de texte que le hero : les lignes s'arrêtent avant
+              que le voile ne s'éclaircisse. */}
+          <div className="max-w-xl">
+            <span className="text-xs font-medium uppercase tracking-[0.19em] text-gold">
+              Le terrain
+            </span>
+            <p className="mt-4 luxe text-2xl md:text-[2rem] leading-[1.3] text-cream">
+              Rouen, Mont-Saint-Aignan, Bois-Guillaume, Bihorel, Isneauville.
+            </p>
+            <p className="mt-5 text-sm md:text-base text-cream/85 leading-relaxed">
+              Quelques kilomètres carrés, et des écarts de prix qui se jouent d&apos;une rue à
+              l&apos;autre. Connaître le terrain n&apos;est pas un argument commercial :
+              c&apos;est une condition d&apos;exercice.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Engagements Immobilier — six cartes et non sept : sur trois colonnes,
+          la septième restait seule sur la dernière ligne et se lisait comme un
+          oubli. « Réseau d'experts » et « Expertise locale » ont été réunis. */}
       <Section title="Nos engagements immobiliers" subtitle="Sélection rigoureuse, accompagnement sur-mesure, confidentialité.">
         <div className="grid md:grid-cols-3 gap-6">
           {[
@@ -140,9 +185,8 @@ export default async function Home() {
             ["Conseil indépendant","Alignement d'intérêts, honoraires transparents."],
             ["Discrétion","Mandats off-market, confidentialité totale."],
             ["Photographie professionnelle","Boîtier hybride, ultra grand-angle et drone — vos biens présentés comme ils le méritent."],
-            ["Réseau d'experts rouennais","Notaires, banques, architectes et artisans de la région."],
-            ["Réactivité","Retour sous 48h, suivi jusqu'à la signature."],
-            ["Expertise locale","Connaissance fine de Rouen, du Plateau Nord et de ses quartiers."]
+            ["Expertise locale","Connaissance fine de Rouen et du Plateau Nord, et un réseau de notaires, banques, architectes et artisans de la région."],
+            ["Réactivité","Retour sous 48h, suivi jusqu'à la signature."]
           ].map(([t, s], i)=>(
             <div key={i} className="card p-6">
               <div className="luxe text-xl mb-2">{t}</div>
@@ -152,18 +196,41 @@ export default async function Home() {
         </div>
       </Section>
 
-      {/* Démarche d'achat */}
-      <Section title="Notre démarche d'acquisition">
-        <ol className="grid md:grid-cols-4 gap-6 list-decimal pl-6">
+      {/* Démarche d'achat — frise et non grille de cartes.
+          Le contenu est une séquence numérotée : la forme doit le dire. Le
+          pastillage relié rend l'enchaînement lisible d'un coup d'œil, et
+          suffit à ce qu'aucune grille de cartes n'en suive une autre. */}
+      <Section title="Notre démarche d'acquisition" subtitle="Quatre étapes, un seul interlocuteur.">
+        {/* role="list" : le preflight Tailwind met list-style:none sur les ol,
+            ce qui fait perdre la sémantique de liste à VoiceOver. On la rétablit
+            explicitement, sinon l'ordre des étapes n'est plus annoncé du tout. */}
+        <ol role="list" className="grid gap-9 md:grid-cols-4 md:gap-7">
           {[
             ["Brief & critères","Budget, localisation, surface, objectifs d'investissement."],
             ["Sélection & visites","Présentation de biens ciblés, visites accompagnées."],
             ["Négociation","Défense de vos intérêts, analyse juridique et technique."],
             ["Signature & suivi","Accompagnement notarial, financement, travaux."]
           ].map(([t,s],i)=>(
-            <li key={i} className="card p-6">
-              <div className="luxe text-xl mb-2">{t}</div>
-              <p className="opacity-80 break-words">{s}</p>
+            <li key={i} className="relative pl-14 md:pl-0 md:pt-12">
+              {/* Filet de liaison : de cette pastille à la suivante, gouttière
+                  comprise. Rien après la dernière — la frise s'arrête à la
+                  signature, elle ne se prolonge pas dans le vide. */}
+              {i < 3 && (
+                <span
+                  aria-hidden
+                  className="hidden md:block absolute top-[18px] left-0 -right-7 h-px bg-gold/35"
+                />
+              )}
+              {/* Pastille décorative : le rang est déjà porté par le ol/li, la
+                  lire aussi ferait annoncer « 1 » deux fois. */}
+              <span
+                aria-hidden
+                className="absolute left-0 top-0 flex h-9 w-9 items-center justify-center rounded-full border border-gold bg-cream font-serif text-base text-gold"
+              >
+                {i + 1}
+              </span>
+              <div className="luxe text-lg">{t}</div>
+              <p className="mt-2 text-sm text-luxe/75 leading-relaxed break-words">{s}</p>
             </li>
           ))}
         </ol>
@@ -184,20 +251,9 @@ export default async function Home() {
           ))}
         </div>
 
-        {/* Bouton vers la page des biens */}
-        <div className="mt-8 text-center">
-          <Link
-            href="/immobilier"
-            className="btn btn-gold inline-flex items-center gap-2"
-            data-testid="button-voir-biens"
-          >
-            Découvrir tous nos biens
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14"/>
-              <path d="m12 5 7 7-7 7"/>
-            </svg>
-          </Link>
-        </div>
+        {/* Pas de bouton ici : « Voir tous nos biens » mène déjà à /immobilier
+            trois sections plus haut. Deux boutons dorés vers la même page se
+            diluaient l'un l'autre. */}
       </Section>
 
       {/* Estimation gratuite — demande client */}
