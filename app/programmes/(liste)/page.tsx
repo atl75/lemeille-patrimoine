@@ -57,6 +57,7 @@ export default async function Page(){
         title="Défiscalisation"
         subtitle="Réduisez votre imposition grâce à l'immobilier ancien de caractère : Malraux, Monument Historique, Déficit Foncier."
         primary={{ label: "Étudier mon projet", href: "/contact?topic=Défiscalisation" }}
+        image="/hero-accueil.jpg"
       />
       <section className="container py-6">
         <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Défiscalisation"}]} />

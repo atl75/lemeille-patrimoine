@@ -124,6 +124,9 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
         </span>}
         primary={{label:"Consulter la fiche PDF", href:`/api/properties/${p.id}/pdf`, blank:true}}
         secondary={{label:"Contact", href:`/contact?ref=${encodeURIComponent(p.id)}`}}
+        // La première photo du bien fait l'en-tête. Un bien sans photo retombe
+        // sur l'en-tête éditorial de Hero — pas de cadre vide.
+        image={(p.images && p.images[0]) || undefined}
       />
       <section className="container py-6">
         <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Immobilier", href:"/immobilier"},{label: propertyLabel(p, { withPrice: false })}]} />

@@ -255,6 +255,7 @@ export default async function Page({ searchParams }: {
           ? "Nos dernières ventes — référence de marché et savoir-faire." 
           : sector ? "Filtré par secteur" : "Maisons et appartements de caractère à Rouen, sur le Plateau Nord et dans la métropole."}
         primary={{ label: sector ? "Réinitialiser le filtre" : "Nous contacter", href: sector ? "/immobilier" : "/contact" }}
+        image="/hero-normandie.jpg"
       />
 
       <section className="container py-6">

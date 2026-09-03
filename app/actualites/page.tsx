@@ -34,6 +34,7 @@ export default async function Page(){
       <Hero
         title="Actualités"
         subtitle="Marché immobilier rouennais, fiscalité et stratégie patrimoniale."
+        image="/hero-rouen.jpg"
       />
       <section className="container py-6">
         <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Actualités"}]} />
