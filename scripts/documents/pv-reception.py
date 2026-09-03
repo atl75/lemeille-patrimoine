@@ -24,6 +24,7 @@ ASL_ADRESSE = "60 rue d'Amiens, 76000 Rouen"
 # .title() donnait « Du 60 Rue D'Amiens » : on écrit la forme correcte.
 ASL_NOM_COURANT = "Association Syndicale Libre du 60 rue d'Amiens"
 CHANTIER = "60 rue d'Amiens, 76000 Rouen — réhabilitation complète d'un immeuble"
+MAITRE_OEUVRE = "SBVH"
 
 # Lots, repris de la fiche du programme.
 # Les lots 1 et 2 (1er étage) ne relèvent pas de ce procès-verbal. Les numéros
@@ -133,9 +134,17 @@ def page1(c):
     y = titre_section(c, y, "OPÉRATION")
     y = ligne_champ(c, y, "Chantier :", CHANTIER)
     y = ligne_champ(c, y, "Maître d'ouvrage :", ASL_NOM_COURANT)
+    # L'immeuble a été vendu par lots à des copropriétaires distincts, qui se
+    # sont constitués en ASL pour commander les travaux communs. C'est donc bien
+    # l'ASL, et non un vendeur unique, qui a qualité pour réceptionner.
+    c.setFillColorRGB(*GRIS)
+    c.setFont("Helvetica-Oblique", 7.2)
+    c.drawString(L + 42 * mm, y + 1.5 * mm,
+                 "Association constituée par les copropriétaires de l'immeuble pour la conduite des travaux communs")
+    y -= 4 * mm
     y = ligne_champ(c, y, "Représentée par :")
     y = ligne_champ(c, y, "Entreprise / lot technique :")
-    y = ligne_champ(c, y, "Maître d'œuvre :")
+    y = ligne_champ(c, y, "Maître d'œuvre :", MAITRE_OEUVRE)
     y = ligne_champ(c, y, "Marché / devis n° :")
     y -= 3 * mm
 
@@ -198,7 +207,7 @@ def page1(c):
     for i, (qui, sous) in enumerate([
         ("Le maître d'ouvrage", "ASL du 60 rue d'Amiens"),
         ("L'entreprise", "Nom et qualité du signataire"),
-        ("Le maître d'œuvre", "le cas échéant"),
+        ("Le maître d'œuvre", MAITRE_OEUVRE),
     ]):
         x = L + i * (largeur + 5 * mm)
         c.setFillColorRGB(*VERT)
