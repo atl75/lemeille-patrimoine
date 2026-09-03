@@ -187,21 +187,25 @@ export default async function Home() {
           sizes="100vw"
           className="object-cover object-[center_45%]"
         />
-        {/* Voile calé sur le contraste, pas sur l'œil. La chaumière a des pixels
-            très clairs (ciel, crépi) : un dégradé horizontal seul laissait le
-            texte à 3,1:1 sur mobile, où les lignes vont jusqu'au bord droit.
-            D'où deux régimes — voile uniforme tant que le texte occupe toute la
-            largeur, dégradé horizontal seulement à partir de md, où le texte
-            s'arrête avant que le voile ne s'ouvre. Au pire pixel de la photo, le
-            texte courant reste au-dessus de 4,5:1 à toutes les largeurs. */}
+        {/* Voile calé sur le contraste, pas sur l'œil. Deux régimes : uniforme
+            tant que le texte occupe toute la largeur, dégradé horizontal à
+            partir de md, où le texte s'arrête avant que le voile ne s'ouvre.
+            Allégé le 3 septembre pour laisser voir la photo — de 0,91 à 0,70 sur
+            mobile. Ce qui l'a permis : le sur-titre est passé du doré au crème.
+            Le doré #B89C6D tombait à 4,3:1 sur le ciel de crépuscule et
+            imposait à lui seul un voile opaque ; en crème, c'est le paragraphe
+            qui devient la contrainte, et il tient 4,7:1 au pire pixel. */}
         <div
-          className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(18,36,27,0.91),rgba(18,36,27,0.89))] md:bg-[linear-gradient(to_right,rgba(18,36,27,0.96)_0%,rgba(18,36,27,0.88)_72%,rgba(31,59,44,0.38)_100%)]"
+          className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(18,36,27,0.70),rgba(18,36,27,0.68))] md:bg-[linear-gradient(to_right,rgba(18,36,27,0.82)_0%,rgba(18,36,27,0.72)_78%,rgba(31,59,44,0.25)_100%)]"
         />
         <div className="container relative py-16 md:py-24">
           {/* Même largeur de texte que le hero : les lignes s'arrêtent avant
               que le voile ne s'éclaircisse. */}
           <div className="max-w-xl">
-            <span className="eyebrow">Le terrain</span>
+            {/* La classe .eyebrow est dorée : illisible sur cette photo une fois
+                le voile allégé. Crème ici, la teinte de marque restant réservée
+                aux fonds sombres. */}
+            <span className="eyebrow !text-cream">Le terrain</span>
             <p className="mt-4 luxe text-2xl md:text-[2rem] leading-[1.3] text-cream">
               Rouen, Mont-Saint-Aignan, Bois-Guillaume, Bihorel, Isneauville.
             </p>
@@ -213,7 +217,7 @@ export default async function Home() {
             {/* Crédit obligatoire : la photo est sous CC BY-SA 4.0, qui impose de
                 nommer l'auteur et la licence. Placé dans le bloc de texte, là où
                 le voile est le plus dense — contraste mesuré à 6,0:1 minimum. */}
-            <p className="mt-6 text-[11px] leading-relaxed text-cream/70">
+            <p className="mt-6 text-[11px] leading-relaxed text-cream/85">
               Rouen vue depuis la tour du Beffroi — photo{" "}
               <a
                 href="https://commons.wikimedia.org/wiki/File:Vue_Ville_depuis_Tour_Beffroi_-_Rouen_(FR76)_-_2021-11-14_-_5.jpg"
