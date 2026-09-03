@@ -1,4 +1,15 @@
 /**
+ * ⚠ PAS BRANCHÉ. Conservé parce qu'il fonctionne et qu'il servira, mais il
+ * n'est appelé par personne. Voir la note dans lib/utils.ts.
+ *
+ * Le mécanisme lui-même est vérifié sur le bucket réel : une écriture portant
+ * une génération périmée est refusée en 412, ce qui empêche l'écrasement.
+ * Ce qui manque, c'est la lecture : tant que readJSON passe par le montage
+ * gcsfuse et l'écriture par l'API, les deux vues divergent — une lecture
+ * suivant une écriture renvoie la donnée d'avant. Le brancher suppose donc de
+ * faire passer AUSSI la lecture par l'API, avec un cache court par instance
+ * pour ne pas payer un aller-retour réseau à chaque rendu.
+ *
  * Lecture-modification-écriture ATOMIQUE ENTRE INSTANCES, via l'API JSON de
  * Google Cloud Storage.
  *
@@ -57,6 +68,10 @@ async function jeton(): Promise<string | null> {
 
 /** L'API est-elle utilisable ici ? Testé une fois, puis mémorisé. */
 export async function disponible(): Promise<boolean> {
+  // Jamais actif sous test. Les tests ont tourné dans Cloud Build, qui EST un
+  // environnement GCP : le serveur de métadonnées a répondu, et la suite a
+  // écrit un fichier d'essai dans le bucket de PRODUCTION. Une fois suffit.
+  if (process.env.NODE_ENV === "test" || process.env.LP_SANS_GCS === "1") return false;
   if (apiUtilisable !== null) return apiUtilisable;
   apiUtilisable = (await jeton()) !== null;
   return apiUtilisable;

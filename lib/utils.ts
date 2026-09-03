@@ -1,7 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
-import { disponible as gcsDisponible, modifierAtomiquement } from './gcsStore.ts';
 const DATA_DIR = path.join(process.cwd(), 'data');
 async function ensureDataDir() { try { await fs.mkdir(DATA_DIR, { recursive: true }); } catch {} }
 export async function readJSON(file: string) {
@@ -54,31 +53,26 @@ export async function updateJSON<T = any>(
   file: string,
   mutate: (data: any[]) => T | typeof SANS_ECRITURE | Promise<T | typeof SANS_ECRITURE>
 ): Promise<T | typeof SANS_ECRITURE> {
+  // NOTE — lib/gcsStore.ts implémente un compare-et-échange atomique entre
+  // instances et il a été branché ici le 3 septembre 2026. Il en a été RETIRÉ
+  // le jour même : la suite de tests, exécutée dans Cloud Build (donc dans
+  // GCP), a montré deux choses que la lecture du code ne montrait pas.
+  //
+  //   1. Écrire par l'API et lire par le montage gcsfuse donne deux vues
+  //      différentes du même fichier. Une lecture suivant immédiatement une
+  //      écriture renvoyait la donnée d'avant.
+  //   2. Sous forte contention, le budget de six essais s'épuisait, l'erreur
+  //      était rattrapée, et l'on retombait sur le chemin fichier — qui
+  //      réécrivait par-dessus le résultat du compare-et-échange.
+  //
+  // Le compare-et-échange n'est donc sûr QUE si la lecture passe aussi par
+  // l'API. C'est un chantier à part entière : readJSON est appelé partout, il
+  // faudrait un cache court par instance pour ne pas payer un aller-retour
+  // réseau à chaque rendu. Tant que ce n'est pas fait, on garde le chemin
+  // fichier : le verrou ne franchit pas les instances, et le garde-fou reste
+  // `--max-instances=1`.
   const p = path.join(DATA_DIR, file);
   return withFileLock(file, async () => {
-    // 1. Chemin préféré : compare-et-échange sur l'API GCS, atomique ENTRE
-    //    INSTANCES. Le verrou en mémoire ci-dessus ne protège qu'un processus ;
-    //    Cloud Run peut en faire tourner dix. Voir lib/gcsStore.ts.
-    //    `mutate` peut être rejouée en cas de conflit : elle reçoit alors la
-    //    donnée fraîche. Elle ne doit donc avoir aucun effet de bord externe
-    //    (pas d'envoi d'email, pas d'écriture ailleurs) — se contenter de
-    //    transformer le tableau reçu.
-    try {
-      if (await gcsDisponible()) {
-        const r = await modifierAtomiquement<T | typeof SANS_ECRITURE>(
-          file,
-          mutate as any,
-          (x: unknown) => x === SANS_ECRITURE
-        );
-        if (r.ok) return r.resultat;
-      }
-    } catch (e) {
-      // Jamais bloquant : on retombe sur le chemin fichier, c'est-à-dire le
-      // comportement d'avant. Le pire cas reste donc l'existant.
-      console.error(`[donnees] compare-et-échange indisponible pour ${file} :`, e);
-    }
-
-    // 2. Repli : verrou en mémoire + écriture atomique par renommage.
     await ensureDataDir();
     const data = await readJSON(file);
     const result = await mutate(data);
