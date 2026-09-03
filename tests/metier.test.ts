@@ -10,6 +10,13 @@ import { seoTitle } from "../lib/seoTitle.ts";
 import { isThinListing } from "../lib/thinListing.ts";
 import { matchesSector, sectorSlugFor, SECTORS, norm } from "../lib/sectors.ts";
 import cloudinaryLoader from "../lib/cloudinaryLoader.js";
+import { needsFollowUp, formatDate } from "../lib/typesLead.ts";
+import {
+  erreurPrix,
+  erreurNetVendeur,
+  erreursProprietaires,
+  erreursFiche,
+} from "../lib/validationBien.ts";
 
 describe("seoTitle — 62 caractères, marque sacrifiée avant troncature", () => {
   test("titre court : la marque est conservée", () => {
@@ -165,5 +172,109 @@ describe("cloudinaryLoader — réécriture des images", () => {
 
   test("toute autre image est laissée telle quelle", () => {
     assert.equal(cloudinaryLoader({ src: "/images/arthur.jpg", width: 800, quality: 80 }), "/images/arthur.jpg");
+  });
+});
+
+describe("needsFollowUp — quand un lead doit être relancé", () => {
+  // Seuils : nouveau 3 j, contacté 5 j, qualifié 10 j, clos jamais.
+  const ilYA = (jours: number) => new Date(Date.now() - jours * 86400000).toISOString();
+
+  test("un lead clos n'est jamais à relancer, même très ancien", () => {
+    assert.equal(needsFollowUp({ status: "closed", createdAt: ilYA(365) } as any), false);
+  });
+
+  test("nouveau : relance à partir de 3 jours", () => {
+    assert.equal(needsFollowUp({ status: "new", createdAt: ilYA(2) } as any), false);
+    assert.equal(needsFollowUp({ status: "new", createdAt: ilYA(4) } as any), true);
+  });
+
+  test("contacté : le seuil monte à 5 jours", () => {
+    assert.equal(needsFollowUp({ status: "contacted", createdAt: ilYA(4) } as any), false);
+    assert.equal(needsFollowUp({ status: "contacted", createdAt: ilYA(6) } as any), true);
+  });
+
+  test("qualifié : 10 jours", () => {
+    assert.equal(needsFollowUp({ status: "qualified", createdAt: ilYA(9) } as any), false);
+    assert.equal(needsFollowUp({ status: "qualified", createdAt: ilYA(11) } as any), true);
+  });
+
+  test("la dernière activité prime sur la date de création", () => {
+    // Créé il y a un mois, mais rappelé hier : pas de relance.
+    assert.equal(
+      needsFollowUp({ status: "new", createdAt: ilYA(30), lastActivityAt: ilYA(1) } as any),
+      false
+    );
+  });
+
+  test("sans aucune date, le lead est à relancer", () => {
+    // daysSince renvoie Infinity : mieux vaut une relance de trop qu'un lead oublié.
+    assert.equal(needsFollowUp({ status: "new" } as any), true);
+  });
+});
+
+describe("formatDate", () => {
+  test("format français avec l'heure", () => {
+    const t = formatDate("2026-09-03T14:05:00Z");
+    assert.match(t, /^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/, t);
+  });
+});
+
+describe("validation d'une fiche bien — ce qui bloque l'enregistrement", () => {
+  test("prix nul ou négatif refusé", () => {
+    assert.equal(erreurPrix({ price: 250000 }), "");
+    assert.equal(erreurPrix({ price: 0 }), "Prix invalide");
+    assert.equal(erreurPrix({ price: -1 }), "Prix invalide");
+  });
+
+  test("« prix sur demande » dispense du prix", () => {
+    assert.equal(erreurPrix({ price: 0, priceOnRequest: true }), "");
+  });
+
+  test("un prix absent n'est pas une erreur — la fiche peut être en cours de saisie", () => {
+    assert.equal(erreurPrix({}), "");
+    assert.equal(erreurPrix(null), "");
+  });
+
+  test("le net vendeur ne peut pas dépasser le prix FAI", () => {
+    assert.equal(erreurNetVendeur({ price: 200000, netSellerAmount: 190000 }), "");
+    assert.equal(erreurNetVendeur({ price: 200000, netSellerAmount: 200000 }), "");
+    assert.match(erreurNetVendeur({ price: 200000, netSellerAmount: 210000 }), /ne peut pas dépasser/);
+  });
+
+  test("email de propriétaire", () => {
+    const [a, b] = erreursProprietaires([{ email: "jean@exemple.fr" }, { email: "pas-un-email" }]);
+    assert.equal(a.email, "");
+    assert.equal(b.email, "Adresse email invalide");
+  });
+
+  test("SIREN : neuf chiffres, exigé des seules sociétés", () => {
+    const r = erreursProprietaires([
+      { type: "COMPANY", siren: "123456789" },
+      { type: "COMPANY", siren: "123 456 789" },  // les espaces sont tolérés
+      { type: "COMPANY", siren: "12345" },
+      { type: "INDIVIDUAL", siren: "12345" },     // un particulier n'en a pas
+    ]);
+    assert.equal(r[0].siren, "");
+    assert.equal(r[1].siren, "", "les espaces doivent être ignorés");
+    assert.match(r[2].siren, /9 chiffres/);
+    assert.equal(r[3].siren, "");
+  });
+
+  test("erreursFiche rassemble tout et ne garde que le non vide", () => {
+    assert.deepEqual(erreursFiche({ price: 200000, owners: [{ email: "ok@x.fr" }] }), []);
+    // Prix à -5 : le prix est invalide ET le net vendeur (10) le dépasse.
+    // Les deux règles se déclenchent — ce n'est pas un doublon, ce sont deux
+    // défauts distincts que l'utilisateur doit voir.
+    const e = erreursFiche({
+      price: -5,
+      netSellerAmount: 10,
+      owners: [{ email: "cassé" }, { type: "COMPANY", siren: "1" }],
+    });
+    assert.equal(e.length, 4, e.join(" | "));
+  });
+
+  test("une fiche vide ne bloque rien", () => {
+    assert.deepEqual(erreursFiche({}), []);
+    assert.deepEqual(erreursFiche(null), []);
   });
 });

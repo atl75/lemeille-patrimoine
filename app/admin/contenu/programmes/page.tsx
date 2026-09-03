@@ -1,78 +1,18 @@
 "use client";
 import AdminShell from "@/components/AdminShell";
+import {
+  DISPOS,
+  STATUTS,
+  PROGRAMME_VIERGE,
+  GAL_CATEGORIES,
+} from "@/lib/typesProgramme";
+import type { Program } from "@/lib/typesProgramme";
 import { useToast } from "@/components/Toast";
 import Breadcrumb from "@/components/Breadcrumb";
 import DocumentUploader from "@/components/DocumentUploader";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useEffect, useState } from "react";
 import { useDragReorder } from "@/lib/useDragReorder";
-
-type Program = {
-  id: string;
-  slug?: string;
-  title: string;
-  city: string;
-  region?: string;
-  address?: string;
-  dispositif: string;
-  dispositifs?: string[];
-  summary: string;
-  accroche?: string;
-  livraison?: string;
-  intro?: string;
-  caracteristiques?: string[];
-  finitions?: string[];
-  pointsForts?: string[];
-  proximite?: { nom: string; distance?: string }[];
-  lots?: any[];
-  projections?: { title?: string; image?: string }[];
-  // Réhabilitations livrées : paires de photos du même cadrage.
-  avantApres?: { avant?: string; apres?: string; legende?: string }[];
-  galerie?: { image?: string; legende?: string; categorie?: 'EXTERIEUR' | 'COMMUNES' | 'PRIVATIVES' }[];
-  statut?: 'EN_COURS' | 'LIVRE';
-  dpe?: { classEnergy?: string; classGES?: string; consumption?: string; emissions?: string };
-  equipements?: { title?: string; subtitle?: string }[];
-  documents?: { name?: string; subtitle?: string; url?: string }[];
-  calendrier?: { etape?: string; date?: string; description?: string; done?: boolean }[];
-  mapQuery?: string;
-  virtualTourUrl?: string;
-  externalUrl?: string;
-  coverImage?: string;
-  heroImage?: string;
-  visible?: boolean;
-};
-
-const DISPOS = [
-  { code: "MALRAUX", label: "Malraux" },
-  { code: "MONUMENT_HISTORIQUE", label: "Monument Historique" },
-  { code: "DEFICIT_FONCIER", label: "Déficit Foncier" },
-  { code: "DENORMANDIE", label: "Denormandie" },
-];
-
-const STATUTS = [
-  { code: "DISPONIBLE", label: "Disponible" },
-  { code: "OPTION", label: "Sous option" },
-  { code: "RESERVE", label: "Réservé" },
-  { code: "VENDU", label: "Vendu" },
-];
-
-const EMPTY_PROGRAM: Partial<Program> = {
-  title: "",
-  city: "",
-  dispositif: "MALRAUX",
-  dispositifs: ["MALRAUX"],
-  summary: "",
-  externalUrl: "",
-  lots: [],
-  visible: true
-};
-
-// Classement des photos d'une réalisation, de l'extérieur vers l'intérieur.
-const GAL_CATEGORIES = [
-  { code: 'EXTERIEUR', label: 'Extérieur' },
-  { code: 'COMMUNES', label: 'Parties communes' },
-  { code: 'PRIVATIVES', label: 'Parties privatives' },
-] as const;
 
 export default function Page() {
   const [programs, setPrograms] = useState<Program[]>([]);
@@ -350,7 +290,7 @@ export default function Page() {
 
       <div className="mb-6">
         <button
-          onClick={() => setEditing(EMPTY_PROGRAM)}
+          onClick={() => setEditing(PROGRAMME_VIERGE)}
           className="px-4 py-2 bg-[#B89C6D] text-white rounded hover:bg-[#A68B5D]"
           data-testid="button-new-program"
         >

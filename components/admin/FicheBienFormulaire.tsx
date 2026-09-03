@@ -11,6 +11,12 @@ import MoneyInput from "@/components/MoneyInput";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import type { Bien } from "@/lib/typesBien";
+import {
+  erreursProprietaires,
+  erreurPrix,
+  erreurNetVendeur,
+  erreursFiche,
+} from "@/lib/validationBien";
 
 /**
  * Formulaire de création et de modification d'un bien.
@@ -59,15 +65,11 @@ export default function FicheBienFormulaire({
     return () => window.removeEventListener('beforeunload', h);
   }, [dirty]);
 
-  // Validation inline des champs sensibles (email/SIREN propriétaire, prix).
-  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const ownerErrors = ((editing?.owners as any[]) || []).map((o: any) => ({
-    email: o?.email && !emailRe.test(String(o.email).trim()) ? 'Adresse email invalide' : '',
-    siren: o?.type === 'COMPANY' && o?.siren && !/^\d{9}$/.test(String(o.siren).replace(/\s/g, '')) ? 'Le SIREN doit comporter 9 chiffres' : '',
-  }));
-  const priceError = editing && !editing.priceOnRequest && editing.price != null && (isNaN(Number(editing.price)) || Number(editing.price) <= 0) ? 'Prix invalide' : '';
-  const netError = editing && editing.netSellerAmount != null && editing.price != null && Number(editing.netSellerAmount) > Number(editing.price) ? 'Le net vendeur ne peut pas dépasser le prix FAI' : '';
-  const formErrors = [priceError, netError, ...ownerErrors.flatMap((e: any) => [e.email, e.siren])].filter(Boolean);
+  // Les règles vivent dans lib/validationBien, où elles se testent.
+  const ownerErrors = erreursProprietaires(editing?.owners);
+  const priceError = erreurPrix(editing);
+  const netError = erreurNetVendeur(editing);
+  const formErrors = erreursFiche(editing);
   const errCls = "text-xs text-red-600 mt-1";
 
   // Fonction pour rechercher la parcelle cadastrale
