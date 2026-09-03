@@ -3,7 +3,6 @@ import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import Img from "@/components/Img";
 import type { Metadata } from 'next';
-import BandeauReassurance from "@/components/BandeauReassurance";
 
 export const metadata: Metadata = {
   title: "Actualités immobilières | Lemeille Patrimoine",
@@ -36,7 +35,6 @@ export default async function Page(){
         title="Actualités"
         subtitle="Marché immobilier rouennais, fiscalité et stratégie patrimoniale."
       />
-      <BandeauReassurance />
       <section className="container py-6">
         <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Actualités"}]} />
       </section>

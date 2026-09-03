@@ -2,7 +2,6 @@ import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import Link from "next/link";
 import type { Metadata } from "next";
-import BandeauReassurance from "@/components/BandeauReassurance";
 
 export const metadata: Metadata = {
   title: "Nos partenaires | Lemeille Patrimoine",
@@ -73,7 +72,6 @@ export default function Page() {
         primary={{ label: "Nous contacter", href: "/contact" }}
         image="/hero-normandie.jpg"
       />
-      <BandeauReassurance />
       <section className="container py-6">
         <Breadcrumb items={[{ label: "Accueil", href: "/" }, { label: "Partenaires" }]} />
       </section>

@@ -1,12 +1,17 @@
 // Bande de réassurance — signaux de confiance placés juste sous le Hero.
 //
-// Présente sur toutes les pages : un visiteur arrivé par Google sur une fiche
-// bien ou un article doit voir les garanties du cabinet sans avoir à remonter
-// à l'accueil.
+// UNIQUEMENT sur la page d'accueil, depuis le 3 septembre 2026. Elle figurait
+// auparavant sur les dix-neuf pages du site ; répétée à chaque écran, elle avait
+// cessé d'être un signal pour devenir du décor, et repoussait le contenu propre
+// à chaque page sous la ligne de flottaison. Ne pas la réintroduire ailleurs
+// sans raison explicite.
+//
+// La page /vendre garde sa propre bande, au contenu différent (avis de valeur,
+// honoraires, interlocuteur unique) : c'est un argumentaire de vente, pas cette
+// bande-ci.
 //
 // Le nombre de ventes est celui annoncé (voir VENTES_REALISEES dans app/page.tsx) ;
-// la page d'accueil peut passer le comptage réel, qui prend le dessus s'il le
-// dépasse.
+// la page d'accueil passe le comptage réel, qui prend le dessus s'il le dépasse.
 export default function BandeauReassurance({ soldCount }: { soldCount?: number }) {
   const ventes = soldCount && soldCount > 50 ? String(soldCount) : "50+";
   // Quatre signaux et non cinq : à 1440 px, cinq colonnes forçaient trois

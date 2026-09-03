@@ -3,7 +3,6 @@ import Link from "next/link";
 import Hero from "@/components/Hero";
 import Section from "@/components/Section";
 import Breadcrumb from "@/components/Breadcrumb";
-import BandeauReassurance from "@/components/BandeauReassurance";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -50,7 +49,6 @@ export default function Page() {
         secondary={{ label: "Vendre mon bien", href: "/vendre" }}
         image="/hero-normandie.jpg"
       />
-      <BandeauReassurance />
 
       <section className="container py-6">
         <Breadcrumb items={[{ label: "Accueil", href: "/" }, { label: "Qui suis-je" }]} />

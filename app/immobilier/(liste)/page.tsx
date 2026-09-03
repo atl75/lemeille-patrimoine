@@ -10,7 +10,6 @@ import { allFeatures } from "@/lib/features";
 import { getPropertyCards } from "@/lib/propertiesData";
 import { propertyTypology } from "@/lib/propertyLabel";
 import type { Metadata } from 'next';
-import BandeauReassurance from "@/components/BandeauReassurance";
 
 export const metadata: Metadata = {
   title: 'Biens à vendre à Rouen | Lemeille Patrimoine',
@@ -257,7 +256,6 @@ export default async function Page({ searchParams }: {
           : sector ? "Filtré par secteur" : "Maisons et appartements de caractère à Rouen, sur le Plateau Nord et dans la métropole."}
         primary={{ label: sector ? "Réinitialiser le filtre" : "Nous contacter", href: sector ? "/immobilier" : "/contact" }}
       />
-      <BandeauReassurance />
 
       <section className="container py-6">
         <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Immobilier"}]} />

@@ -13,7 +13,6 @@ import PlanViewer from "@/components/PlanViewer";
 import { notFound } from "next/navigation";
 import { seoTitle } from '@/lib/seoTitle';
 import type { Metadata } from 'next';
-import BandeauReassurance from "@/components/BandeauReassurance";
 import { isThinListing } from '@/lib/thinListing';
 import Link from "next/link";
 import { SECTORS, sectorSlugFor } from "@/lib/sectors";
@@ -126,7 +125,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
         primary={{label:"Consulter la fiche PDF", href:`/api/properties/${p.id}/pdf`, blank:true}}
         secondary={{label:"Contact", href:`/contact?ref=${encodeURIComponent(p.id)}`}}
       />
-      <BandeauReassurance />
       <section className="container py-6">
         <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Immobilier", href:"/immobilier"},{label: propertyLabel(p, { withPrice: false })}]} />
       </section>

@@ -5,7 +5,6 @@ import Breadcrumb from "@/components/Breadcrumb";
 import DeferredIframe from "@/components/DeferredIframe";
 import { useState } from "react";
 import { trackEvent } from "@/lib/analytics";
-import BandeauReassurance from "@/components/BandeauReassurance";
 
 // Lien de réservation en ligne (Calendly, RDV Google...). Laisser vide tant
 // qu'il n'est pas défini : le bouton "Prendre rendez-vous" bascule alors sur
@@ -36,7 +35,6 @@ export default function Page(){
         primary={{ label: "Appeler", href: "tel:+33687157259" }}
         secondary={{ label: "Écrire", href: "#form" }}
       />
-      <BandeauReassurance />
       <section className="container py-6">
         <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Contact"}]} />
       </section>

@@ -2,7 +2,6 @@ import Link from "next/link";
 import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import type { Metadata } from 'next';
-import BandeauReassurance from "@/components/BandeauReassurance";
 
 export const metadata: Metadata = { 
   title: "Barème d'honoraires immobiliers | Lemeille Patrimoine",
@@ -19,7 +18,6 @@ export default function Page(){
         title="Barème d&apos;honoraires immobiliers" 
         subtitle="Une tarification claire et transparente pour vous accompagner dans vos projets immobiliers." 
       />
-      <BandeauReassurance />
       <section className="container py-6">
         <Breadcrumb items={[{label:"Accueil", href:"/"},{label:"Barème d&apos;honoraires"}]} />
       </section>
