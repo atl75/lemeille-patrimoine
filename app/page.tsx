@@ -95,17 +95,17 @@ export default async function Home() {
     <main>
       {/* HERO — diaporama plein cadre + CTA unique */}
       <section className="relative isolate overflow-hidden">
-        {/* Deux vues et non trois : le haussmannien sert désormais au bandeau
-            « Le terrain » plus bas, où il colle au texte — une liste de communes
-            urbaines. Le laisser aussi ici le faisait réapparaître un écran et
-            demi plus loin, et le bloc censé rompre la répétition la produisait
-            lui-même. Les seules photos déclinées en WebP dans public/hero sont
-            accueil, chaumiere et normandie : toute nouvelle image doit d'abord y
-            être générée en 640/828/1200/1600/2400, sinon le loader renvoie un 404. */}
+        {/* Le bandeau « Le terrain » a sa propre photo (Rouen vu du beffroi),
+            donc les trois vues peuvent rester ici sans faire doublon. Règle à
+            tenir : une même image ne doit jamais servir au diaporama ET au
+            bandeau, elle réapparaîtrait un écran plus bas. Toute nouvelle photo
+            doit d'abord être déclinée en 640/828/1200/1600/2400 dans public/hero,
+            sinon lib/cloudinaryLoader.js renvoie un 404 silencieux. */}
         <HeroSlideshow
           images={[
             { src: "/hero-normandie.jpg", alt: "Maison de caractère en Normandie, région de Rouen" },
             { src: "/hero-chaumiere.jpg", alt: "Chaumière normande traditionnelle à colombages, campagne rouennaise" },
+            { src: "/hero-accueil.jpg", alt: "Immeuble haussmannien de caractère à l'heure dorée" },
           ]}
         />
         {/* Voile vert dégradé — lisibilité du texte, le vert devient un accent et non un mur */}
@@ -181,11 +181,11 @@ export default async function Home() {
             Pas de prop quality : next.config n'autorise que 75 et 85, et le
             loader maison ignore de toute façon ce paramètre pour /hero-*.jpg. */}
         <Image
-          src="/hero-accueil.jpg"
+          src="/hero-rouen.jpg"
           alt=""
           fill
           sizes="100vw"
-          className="object-cover object-[center_42%]"
+          className="object-cover object-[center_45%]"
         />
         {/* Voile calé sur le contraste, pas sur l'œil. La chaumière a des pixels
             très clairs (ciel, crépi) : un dégradé horizontal seul laissait le
@@ -195,7 +195,7 @@ export default async function Home() {
             s'arrête avant que le voile ne s'ouvre. Au pire pixel de la photo, le
             texte courant reste au-dessus de 4,5:1 à toutes les largeurs. */}
         <div
-          className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(18,36,27,0.88),rgba(18,36,27,0.86))] md:bg-[linear-gradient(to_right,rgba(18,36,27,0.95)_0%,rgba(18,36,27,0.86)_70%,rgba(31,59,44,0.35)_100%)]"
+          className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(18,36,27,0.91),rgba(18,36,27,0.89))] md:bg-[linear-gradient(to_right,rgba(18,36,27,0.96)_0%,rgba(18,36,27,0.88)_72%,rgba(31,59,44,0.38)_100%)]"
         />
         <div className="container relative py-16 md:py-24">
           {/* Même largeur de texte que le hero : les lignes s'arrêtent avant
@@ -209,6 +209,30 @@ export default async function Home() {
               Quelques kilomètres carrés, et des écarts de prix qui se jouent d&apos;une rue à
               l&apos;autre. Connaître le terrain n&apos;est pas un argument commercial :
               c&apos;est une condition d&apos;exercice.
+            </p>
+            {/* Crédit obligatoire : la photo est sous CC BY-SA 4.0, qui impose de
+                nommer l'auteur et la licence. Placé dans le bloc de texte, là où
+                le voile est le plus dense — contraste mesuré à 6,0:1 minimum. */}
+            <p className="mt-6 text-[11px] leading-relaxed text-cream/70">
+              Rouen vue depuis la tour du Beffroi — photo{" "}
+              <a
+                href="https://commons.wikimedia.org/wiki/File:Vue_Ville_depuis_Tour_Beffroi_-_Rouen_(FR76)_-_2021-11-14_-_5.jpg"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2 hover:text-cream transition-colors"
+              >
+                Chabe01
+              </a>
+              ,{" "}
+              <a
+                href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2 hover:text-cream transition-colors"
+              >
+                CC BY-SA 4.0
+              </a>
+              .
             </p>
           </div>
         </div>
