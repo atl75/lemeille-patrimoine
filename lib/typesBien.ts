@@ -103,3 +103,47 @@ export type Bien = {
   floorPlans?: string[];
   videoUrl?: string;
 };
+
+/**
+ * Valeurs de départ d'un bien neuf. Vivait dans la page liste ; partagé depuis
+ * que la création a sa propre adresse (/admin/contenu/biens/nouveau).
+ */
+export const BIEN_VIERGE: Partial<Bien> = {
+  title: "",
+  type: "APPARTEMENT",
+  city: "",
+  region: "PARIS",
+  price: 0,
+  surface: 0,
+  rooms: 0,
+  landSize: undefined,
+  description: "",
+  images: [],
+  features: [],
+  map: { precision: "AREA", query: "", zoom: 14 },
+  dpe: {
+    classEnergy: "D",
+    classGES: "D",
+    consumptionKwh: 0,
+    emissionsKg: 0,
+    date: new Date().toISOString().split('T')[0],
+    ref: ""
+  },
+  featured: false,
+  visible: true,
+  sold: false,
+  status: 'AVAILABLE',
+  soldDate: undefined,
+  cadastralReference: undefined,
+  owners: [],
+  titleDeed: undefined,
+  dpeDocument: undefined,
+  propertyTax: undefined,
+  mandate: undefined,
+  estimation: undefined,
+  propertyRules: undefined,
+  agMinutes: [],
+  chargesStatement: undefined,
+  floorPlan: undefined,
+  videoUrl: undefined
+};
