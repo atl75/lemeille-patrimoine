@@ -53,7 +53,7 @@ export function Footer() {
           <div className={heading}>Nous contacter</div>
           <div className="flex flex-col gap-1.5">
             <a href="tel:+33687157259" className={link}>+33 6 87 15 72 59</a>
-            <a href="mailto:arthur.lemeille@lemeillepatrimoine.com" className={link}>arthur.lemeille@lemeillepatrimoine.com</a>
+            <a href="mailto:arthur@lemeillepatrimoine.com" className={link}>arthur@lemeillepatrimoine.com</a>
             <a
               href="https://x.com/lempatrimoine"
               target="_blank"

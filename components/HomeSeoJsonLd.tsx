@@ -9,7 +9,7 @@ export default function HomeSeoJsonLd(){
     "priceRange":"€€€€",
     "brand":{"@type":"Brand","name":"Lemeille Patrimoine"},
     "parentOrganization":{"@type":"Organization","name":"Novus Capital","url":"https://www.pappers.fr/entreprise/novus-capital-937847937"},
-    "email":"arthur.lemeille@lemeillepatrimoine.com",
+    "email":"arthur@lemeillepatrimoine.com",
     "telephone":"+33687157259",
     "address":[
       {"@type":"PostalAddress","streetAddress":"50 rue de la Garenne","addressLocality":"Mont-Saint-Aignan","postalCode":"76130","addressCountry":"FR"},

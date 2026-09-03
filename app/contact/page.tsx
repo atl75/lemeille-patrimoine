@@ -50,9 +50,9 @@ export default function Page(){
                 <span>📞</span>
                 <span>+33 6 87 15 72 59</span>
               </a>
-              <a href="mailto:arthur.lemeille@lemeillepatrimoine.com" className="flex items-center gap-2 hover:text-[#B89C6D] transition-colors" data-testid="link-email">
+              <a href="mailto:arthur@lemeillepatrimoine.com" className="flex items-center gap-2 hover:text-[#B89C6D] transition-colors" data-testid="link-email">
                 <span>✉️</span>
-                <span>arthur.lemeille@lemeillepatrimoine.com</span>
+                <span>arthur@lemeillepatrimoine.com</span>
               </a>
             </div>
           </div>

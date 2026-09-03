@@ -40,13 +40,13 @@ export function OrganizationSchema() {
       ]
     },
     "telephone": "+33687157259",
-    "email": "arthur.lemeille@lemeillepatrimoine.com",
+    "email": "arthur@lemeillepatrimoine.com",
     "contactPoint": [
       {
         "@type": "ContactPoint",
         "telephone": "+33687157259",
         "contactType": "customer service",
-        "email": "arthur.lemeille@lemeillepatrimoine.com",
+        "email": "arthur@lemeillepatrimoine.com",
         "areaServed": "FR",
         "availableLanguage": ["French"]
       }

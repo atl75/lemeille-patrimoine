@@ -188,7 +188,7 @@ export default function Page(){
             📞 <a href="tel:+33687157259" className="text-[#B89C6D] hover:underline">+33 6 87 15 72 59</a>
           </li>
           <li className="mb-2">
-            ✉️ <a href="mailto:arthur.lemeille@lemeillepatrimoine.com" className="text-[#B89C6D] hover:underline">arthur.lemeille@lemeillepatrimoine.com</a>
+            ✉️ <a href="mailto:arthur@lemeillepatrimoine.com" className="text-[#B89C6D] hover:underline">arthur@lemeillepatrimoine.com</a>
           </li>
           <li>
             <Link href="/contact" className="text-[#B89C6D] hover:underline">Formulaire de contact</Link>

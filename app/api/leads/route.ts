@@ -233,7 +233,7 @@ export async function POST(req: Request){
         }
         await resend.emails.send({
           from: process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>',
-          to: process.env.LEADS_TO_EMAIL || 'arthur.lemeille@lemeillepatrimoine.com',
+          to: process.env.LEADS_TO_EMAIL || 'arthur@lemeillepatrimoine.com',
           subject,
           html,
         });
@@ -269,7 +269,7 @@ export async function POST(req: Request){
         const resend = new Resend(process.env.RESEND_API_KEY);
         await resend.emails.send({
           from: process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>',
-          to: process.env.LEADS_TO_EMAIL || 'arthur.lemeille@lemeillepatrimoine.com',
+          to: process.env.LEADS_TO_EMAIL || 'arthur@lemeillepatrimoine.com',
           subject: `📧 Nouveau contact — ${payload.firstName} ${payload.lastName}${payload.topic ? ` — ${payload.topic}` : ''}`,
           html: formatContactEmail(payload)
         });

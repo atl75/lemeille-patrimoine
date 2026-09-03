@@ -45,7 +45,7 @@ Inspired by Sotheby's International Realty and French agencies like Barnes, the 
   - CRM (/admin/crm - active) - lead management with detailed analytics
   - KPI tracking (/admin/kpi - active)
 - **API Endpoints**: RESTful API for CRUD operations on properties, programs, reviews, leads, and authentication. Includes dynamic PDF generation for property brochures. GET /api/leads returns all leads, POST /api/leads creates new leads (supports both FormData and JSON).
-- **Email Notifications**: Automated email system via Resend API that sends HTML-formatted reports to arthur.lemeille@lemeillepatrimoine.com for:
+- **Email Notifications**: Automated email system via Resend API that sends HTML-formatted reports to arthur@lemeillepatrimoine.com for:
   - **Estimation Requests**: Includes property details (address, type, surface, DPE, condition, amenities) and contact information
   - **Contact Form Submissions**: Includes sender info (name, email, phone, topic) and message content
 - **PatrimoineSimulator**: Interactive calculator on /patrimoine page that captures user inputs (price, loan, rent, taxes, fiscal regime) and calculated results (mensualité, cash-flow, économie fiscale), then sends full simulation data to CRM via /api/leads with structured meta field.
