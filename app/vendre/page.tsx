@@ -74,11 +74,10 @@ export default async function Page() {
         image="/hero-normandie.jpg"
       />
 
-      <section className="container py-6">
-        <Breadcrumb items={[{ label: "Accueil", href: "/" }, { label: "Vendre à Rouen" }]} />
-      </section>
-
-      {/* Réassurance */}
+      {/* Réassurance — juste sous le Hero, AVANT le fil d'Ariane. Les signaux
+          arrivent donc dans le premier écran, comme sur l'accueil. Contenu
+          propre à la page vente : ce n'est pas <BandeauReassurance>, qui ne
+          vit plus que sur l'accueil. */}
       <section className="border-y border-black/5 bg-white/70">
         <div className="container py-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           {[
@@ -93,6 +92,10 @@ export default async function Page() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="container py-6">
+        <Breadcrumb items={[{ label: "Accueil", href: "/" }, { label: "Vendre à Rouen" }]} />
       </section>
 
       <Section
