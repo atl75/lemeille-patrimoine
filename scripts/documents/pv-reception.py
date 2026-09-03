@@ -11,7 +11,17 @@ ne figure NULLE PART sur ce document. Une ASL n'en détient pas, et faire
 apparaître une carte d'agent immobilier sur un acte de réception de travaux
 serait faux.
 
-    python3 scripts/documents/pv-reception.py [chemin-de-sortie.pdf]
+UN PROCÈS-VERBAL PAR LOT. Chaque acquéreur réceptionne et signe le sien : le
+document ne porte donc plus six lots à cocher, mais un seul lot identifié. Un
+septième document couvre les parties communes, réceptionnées par l'ASL.
+
+Les entreprises interviennent sous la maîtrise d'œuvre de SBVH, qui est le seul
+interlocuteur technique : le procès-verbal le dit, plutôt que de laisser un
+champ « entreprise » que l'acquéreur ne saurait pas remplir.
+
+    python3 scripts/documents/pv-reception.py            tous les documents
+    python3 scripts/documents/pv-reception.py --lot 3    un seul
+    python3 scripts/documents/pv-reception.py --communes parties communes
 """
 import sys
 from reportlab.lib.pagesizes import A4
@@ -119,7 +129,7 @@ def paragraphe(c, y, texte, taille=7.6, interligne=3.9 * mm, largeur=None):
     return y
 
 
-def page1(c):
+def page1(c, lot):
     entete(c, 1)
     y = 256 * mm
     c.setFillColorRGB(*VERT)
@@ -143,33 +153,40 @@ def page1(c):
                  "Association constituée par les copropriétaires de l'immeuble pour la conduite des travaux communs")
     y -= 4 * mm
     y = ligne_champ(c, y, "Représentée par :")
-    y = ligne_champ(c, y, "Entreprise / lot technique :")
     y = ligne_champ(c, y, "Maître d'œuvre :", MAITRE_OEUVRE)
+    c.setFillColorRGB(*GRIS)
+    c.setFont("Helvetica-Oblique", 7.2)
+    c.drawString(L + 42 * mm, y + 1.5 * mm,
+                 "Les entreprises intervenantes agissent sous sa maîtrise d'œuvre")
+    y -= 4 * mm
     y = ligne_champ(c, y, "Marché / devis n° :")
     y -= 3 * mm
 
-    y = titre_section(c, y, "LOT(S) RÉCEPTIONNÉ(S)")
-    c.setFillColorRGB(*GRIS)
-    c.setFont("Helvetica-Oblique", 7.5)
-    c.drawString(L, y, "Cocher le ou les lots concernés par le présent procès-verbal.")
-    y -= 6 * mm
-    for i, (nom, etage, surface) in enumerate(LOTS):
-        col = i % 2
-        x = L + col * 85 * mm
-        case(c, x, y - 0.6 * mm)
-        c.setFillColorRGB(0, 0, 0)
-        c.setFont("Helvetica", 8.5)
-        c.drawString(x + 5.5 * mm, y, f"{nom} — {etage} — {surface}")
-        if col == 1:
-            y -= 6 * mm
-    if len(LOTS) % 2:
+    if lot:
+        nom, etage, surface = lot
+        y = titre_section(c, y, "LOT RÉCEPTIONNÉ")
+        c.setFillColorRGB(*VERT)
+        c.setFont("Helvetica-Bold", 13)
+        c.drawString(L, y, f"{nom} — {etage} étage — {surface}")
         y -= 6 * mm
-    y -= 1 * mm
-    case(c, L, y - 0.6 * mm)
-    c.setFillColorRGB(0, 0, 0)
-    c.setFont("Helvetica", 8.5)
-    c.drawString(L + 5.5 * mm, y, "Parties communes : cage d'escalier, hall, façade, toiture, réseaux collectifs")
-    y -= 8 * mm
+        y = ligne_champ(c, y, "Acquéreur du lot :")
+        c.setFillColorRGB(*GRIS)
+        c.setFont("Helvetica-Oblique", 7.2)
+        c.drawString(L, y + 1.5 * mm,
+                     "Le présent procès-verbal porte sur ce seul lot. Les parties communes font "
+                     "l'objet d'un procès-verbal distinct, signé par l'association.")
+        y -= 7 * mm
+    else:
+        y = titre_section(c, y, "PARTIES COMMUNES RÉCEPTIONNÉES")
+        c.setFillColorRGB(0, 0, 0)
+        c.setFont("Helvetica", 9)
+        c.drawString(L, y, "Cage d'escalier, hall, façade, toiture, réseaux collectifs.")
+        y -= 5 * mm
+        c.setFillColorRGB(*GRIS)
+        c.setFont("Helvetica-Oblique", 7.2)
+        c.drawString(L, y, "Réceptionnées par l'association pour le compte de l'ensemble des copropriétaires. "
+                           "Chaque lot privatif fait l'objet d'un procès-verbal distinct.")
+        y -= 9 * mm
 
     y = titre_section(c, y, "DÉCISION DE RÉCEPTION")
     c.setFillColorRGB(*GRIS)
@@ -204,11 +221,18 @@ def page1(c):
     )
     y = titre_section(c, y, "SIGNATURES")
     largeur = (R - L - 10 * mm) / 3
-    for i, (qui, sous) in enumerate([
-        ("Le maître d'ouvrage", "ASL du 60 rue d'Amiens"),
-        ("L'entreprise", "Nom et qualité du signataire"),
-        ("Le maître d'œuvre", MAITRE_OEUVRE),
-    ]):
+    # Qui signe dépend de ce qui est réceptionné : l'acquéreur pour son lot
+    # privatif, l'association pour les parties communes.
+    signataires = (
+        [("L'acquéreur", f"{lot[0]} — {lot[1]} étage"),
+         ("Le maître d'œuvre", MAITRE_OEUVRE),
+         ("Pour l'association", "ASL du 60 rue d'Amiens")]
+        if lot else
+        [("Le maître d'ouvrage", "ASL du 60 rue d'Amiens"),
+         ("Le maître d'œuvre", MAITRE_OEUVRE),
+         ("Le président de l'ASL", "ou son représentant")]
+    )
+    for i, (qui, sous) in enumerate(signataires):
         x = L + i * (largeur + 5 * mm)
         c.setFillColorRGB(*VERT)
         c.setFont("Helvetica-Bold", 8.5)
@@ -279,7 +303,7 @@ def effets_et_documents(c, y):
     return y
 
 
-def page2(c):
+def page2(c, lot):
     entete(c, 2)
     y = 256 * mm
     y = effets_et_documents(c, y)
@@ -290,7 +314,8 @@ def page2(c):
     y -= 6 * mm
     c.setFillColorRGB(*GRIS)
     c.setFont("Helvetica-Oblique", 8)
-    c.drawString(L, y, f"Annexée au procès-verbal de réception du chantier {CHANTIER.split(' — ')[0]}")
+    quoi = f"{lot[0]} — {lot[1]} étage" if lot else "parties communes"
+    c.drawString(L, y, f"Annexée au procès-verbal de réception — {quoi} — {CHANTIER.split(' — ')[0]}")
     y -= 9 * mm
     y = paragraphe(c, y, "Les réserves ci-dessous doivent être levées dans le délai convenu. Leur levée "
                          "fait l'objet d'un constat contradictoire. À défaut de levée dans le délai imparti, "
@@ -342,17 +367,39 @@ def page2(c):
     pied(c, 2)
 
 
-def main():
-    sortie = sys.argv[1] if len(sys.argv) > 1 else "PV-reception-ASL-60-rue-d-Amiens.pdf"
-    c = canvas.Canvas(sortie, pagesize=A4)
-    c.setTitle("Procès-verbal de réception des travaux — 60 rue d'Amiens")
+def document(chemin, lot):
+    c = canvas.Canvas(chemin, pagesize=A4)
+    quoi = f"{lot[0]}" if lot else "parties communes"
+    c.setTitle(f"Procès-verbal de réception — {quoi} — 60 rue d'Amiens")
     c.setAuthor(ASL_NOM)
-    page1(c)
+    page1(c, lot)
     c.showPage()
-    page2(c)
+    page2(c, lot)
     c.showPage()
     c.save()
-    print(f"écrit : {sortie}")
+    return chemin
+
+
+def main():
+    args = sys.argv[1:]
+    base = "PV-reception-60-rue-d-Amiens"
+
+    if "--lot" in args:
+        n = args[args.index("--lot") + 1]
+        lot = next((l for l in LOTS if l[0] == f"Lot {n}"), None)
+        if not lot:
+            sys.exit(f"lot inconnu : {n} — disponibles : {', '.join(l[0] for l in LOTS)}")
+        print("écrit :", document(f"{base}-lot-{n}.pdf", lot))
+        return
+
+    if "--communes" in args:
+        print("écrit :", document(f"{base}-parties-communes.pdf", None))
+        return
+
+    for lot in LOTS:
+        n = lot[0].split()[1]
+        print("écrit :", document(f"{base}-lot-{n}.pdf", lot))
+    print("écrit :", document(f"{base}-parties-communes.pdf", None))
 
 
 if __name__ == "__main__":
