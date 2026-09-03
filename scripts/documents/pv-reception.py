@@ -23,12 +23,13 @@ ASL_NOM = "ASSOCIATION SYNDICALE LIBRE DU 60 RUE D'AMIENS"
 ASL_ADRESSE = "60 rue d'Amiens, 76000 Rouen"
 # .title() donnait « Du 60 Rue D'Amiens » : on écrit la forme correcte.
 ASL_NOM_COURANT = "Association Syndicale Libre du 60 rue d'Amiens"
-CHANTIER = "60 rue d'Amiens, 76000 Rouen — réhabilitation complète d'un immeuble de rapport"
+CHANTIER = "60 rue d'Amiens, 76000 Rouen — réhabilitation complète d'un immeuble"
 
 # Lots, repris de la fiche du programme.
+# Les lots 1 et 2 (1er étage) ne relèvent pas de ce procès-verbal. Les numéros
+# des lots restants sont CONSERVÉS tels quels : ils renvoient au règlement de
+# copropriété, les renuméroter créerait un décalage avec tous les autres actes.
 LOTS = [
-    ("Lot 1", "1er", "47 m²"),
-    ("Lot 2", "1er", "36 m²"),
     ("Lot 3", "2ème", "45,6 m²"),
     ("Lot 4", "2ème", "36,6 m²"),
     ("Lot 5", "3ème", "47 m²"),
