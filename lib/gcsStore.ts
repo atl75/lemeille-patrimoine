@@ -1,37 +1,26 @@
 /**
- * ⚠ PAS BRANCHÉ. Conservé parce qu'il fonctionne et qu'il servira, mais il
- * n'est appelé par personne. Voir la note dans lib/utils.ts.
+ * Accès aux données par l'API JSON de Google Cloud Storage.
  *
- * Le mécanisme lui-même est vérifié sur le bucket réel : une écriture portant
- * une génération périmée est refusée en 412, ce qui empêche l'écrasement.
- * Ce qui manque, c'est la lecture : tant que readJSON passe par le montage
- * gcsfuse et l'écriture par l'API, les deux vues divergent — une lecture
- * suivant une écriture renvoie la donnée d'avant. Le brancher suppose donc de
- * faire passer AUSSI la lecture par l'API, avec un cache court par instance
- * pour ne pas payer un aller-retour réseau à chaque rendu.
+ * LECTURE ET ÉCRITURE PAR LE MÊME CHEMIN. C'est le point qui a fait échouer la
+ * première tentative, le 3 septembre au matin : écrire par l'API et lire par le
+ * montage gcsfuse donne deux vues du même fichier, et une lecture suivant une
+ * écriture renvoyait la donnée d'avant. Les deux passent désormais par l'API.
  *
- * Lecture-modification-écriture ATOMIQUE ENTRE INSTANCES, via l'API JSON de
- * Google Cloud Storage.
+ * ÉCRITURE SOUS PRÉCONDITION. GCS accepte `ifGenerationMatch` : « n'écris que si
+ * l'objet est toujours dans la version que j'ai lue ». C'est un compare-et-
+ * échange fortement cohérent, qui rend l'écriture sûre ENTRE INSTANCES — ce que
+ * le verrou en mémoire de lib/utils.ts ne peut pas faire. Sur conflit, GCS
+ * répond 412 et la mutation est rejouée sur la donnée fraîche.
  *
- * LE PROBLÈME QU'IL RÉSOUT
- * lib/utils.ts sérialise les écritures avec une file en mémoire du processus.
- * Elle protège parfaitement UNE instance. Cloud Run peut en lancer dix, chacune
- * avec la sienne, toutes écrivant les mêmes fichiers du bucket monté : deux
- * écritures simultanées sur deux instances différentes, et l'une efface l'autre.
+ * CACHE COURT EN LECTURE. Sans lui, chaque rendu paierait un aller-retour
+ * réseau — l'accueil lit trois fois le même fichier. Le cache est invalidé par
+ * toute écriture de CETTE instance, donc une lecture qui suit une écriture voit
+ * toujours la bonne donnée.
  *
- * COMMENT
- * GCS accepte une précondition `ifGenerationMatch` sur l'écriture : « n'écris
- * que si l'objet est toujours dans la version que j'ai lue ». C'est un
- * compare-et-échange, fortement cohérent, et il ne dépend pas du montage
- * gcsfuse — donc pas non plus de son cache. On lit l'objet avec sa génération,
- * on applique la mutation, on réécrit sous précondition. Si un autre a écrit
- * entre-temps, GCS répond 412 et l'on recommence sur la donnée fraîche.
- *
- * DÉGRADATION
- * Tout est optionnel. Sans serveur de métadonnées (poste de développement),
- * sans droits, ou en cas de panne de l'API, `disponible()` renvoie faux et
- * lib/utils.ts reprend le chemin fichier d'aujourd'hui. Le pire cas est donc le
- * comportement actuel, jamais moins bon.
+ * JAMAIS ACTIF SOUS TEST. La première tentative a écrit un fichier d'essai dans
+ * le bucket de PRODUCTION, parce que les tests tournaient dans Cloud Build —
+ * qui est un environnement GCP. Le garde-fou ne dépend plus d'une variable
+ * qu'on peut oublier de poser : il reconnaît le lanceur de tests lui-même.
  */
 
 const BUCKET = process.env.DATA_BUCKET || "lemeille-patrimoine-2026-data";
@@ -68,10 +57,14 @@ async function jeton(): Promise<string | null> {
 
 /** L'API est-elle utilisable ici ? Testé une fois, puis mémorisé. */
 export async function disponible(): Promise<boolean> {
-  // Jamais actif sous test. Les tests ont tourné dans Cloud Build, qui EST un
-  // environnement GCP : le serveur de métadonnées a répondu, et la suite a
-  // écrit un fichier d'essai dans le bucket de PRODUCTION. Une fois suffit.
-  if (process.env.NODE_ENV === "test" || process.env.LP_SANS_GCS === "1") return false;
+  // NODE_TEST_CONTEXT est posé par « node --test » lui-même : contrairement à
+  // NODE_ENV, il ne peut pas être oublié dans un script npm. C'est cet oubli
+  // qui avait laissé les tests écrire dans le bucket de production.
+  if (
+    process.env.NODE_TEST_CONTEXT ||
+    process.env.NODE_ENV === "test" ||
+    process.env.LP_SANS_GCS === "1"
+  ) return false;
   if (apiUtilisable !== null) return apiUtilisable;
   apiUtilisable = (await jeton()) !== null;
   return apiUtilisable;
@@ -130,6 +123,57 @@ async function ecrire(
 
 const dormir = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Cache par fichier, propre à l'instance. Trois secondes : assez pour absorber
+// les lectures répétées d'un même rendu, assez court pour qu'une écriture faite
+// par une AUTRE instance soit vue rapidement.
+const TTL_MS = 3000;
+const cache = new Map<string, { donnees: any[]; generation: string; expire: number }>();
+
+function memoriser(fichier: string, donnees: any[], generation: string) {
+  cache.set(fichier, { donnees, generation, expire: Date.now() + TTL_MS });
+}
+
+/** Vide le cache d'un fichier — après toute écriture de cette instance. */
+export function oublier(fichier: string) {
+  cache.delete(fichier);
+}
+
+/**
+ * Lit un fichier. Renvoie `null` si l'API n'est pas utilisable ici : l'appelant
+ * doit alors reprendre le chemin fichier.
+ */
+export async function lireJSON(fichier: string): Promise<any[] | null> {
+  if (!(await disponible())) return null;
+  const frais = cache.get(fichier);
+  if (frais && frais.expire > Date.now()) return frais.donnees;
+  const auth = await jeton();
+  if (!auth) return null;
+  const { donnees, generation } = await lire(fichier, auth);
+  memoriser(fichier, donnees, generation);
+  return donnees;
+}
+
+/**
+ * Écrit un fichier sans précondition — remplacement volontaire du contenu.
+ * Renvoie false si l'API n'est pas utilisable.
+ */
+export async function ecrireJSON(fichier: string, donnees: any): Promise<boolean> {
+  if (!(await disponible())) return false;
+  const auth = await jeton();
+  if (!auth) return false;
+  const url =
+    `https://storage.googleapis.com/upload/storage/v1/b/${BUCKET}/o` +
+    `?uploadType=media&name=${encodeURIComponent(fichier)}`;
+  const r = await fetch(url, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${auth}`, "Content-Type": "application/json" },
+    body: JSON.stringify(donnees, null, 2),
+  });
+  if (!r.ok) throw new Error(`écriture GCS ${r.status}`);
+  oublier(fichier);
+  return true;
+}
+
 /**
  * Applique `mutation` au fichier, de façon atomique entre toutes les instances.
  *
@@ -142,6 +186,7 @@ export async function modifierAtomiquement<T>(
   mutation: (donnees: any[]) => T | Promise<T>,
   estSansEcriture: (r: unknown) => boolean
 ): Promise<{ ok: true; resultat: T } | { ok: false }> {
+  if (!(await disponible())) return { ok: false };
   const auth = await jeton();
   if (!auth) return { ok: false };
 
@@ -153,6 +198,9 @@ export async function modifierAtomiquement<T>(
 
     const aEcrire = Array.isArray(resultat) ? resultat : donnees;
     if (await ecrire(fichier, auth, aEcrire, generation)) {
+      // La donnée écrite est celle que verra la prochaine lecture de cette
+      // instance : on la mémorise plutôt que de la relire.
+      oublier(fichier);
       return { ok: true, resultat: resultat as T };
     }
 

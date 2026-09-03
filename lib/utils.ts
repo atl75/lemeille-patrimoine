@@ -1,9 +1,24 @@
 import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
+import {
+  disponible as gcsDisponible,
+  lireJSON as gcsLire,
+  ecrireJSON as gcsEcrire,
+  modifierAtomiquement,
+} from './gcsStore.ts';
 const DATA_DIR = path.join(process.cwd(), 'data');
 async function ensureDataDir() { try { await fs.mkdir(DATA_DIR, { recursive: true }); } catch {} }
+// Lecture par l'API GCS quand elle est disponible, sinon par le fichier monté.
+// Le chemin doit être LE MÊME que celui de l'écriture : lire par gcsfuse ce
+// qu'on écrit par l'API donne deux vues divergentes du même fichier.
 export async function readJSON(file: string) {
+  try {
+    const parAPI = await gcsLire(file);
+    if (parAPI !== null) return parAPI;
+  } catch (e) {
+    console.error(`[donnees] lecture API indisponible pour ${file}, repli fichier :`, e);
+  }
   await ensureDataDir();
   const p = path.join(DATA_DIR, file);
   try { const raw = await fs.readFile(p, 'utf-8'); return JSON.parse(raw || '[]'); } catch { return []; }
@@ -30,7 +45,15 @@ async function atomicWrite(p: string, data: any) {
 
 export function writeJSON(file: string, data: any): Promise<void> {
   const p = path.join(DATA_DIR, file);
-  return withFileLock(file, async () => { await ensureDataDir(); await atomicWrite(p, data); });
+  return withFileLock(file, async () => {
+    try {
+      if (await gcsEcrire(file, data)) return;
+    } catch (e) {
+      console.error(`[donnees] écriture API indisponible pour ${file}, repli fichier :`, e);
+    }
+    await ensureDataDir();
+    await atomicWrite(p, data);
+  });
 }
 
 // Sentinelle à renvoyer depuis le mutateur d'updateJSON pour ressortir SANS
@@ -53,24 +76,31 @@ export async function updateJSON<T = any>(
   file: string,
   mutate: (data: any[]) => T | typeof SANS_ECRITURE | Promise<T | typeof SANS_ECRITURE>
 ): Promise<T | typeof SANS_ECRITURE> {
-  // NOTE — lib/gcsStore.ts implémente un compare-et-échange atomique entre
-  // instances et il a été branché ici le 3 septembre 2026. Il en a été RETIRÉ
-  // le jour même : la suite de tests, exécutée dans Cloud Build (donc dans
-  // GCP), a montré deux choses que la lecture du code ne montrait pas.
+  // Compare-et-échange sur l'API quand elle est là — c'est ce qui rend
+  // l'écriture sûre entre instances. Le verrou en mémoire ci-dessous ne protège
+  // qu'un processus, et Cloud Run peut en lancer plusieurs.
   //
-  //   1. Écrire par l'API et lire par le montage gcsfuse donne deux vues
-  //      différentes du même fichier. Une lecture suivant immédiatement une
-  //      écriture renvoyait la donnée d'avant.
-  //   2. Sous forte contention, le budget de six essais s'épuisait, l'erreur
-  //      était rattrapée, et l'on retombait sur le chemin fichier — qui
-  //      réécrivait par-dessus le résultat du compare-et-échange.
+  // `mutate` peut être REJOUÉE en cas de conflit : elle reçoit alors la donnée
+  // fraîche. Elle ne doit donc avoir aucun effet de bord externe — pas d'envoi
+  // d'email, pas d'écriture ailleurs — seulement transformer le tableau reçu.
   //
-  // Le compare-et-échange n'est donc sûr QUE si la lecture passe aussi par
-  // l'API. C'est un chantier à part entière : readJSON est appelé partout, il
-  // faudrait un cache court par instance pour ne pas payer un aller-retour
-  // réseau à chaque rendu. Tant que ce n'est pas fait, on garde le chemin
-  // fichier : le verrou ne franchit pas les instances, et le garde-fou reste
-  // `--max-instances=1`.
+  // Si le compare-et-échange épuise ses tentatives, on LÈVE. Retomber sur le
+  // fichier réécrirait par-dessus une écriture concurrente réussie : c'est
+  // exactement le défaut qui a fait annuler la première version.
+  try {
+    if (await gcsDisponible()) {
+      const r = await modifierAtomiquement<T | typeof SANS_ECRITURE>(
+        file,
+        mutate as any,
+        (x: unknown) => x === SANS_ECRITURE
+      );
+      if (r.ok) return r.resultat;
+    }
+  } catch (e) {
+    if (await gcsDisponible()) throw e;   // l'API est là mais a échoué : ne pas masquer
+    console.error(`[donnees] API indisponible pour ${file}, repli fichier :`, e);
+  }
+
   const p = path.join(DATA_DIR, file);
   return withFileLock(file, async () => {
     await ensureDataDir();

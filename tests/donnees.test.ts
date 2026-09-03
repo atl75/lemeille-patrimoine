@@ -117,3 +117,43 @@ describe("getVideoInfo", () => {
     assert.ok(utils.getVideoEmbedUrl("https://youtu.be/x")?.includes("youtube-nocookie.com"));
   });
 });
+
+describe("isolation : la couche GCS ne doit JAMAIS s'activer sous test", () => {
+  // Le 3 septembre au matin, la suite a écrit un fichier d'essai dans le bucket
+  // de PRODUCTION : les tests tournaient dans Cloud Build, qui est un
+  // environnement GCP, et le garde-fou reposait sur NODE_ENV — que
+  // « node --test » ne pose pas. Ce test verrouille la correction.
+  test("le lanceur de tests est reconnu par lui-même", () => {
+    assert.ok(
+      process.env.NODE_TEST_CONTEXT,
+      "NODE_TEST_CONTEXT devrait être posé par node --test ; sans lui, le garde-fou retombe sur une variable qu'on peut oublier"
+    );
+  });
+
+  test("disponible() renvoie faux, quel que soit l'environnement", async () => {
+    const gcs = await import("../lib/gcsStore.ts");
+    assert.equal(
+      await gcs.disponible(),
+      false,
+      "la couche GCS s'activerait sous test — elle écrirait dans le bucket de production"
+    );
+  });
+
+  test("lireJSON et ecrireJSON refusent d'agir", async () => {
+    const gcs = await import("../lib/gcsStore.ts");
+    assert.equal(await gcs.lireJSON("properties.json"), null);
+    assert.equal(await gcs.ecrireJSON("properties.json", []), false);
+  });
+
+  test("modifierAtomiquement rend la main sans rien écrire", async () => {
+    const gcs = await import("../lib/gcsStore.ts");
+    let appelee = false;
+    const r = await gcs.modifierAtomiquement(
+      "properties.json",
+      (d: any[]) => { appelee = true; return d; },
+      () => false
+    );
+    assert.equal(r.ok, false);
+    assert.equal(appelee, false, "la mutation ne doit même pas être exécutée");
+  });
+});
