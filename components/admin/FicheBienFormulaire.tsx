@@ -1021,7 +1021,7 @@ export default function FicheBienFormulaire({
                     data-testid="checkbox-entree-gamme"
                     className="w-3.5 h-3.5"
                   />
-                  <span>Bien d'investissement</span>
+                  <span>Bien d&apos;investissement</span>
                 </label>
               </div>
 

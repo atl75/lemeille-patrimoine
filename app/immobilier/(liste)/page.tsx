@@ -353,7 +353,7 @@ export default async function Page({ searchParams }: {
           {entree.length > 0 && (
             <section className="container pb-12">
               <div className="border-t border-gold/20 pt-8">
-                <h2 className="luxe text-2xl md:text-3xl text-luxe">Biens d'investissement</h2>
+                <h2 className="luxe text-2xl md:text-3xl text-luxe">Biens d&apos;investissement</h2>
                 <p className="mt-1 text-sm text-luxe/70 max-w-2xl">
                   Des biens plus accessibles — idéals pour un premier achat, un pied-à-terre ou un investissement à budget maîtrisé.
                 </p>
