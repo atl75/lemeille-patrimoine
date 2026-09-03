@@ -65,10 +65,15 @@ export default async function Home() {
     <main>
       {/* HERO — diaporama plein cadre + CTA unique */}
       <section className="relative isolate overflow-hidden">
+        {/* Deux vues et non trois : la chaumière sert désormais au bandeau
+            « Le terrain » plus bas. La laisser ici la faisait réapparaître un
+            écran et demi plus loin — le bloc censé rompre la répétition la
+            produisait lui-même. Les trois seules photos déclinées en WebP dans
+            public/hero sont accueil, chaumiere et normandie : toute nouvelle
+            image doit d'abord y être générée, sinon le loader renvoie un 404. */}
         <HeroSlideshow
           images={[
             { src: "/hero-normandie.jpg", alt: "Maison de caractère en Normandie, région de Rouen" },
-            { src: "/hero-chaumiere.jpg", alt: "Chaumière normande traditionnelle à colombages, campagne rouennaise" },
             { src: "/hero-accueil.jpg", alt: "Immeuble haussmannien de caractère à l'heure dorée" },
           ]}
         />
@@ -138,12 +143,17 @@ export default async function Home() {
           au premier tiers : pas de carte, pas de conteneur, une photo et une
           phrase. Texte repris de /qui-suis-je pour ne rien affirmer de neuf. */}
       <section className="relative isolate overflow-hidden">
+        {/* alt vide : la photo est un fond, pas un contenu. Même convention que
+            HeroSlideshow, qui neutralise ses images. Un alt descriptif la
+            faisait annoncer juste après « Voir tous nos biens », où rien ne la
+            distinguait d'un quatrième bien à vendre.
+            Pas de prop quality : next.config n'autorise que 75 et 85, et le
+            loader maison ignore de toute façon ce paramètre pour /hero-*.jpg. */}
         <Image
           src="/hero-chaumiere.jpg"
-          alt="Chaumière normande à colombages dans la campagne rouennaise"
+          alt=""
           fill
           sizes="100vw"
-          quality={80}
           className="object-cover object-[center_58%]"
         />
         {/* Voile calé sur le contraste, pas sur l'œil. La chaumière a des pixels
@@ -160,9 +170,7 @@ export default async function Home() {
           {/* Même largeur de texte que le hero : les lignes s'arrêtent avant
               que le voile ne s'éclaircisse. */}
           <div className="max-w-xl">
-            <span className="text-xs font-medium uppercase tracking-[0.19em] text-gold">
-              Le terrain
-            </span>
+            <span className="eyebrow">Le terrain</span>
             <p className="mt-4 luxe text-2xl md:text-[2rem] leading-[1.3] text-cream">
               Rouen, Mont-Saint-Aignan, Bois-Guillaume, Bihorel, Isneauville.
             </p>
