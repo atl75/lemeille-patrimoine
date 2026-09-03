@@ -21,7 +21,6 @@
     "@turf/turf": "^7.2.0",
     "cheerio": "^1.1.2",
     "cloudinary": "^2.10.0",
-    "clsx": "2.1.1",
     "drizzle-orm": "^0.45.2",
     "drizzle-zod": "^0.8.3",
     "lucide-react": "0.453.0",
@@ -32,7 +31,6 @@
     "react-dom": "18.2.0",
     "recharts": "^3.10.0",
     "resend": "^6.4.1",
-    "tailwindcss-animate": "^1.0.7",
     "zod": "^4.1.12"
   },
   "devDependencies": {
