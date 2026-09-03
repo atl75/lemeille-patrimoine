@@ -7,6 +7,7 @@ import EstimationForm from "@/components/EstimationFormLazy";
 import { getPropertyCards } from "@/lib/propertiesData";
 import type { Metadata } from "next";
 import BandeauReassurance from "@/components/BandeauReassurance";
+import PreuveVentes from "@/components/PreuveVentes";
 
 export const metadata: Metadata = {
   title: "Agence immobilière à Rouen | Lemeille Patrimoine",
@@ -42,6 +43,35 @@ async function getSoldCount() {
   }
 }
 
+// Trois ventes réelles pour le bandeau de preuve, choisies pour couvrir
+// l'amplitude du portefeuille : la plus grande, la médiane, la plus petite.
+// Tant que les dates de vente ne sont pas fiables (quinze fiches portent encore
+// la date d'import), on ne peut pas prendre « les trois plus récentes » — la
+// surface est le seul critère qui distingue honnêtement les fiches entre elles.
+async function getPreuves() {
+  try {
+    const all = await getPropertyCards();
+    const vendus = all
+      .filter((p: any) => p && p.visible !== false && (p.sold || p.status === 'SOLD'))
+      .filter((p: any) => String(p.region || '').toUpperCase() === 'NORMANDIE')
+      .filter((p: any) => Number(p.surface) > 0)
+      .sort((a: any, b: any) => (b.surface || 0) - (a.surface || 0));
+
+    // Le lien renvoie vers /references, qui présente TOUT le portefeuille vendu
+    // et sous compromis, toutes régions. Compter seulement les normands ici
+    // annoncerait 13 alors que la page en affiche 19.
+    const total = all.filter(
+      (p: any) => p && p.visible !== false && (p.sold || p.status === 'SOLD' || p.status === 'UNDER_OFFER')
+    ).length;
+
+    if (vendus.length < 3) return { ventes: [], total };
+    const choix = [vendus[0], vendus[Math.floor(vendus.length / 2)], vendus[vendus.length - 1]];
+    return { ventes: choix, total };
+  } catch {
+    return { ventes: [], total: 0 };
+  }
+}
+
 async function getFeatured() {
   try {
     const all = await getPropertyCards();
@@ -60,21 +90,22 @@ async function getFeatured() {
 }
 
 export default async function Home() {
-  const [featured, soldCount] = await Promise.all([getFeatured(), getSoldCount()]);
+  const [featured, soldCount, preuves] = await Promise.all([getFeatured(), getSoldCount(), getPreuves()]);
   return (
     <main>
       {/* HERO — diaporama plein cadre + CTA unique */}
       <section className="relative isolate overflow-hidden">
-        {/* Deux vues et non trois : la chaumière sert désormais au bandeau
-            « Le terrain » plus bas. La laisser ici la faisait réapparaître un
-            écran et demi plus loin — le bloc censé rompre la répétition la
-            produisait lui-même. Les trois seules photos déclinées en WebP dans
-            public/hero sont accueil, chaumiere et normandie : toute nouvelle
-            image doit d'abord y être générée, sinon le loader renvoie un 404. */}
+        {/* Deux vues et non trois : le haussmannien sert désormais au bandeau
+            « Le terrain » plus bas, où il colle au texte — une liste de communes
+            urbaines. Le laisser aussi ici le faisait réapparaître un écran et
+            demi plus loin, et le bloc censé rompre la répétition la produisait
+            lui-même. Les seules photos déclinées en WebP dans public/hero sont
+            accueil, chaumiere et normandie : toute nouvelle image doit d'abord y
+            être générée en 640/828/1200/1600/2400, sinon le loader renvoie un 404. */}
         <HeroSlideshow
           images={[
             { src: "/hero-normandie.jpg", alt: "Maison de caractère en Normandie, région de Rouen" },
-            { src: "/hero-accueil.jpg", alt: "Immeuble haussmannien de caractère à l'heure dorée" },
+            { src: "/hero-chaumiere.jpg", alt: "Chaumière normande traditionnelle à colombages, campagne rouennaise" },
           ]}
         />
         {/* Voile vert dégradé — lisibilité du texte, le vert devient un accent et non un mur */}
@@ -150,11 +181,11 @@ export default async function Home() {
             Pas de prop quality : next.config n'autorise que 75 et 85, et le
             loader maison ignore de toute façon ce paramètre pour /hero-*.jpg. */}
         <Image
-          src="/hero-chaumiere.jpg"
+          src="/hero-accueil.jpg"
           alt=""
           fill
           sizes="100vw"
-          className="object-cover object-[center_58%]"
+          className="object-cover object-[center_42%]"
         />
         {/* Voile calé sur le contraste, pas sur l'œil. La chaumière a des pixels
             très clairs (ciel, crépi) : un dégradé horizontal seul laissait le
@@ -263,6 +294,11 @@ export default async function Home() {
             trois sections plus haut. Deux boutons dorés vers la même page se
             diluaient l'un l'autre. */}
       </Section>
+
+      {/* PREUVE — juste avant le formulaire : on demande une estimation après
+          avoir montré des ventes réelles. Ruban sombre pleine largeur : deuxième
+          rupture de la série de grilles, après le bandeau « Le terrain ». */}
+      <PreuveVentes ventes={preuves.ventes} total={preuves.total} />
 
       {/* Estimation gratuite — demande client */}
       <div id="estimation">
