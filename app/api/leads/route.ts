@@ -85,6 +85,7 @@ function formatEstimationEmail(payload: any): string {
           <div class="info-row"><span class="label">État :</span> ${prop.condition || 'Non renseigné'}</div>
           <div class="info-row"><span class="label">DPE :</span> ${prop.dpe || 'Non renseigné'}</div>
           ${prop.type === 'Appartement' && prop.floor ? `<div class="info-row"><span class="label">Étage :</span> ${prop.floor}${prop.elevator ? ' (avec ascenseur)' : ' (sans ascenseur)'}</div>` : ''}
+          ${prop.extBalcon ? `<div class="info-row"><span class="label">Balcon :</span> ${prop.extBalcon} m²</div>` : ''}
         </div>
         
         ${atouts.length > 0 ? `
