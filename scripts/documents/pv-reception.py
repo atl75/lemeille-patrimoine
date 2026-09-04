@@ -12,16 +12,17 @@ apparaître une carte d'agent immobilier sur un acte de réception de travaux
 serait faux.
 
 UN PROCÈS-VERBAL PAR LOT. Chaque acquéreur réceptionne et signe le sien : le
-document ne porte donc plus six lots à cocher, mais un seul lot identifié. Un
-septième document couvre les parties communes, réceptionnées par l'ASL.
+document ne porte donc pas une liste de lots à cocher, mais un seul lot
+identifié. Huit appartements — lots 3 à 10 du règlement de copropriété —
+plus un neuvième document couvrant les parties communes, reçues par l'ASL.
 
 Les entreprises interviennent sous la maîtrise d'œuvre de SBVH, qui est le seul
 interlocuteur technique : le procès-verbal le dit, plutôt que de laisser un
 champ « entreprise » que l'acquéreur ne saurait pas remplir.
 
-    python3 scripts/documents/pv-reception.py            tous les documents
-    python3 scripts/documents/pv-reception.py --lot 3    un seul
-    python3 scripts/documents/pv-reception.py --communes parties communes
+    python3 scripts/documents/pv-reception.py             les neuf documents
+    python3 scripts/documents/pv-reception.py --lot 3     un seul
+    python3 scripts/documents/pv-reception.py --communes  parties communes
 """
 import sys
 from reportlab.lib.pagesizes import A4
@@ -36,17 +37,24 @@ ASL_NOM_COURANT = "Association Syndicale Libre du 60 rue d'Amiens"
 CHANTIER = "60 rue d'Amiens, 76000 Rouen — réhabilitation complète d'un immeuble"
 MAITRE_OEUVRE = "SBVH"
 
-# Lots, repris de la fiche du programme.
-# Les lots 1 et 2 (1er étage) ne relèvent pas de ce procès-verbal. Les numéros
-# des lots restants sont CONSERVÉS tels quels : ils renvoient au règlement de
-# copropriété, les renuméroter créerait un décalage avec tous les autres actes.
+# Les huit appartements, numérotés selon le RÈGLEMENT DE COPROPRIÉTÉ : lots 3
+# à 10. Les lots 1 et 2 sont les locaux du rez-de-chaussée et ne relèvent pas
+# de ce procès-verbal.
+#
+# Attention en relisant la fiche du programme sur le site : elle numérote les
+# appartements 1 à 8, c'est-à-dire décalés de deux. Son « lot 1 » (1er étage,
+# 47 m²) est le lot 3 du règlement. Les surfaces ci-dessous en viennent, dans
+# cet ordre. Ne pas confondre les deux numérotations : les actes, eux, suivent
+# le règlement.
 LOTS = [
-    ("Lot 3", "2ème", "45,6 m²"),
-    ("Lot 4", "2ème", "36,6 m²"),
-    ("Lot 5", "3ème", "47 m²"),
-    ("Lot 6", "3ème", "35 m²"),
-    ("Lot 7", "4ème", "45,7 m²"),
-    ("Lot 8", "4ème", "33 m²"),
+    ("Lot 3", "1er", "47 m²"),
+    ("Lot 4", "1er", "36 m²"),
+    ("Lot 5", "2ème", "45,6 m²"),
+    ("Lot 6", "2ème", "36,6 m²"),
+    ("Lot 7", "3ème", "47 m²"),
+    ("Lot 8", "3ème", "35 m²"),
+    ("Lot 9", "4ème", "45,7 m²"),
+    ("Lot 10", "4ème", "33 m²"),
 ]
 
 VERT = (0.121, 0.231, 0.173)   # #1F3B2C
@@ -213,8 +221,8 @@ def page1(c, lot):
 
     # Ce que la signature engage se lit AVANT de signer, pas à la page suivante.
     # Ces deux blocs avaient été renvoyés en page 2 du temps où la page 1
-    # portait six lots à cocher ; un seul lot y figure désormais, la place est
-    # revenue (57,5 mm de bloc pour 71 mm de libre).
+    # portait la liste complète des lots à cocher ; un seul y figure
+    # désormais, et la place est revenue (57,5 mm de bloc pour 71 mm libres).
     y = effets_et_documents(c, y)
     y -= 5 * mm
 
