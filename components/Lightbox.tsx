@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { cldImg } from "@/lib/cldImg";
+import { largeurVisionneuse, LARGEUR_APERCU } from "@/lib/largeurVisionneuse";
 
 interface LightboxProps {
   images: string[];
@@ -40,17 +41,16 @@ export default function Lightbox({
     };
   }, [handleKeyDown]);
 
-  // Largeur unique pour tout le lecteur, fixée une fois selon l'écran. Sans
-  // cela, next/image laissait le navigateur choisir dans un jeu de largeurs
-  // (1200, 1600, 2400…) tandis que le préchargement en visait une seule : les
-  // URLs ne coïncidaient jamais et rien n'était réellement mis en cache.
-  const largeur = useMemo(() => {
-    if (typeof window === "undefined") return 1600;
-    const px = Math.round(window.innerWidth * 0.92 * Math.min(window.devicePixelRatio || 1, 2));
-    return px <= 900 ? 828 : px <= 1400 ? 1200 : px <= 1900 ? 1600 : 2400;
-  }, []);
+  // Largeur unique pour tout le lecteur, fixée une fois selon l'écran. Le
+  // calcul vit dans lib/largeurVisionneuse : la galerie s'en sert pour
+  // précharger au survol, à cette largeur exactement.
+  const largeur = useMemo(() => largeurVisionneuse(), []);
 
   const urlDe = useCallback((i: number) => cldImg(images[i], largeur), [images, largeur]);
+  // L'aperçu est la vignette DÉJÀ chargée par la galerie : il sort du cache du
+  // navigateur et s'affiche sans délai, là où la pleine définition faisait
+  // patienter devant un écran noir.
+  const apercuDe = useCallback((i: number) => cldImg(images[i], LARGEUR_APERCU), [images]);
 
   const [chargement, setChargement] = useState(true);
 
@@ -107,10 +107,28 @@ export default function Lightbox({
       )}
 
       {/* Image */}
-      <div
-        className="relative max-w-[90vw] max-h-[85vh] flex items-center justify-center"
-        onClick={(e) => e.stopPropagation()}
-      >
+      {/* Le cadre a une taille FIXE, dictée par la fenêtre, et les deux images
+          s'y inscrivent en object-contain : elles se superposent donc au pixel
+          près, quelles que soient leurs définitions respectives. Sans cette
+          taille fixe, c'est l'aperçu — large de 384 px — qui dimensionnait le
+          bloc, et la photo « agrandie » s'affichait en tout petit.
+          Le clic ne s'arrête PAS sur ce cadre : il occupe presque tout l'écran,
+          et cliquer à côté de la photo doit continuer de fermer la galerie. */}
+      <div className="relative h-[85vh] w-[90vw] flex items-center justify-center">
+        {/* L'aperçu donne sa taille au bloc et s'affiche immédiatement ; la
+            pleine définition se pose exactement dessus et apparaît en fondu
+            quand elle arrive. On voit donc la photo tout de suite, floue une
+            fraction de seconde, plutôt qu'un rectangle noir. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          key={`apercu-${currentIndex}`}
+          src={apercuDe(currentIndex)}
+          alt=""
+          aria-hidden
+          decoding="async"
+          onClick={(e) => e.stopPropagation()}
+          className="absolute inset-0 h-full w-full rounded-lg object-contain blur-[6px]"
+        />
         {chargement && (
           <div className="absolute inset-0 flex items-center justify-center" aria-hidden>
             <span className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white/90" />
@@ -118,12 +136,14 @@ export default function Lightbox({
         )}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
+          key={`plein-${currentIndex}`}
           src={urlDe(currentIndex)}
           alt={title ? `${title} - Image ${currentIndex + 1}` : `Image ${currentIndex + 1}`}
           decoding="async"
           onLoad={() => setChargement(false)}
           onError={() => setChargement(false)}
-          className={`max-h-[85vh] max-w-full rounded-lg object-contain transition-opacity duration-150 ${chargement ? "opacity-0" : "opacity-100"}`}
+          onClick={(e) => e.stopPropagation()}
+          className={`absolute inset-0 h-full w-full rounded-lg object-contain transition-opacity duration-200 ${chargement ? "opacity-0" : "opacity-100"}`}
           data-testid={`lightbox-image-${currentIndex}`}
         />
 

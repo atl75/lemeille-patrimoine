@@ -48,7 +48,21 @@ export default function Hero({
   if (image) {
     return (
       <section className="relative isolate flex min-h-[var(--hero-h)] items-center overflow-hidden">
-        <Image src={image} alt="" fill priority sizes="100vw" className="object-cover object-center" />
+        {/* Le bandeau est décoratif : il vit sous un dégradé opaque à 65-90 %
+            (juste en dessous), et aucun détail n'y est lisible. On déclare donc
+            volontairement un emplacement plus petit que la largeur réelle, ce
+            qui plafonne la résolution servie sans rien changer à l'affichage.
+            Mesuré sur une fiche bien : 489 Ko en 2400 px contre 136 Ko en
+            1200 px, pour un rendu identique à l'œil. Le mobile garde 100vw —
+            à cette largeur il demandait déjà 1200 px. */}
+        <Image
+          src={image}
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 768px) 100vw, 600px"
+          className="object-cover object-center"
+        />
         <div className="absolute inset-0 bg-gradient-to-r from-[#12241b]/90 via-[#1F3B2C]/65 to-[#1F3B2C]/30" />
         <div className="container relative w-full py-12">
           <h1 className="text-4xl md:text-5xl luxe text-cream leading-tight">{title}</h1>
