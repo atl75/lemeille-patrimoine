@@ -55,7 +55,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   // ID Google Analytics (public). Surchargeable par NEXT_PUBLIC_GA_MEASUREMENT_ID.
-  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-W152DJDQWE';
+  //
+  // G-TJEQRFPZ0E est le flux de la propriété 512133178 « Lemeille Patrimoine »,
+  // la seule à laquelle le compte Google connecté ait accès — donc la seule que
+  // /admin/kpi puisse lire. L'ancienne valeur, G-W152DJDQWE, héritée de Replit,
+  // envoyait les visites vers une propriété invisible depuis ce compte : le
+  // tableau de bord affichait zéro alors que le site était bien mesuré.
+  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-TJEQRFPZ0E';
   
   return (
     <html lang="fr" className={`${inter.variable} ${playfair.variable}`}>
