@@ -260,16 +260,12 @@ def page1(c, lot):
     else:
         acquereur = ACQUEREURS.get(lot[0], "")
         sous = f"{acquereur} — {lot[0]}" if acquereur else f"{lot[0]} — {lot[1]} étage"
-        if acquereur and acquereur == ASL_REPRESENTANT:
-            # L'acquéreur de ce lot est aussi celui qui représente l'ASL. Lui
-            # demander deux paraphes sur la même page n'ajoute rien : un seul
-            # cadre, dont l'intitulé dit les deux qualités.
-            signataires = [
-                ("L'acquéreur, également représentant de l'ASL", sous),
-                moe,
-            ]
-        else:
-            signataires = [("L'acquéreur", sous), moe, pour_asl]
+        # Tous les lots d'habitation portent les MÊMES trois cadres, y compris
+        # le lot 10 dont l'acquéreur représente aussi l'ASL : il y signe donc
+        # deux fois, en deux qualités distinctes. Choix du propriétaire —
+        # une version antérieure fusionnait les deux cadres sur ce seul lot,
+        # ce qui rendait son procès-verbal différent des huit autres.
+        signataires = [("L'acquéreur", sous), moe, pour_asl]
     n = len(signataires)
     largeur = (R - L - (n - 1) * 5 * mm) / n
     for i, (qui, sous) in enumerate(signataires):
