@@ -209,29 +209,42 @@ def page1(c, lot):
     y -= 6 * mm
     y = ligne_champ(c, y, "Date d'effet de la réception :")
     y = ligne_champ(c, y, "Fait à :")
-    y -= 3 * mm
+    y -= 4 * mm
 
-    # Le bloc signatures mesure environ 36 mm et le pied de page commence à
-    # 16 mm : il lui faut donc démarrer au-dessus de 52 mm. Si une modification
-    # du contenu fait descendre plus bas, l'assertion le signale au lieu de
-    # produire un document où les cadres chevauchent le pied.
-    assert y >= 52 * mm, (
+    # Ce que la signature engage se lit AVANT de signer, pas à la page suivante.
+    # Ces deux blocs avaient été renvoyés en page 2 du temps où la page 1
+    # portait six lots à cocher ; un seul lot y figure désormais, la place est
+    # revenue (57,5 mm de bloc pour 71 mm de libre).
+    y = effets_et_documents(c, y)
+    y -= 5 * mm
+
+    # Géométrie du bloc signatures : la légende est tracée 25,5 mm sous le
+    # titre, en corps 6,5 dont le jambage descend ~1,5 mm — l'encre s'arrête
+    # donc à y - 27 mm. Le filet du pied est à 16 mm, et on veut 4 mm d'air
+    # entre les deux : le titre doit rester au-dessus de 47 mm.
+    assert y >= 47 * mm, (
         f"le contenu de la page 1 déborde : signatures à {y/mm:.0f} mm, "
-        "il en faut 52 au minimum — raccourcir une section au-dessus"
+        "il en faut 47 au minimum — raccourcir une section au-dessus"
     )
     y = titre_section(c, y, "SIGNATURES")
-    largeur = (R - L - 10 * mm) / 3
     # Qui signe dépend de ce qui est réceptionné : l'acquéreur pour son lot
     # privatif, l'association pour les parties communes.
+    #
+    # Sur les parties communes, il n'y a que DEUX signataires. Une version
+    # antérieure en présentait trois, dont « Le maître d'ouvrage — ASL » et
+    # « Le président de l'ASL » : c'est la même signature écrite deux fois,
+    # une association n'agissant que par son représentant. Deux cadres plus
+    # larges valent mieux qu'un troisième qui appelle un paraphe en double.
     signataires = (
         [("L'acquéreur", f"{lot[0]} — {lot[1]} étage"),
          ("Le maître d'œuvre", MAITRE_OEUVRE),
          ("Pour l'association", "ASL du 60 rue d'Amiens")]
         if lot else
-        [("Le maître d'ouvrage", "ASL du 60 rue d'Amiens"),
-         ("Le maître d'œuvre", MAITRE_OEUVRE),
-         ("Le président de l'ASL", "ou son représentant")]
+        [("Le maître d'ouvrage", "ASL du 60 rue d'Amiens, représentée par son président"),
+         ("Le maître d'œuvre", MAITRE_OEUVRE)]
     )
+    n = len(signataires)
+    largeur = (R - L - (n - 1) * 5 * mm) / n
     for i, (qui, sous) in enumerate(signataires):
         x = L + i * (largeur + 5 * mm)
         c.setFillColorRGB(*VERT)
@@ -251,8 +264,9 @@ def page1(c, lot):
 def effets_et_documents(c, y):
     """Effets juridiques et bordereau des documents remis.
 
-    Ces deux blocs vivaient en page 1 ; ils la faisaient déborder sur le pied de
-    page. Ils ouvrent désormais la page 2, avant l'annexe des réserves.
+    Rendus en page 1, entre la décision et les signatures : le signataire doit
+    avoir sous les yeux ce que sa signature déclenche — les trois garanties et
+    le transfert de garde — au moment où il signe.
     """
     y = titre_section(c, y, "EFFETS DE LA RÉCEPTION")
     c.setFillColorRGB(0.2, 0.2, 0.2)
@@ -305,9 +319,10 @@ def effets_et_documents(c, y):
 
 def page2(c, lot):
     entete(c, 2)
+    # Les effets de la réception et le bordereau des documents sont désormais
+    # en page 1, sous les yeux du signataire. La page 2 est l'annexe, et rien
+    # d'autre : la place ainsi rendue sert à porter plus de réserves.
     y = 256 * mm
-    y = effets_et_documents(c, y)
-    y -= 2 * mm
     c.setFillColorRGB(*VERT)
     c.setFont("Helvetica-Bold", 14)
     c.drawString(L, y, "ANNEXE — LISTE DES RÉSERVES")
@@ -323,9 +338,17 @@ def page2(c, lot):
                          "défaillante, après mise en demeure restée infructueuse.")
     y -= 5 * mm
 
-    colonnes = [("N°", 10 * mm), ("Lot / localisation", 38 * mm), ("Nature de la réserve", 62 * mm),
+    # Sur un procès-verbal qui ne porte qu'un lot, celui-ci est déjà identifié
+    # en page 1 : la colonne sert à situer la réserve DANS le lot (la pièce).
+    # Sur les parties communes, il faut au contraire nommer l'ouvrage concerné.
+    ou = "Localisation (pièce)" if lot else "Ouvrage / localisation"
+    colonnes = [("N°", 10 * mm), (ou, 38 * mm), ("Nature de la réserve", 62 * mm),
                 ("Délai", 20 * mm), ("Levée le", 22 * mm), ("Visa", 18 * mm)]
     hauteur = 8.2 * mm
+    # Une réhabilitation complète produit rarement moins d'une quinzaine de
+    # réserves ; les 57,5 mm rendus par le déplacement en page 1 en portent
+    # sept de plus. L'assertion de fin de page vérifie que le compte tient.
+    LIGNES = 20
     c.setFillColorRGB(*VERT)
     c.rect(L, y - hauteur + 2 * mm, R - L, hauteur, fill=1, stroke=0)
     x = L
@@ -337,7 +360,7 @@ def page2(c, lot):
     y -= hauteur
 
     c.setFont("Helvetica", 8)
-    for n in range(1, 14):
+    for n in range(1, LIGNES + 1):
         if n % 2 == 0:
             c.setFillColorRGB(0.97, 0.97, 0.95)
             c.rect(L, y - hauteur + 2 * mm, R - L, hauteur, fill=1, stroke=0)
@@ -354,7 +377,7 @@ def page2(c, lot):
         y -= hauteur
     c.setStrokeColorRGB(0.6, 0.6, 0.6)
     c.setLineWidth(0.5)
-    c.rect(L, y + 2 * mm, R - L, 14 * hauteur, fill=0, stroke=1)
+    c.rect(L, y + 2 * mm, R - L, (LIGNES + 1) * hauteur, fill=0, stroke=1)
 
     y -= 9 * mm
     y = titre_section(c, y, "LEVÉE DE L'ENSEMBLE DES RÉSERVES")
