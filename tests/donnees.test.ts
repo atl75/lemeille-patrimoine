@@ -157,3 +157,45 @@ describe("isolation : la couche GCS ne doit JAMAIS s'activer sous test", () => {
     assert.equal(appelee, false, "la mutation ne doit même pas être exécutée");
   });
 });
+
+describe("analyserContenu — un fichier objet doit rester un objet", () => {
+  // Le 4 septembre : la couche GCS forçait tout contenu en tableau
+  // (`Array.isArray(d) ? d : []`). google-token.json, qui porte un OBJET,
+  // était donc lu comme []. isConnected() répondait non, et le site se
+  // croyait déconnecté de Google — statistiques de visite, ingestion des
+  // leads depuis Gmail et brouillons au notaire tombaient tous en panne,
+  // alors que le jeton était intact dans le bucket.
+  test("un objet est rendu tel quel, pas aplati en tableau", async () => {
+    const { analyserContenu } = await import("../lib/gcsStore.ts");
+    const jeton = analyserContenu('{"refresh_token":"x","email":"a@b.fr"}');
+    assert.equal(Array.isArray(jeton), false, "l'objet a été aplati en tableau");
+    assert.equal(jeton.refresh_token, "x");
+  });
+
+  test("un tableau reste un tableau", async () => {
+    const { analyserContenu } = await import("../lib/gcsStore.ts");
+    assert.deepEqual(analyserContenu('[{"id":1}]'), [{ id: 1 }]);
+  });
+
+  test("un corps vide vaut tableau vide", async () => {
+    const { analyserContenu } = await import("../lib/gcsStore.ts");
+    assert.deepEqual(analyserContenu(""), []);
+  });
+
+  test("un JSON illisible lève plutôt que d'écraser", async () => {
+    const { analyserContenu } = await import("../lib/gcsStore.ts");
+    assert.throws(() => analyserContenu("{ceci n'est pas du json"), /illisible/);
+  });
+});
+
+describe("readJSON — le chemin fichier ne doit pas aplatir non plus", () => {
+  test("un fichier objet est relu comme un objet", async () => {
+    await fs.writeFile(
+      path.join(bac, "data", "objet.json"),
+      '{"refresh_token":"x","email":"a@b.fr"}'
+    );
+    const d = await utils.readJSON("objet.json");
+    assert.equal(Array.isArray(d), false);
+    assert.equal(d.email, "a@b.fr");
+  });
+});

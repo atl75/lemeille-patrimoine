@@ -80,7 +80,7 @@ const objet = (fichier: string) =>
 async function lire(
   fichier: string,
   auth: string
-): Promise<{ donnees: any[]; generation: string }> {
+): Promise<{ donnees: any; generation: string }> {
   const r = await fetch(`${objet(fichier)}?alt=media`, {
     headers: { Authorization: `Bearer ${auth}` },
     cache: "no-store",
@@ -88,16 +88,26 @@ async function lire(
   if (r.status === 404) return { donnees: [], generation: "0" };
   if (!r.ok) throw new Error(`lecture GCS ${r.status}`);
   const generation = r.headers.get("x-goog-generation") || "0";
-  const texte = await r.text();
-  let donnees: any;
+  // Le contenu est rendu TEL QUEL. Le forcer en tableau détruisait les
+  // fichiers qui portent un objet : google-token.json devenait [], donc
+  // isConnected() répondait non et Gmail comme Analytics passaient pour
+  // déconnectés alors que le jeton était intact dans le bucket.
+  return { donnees: analyserContenu(await r.text()), generation };
+}
+
+/**
+ * Analyse le corps d'un objet du bucket. Rendu TEL QUEL : tableau, objet, ou
+ * ce que le fichier contient. Exporté uniquement pour être testable — la
+ * couche GCS est désactivée sous test, lire() n'est donc pas atteignable.
+ */
+export function analyserContenu(texte: string): any {
   try {
-    donnees = JSON.parse(texte || "[]");
+    return JSON.parse(texte || "[]");
   } catch {
     // Un JSON illisible ne doit jamais être écrasé en silence : mieux vaut
     // échouer et laisser le chemin fichier prendre le relais.
     throw new Error("JSON illisible dans le bucket");
   }
-  return { donnees: Array.isArray(donnees) ? donnees : [], generation };
 }
 
 /** Écrit sous précondition. Renvoie false si la génération a changé (412). */
@@ -127,9 +137,9 @@ const dormir = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // les lectures répétées d'un même rendu, assez court pour qu'une écriture faite
 // par une AUTRE instance soit vue rapidement.
 const TTL_MS = 3000;
-const cache = new Map<string, { donnees: any[]; generation: string; expire: number }>();
+const cache = new Map<string, { donnees: any; generation: string; expire: number }>();
 
-function memoriser(fichier: string, donnees: any[], generation: string) {
+function memoriser(fichier: string, donnees: any, generation: string) {
   cache.set(fichier, { donnees, generation, expire: Date.now() + TTL_MS });
 }
 
@@ -142,7 +152,7 @@ export function oublier(fichier: string) {
  * Lit un fichier. Renvoie `null` si l'API n'est pas utilisable ici : l'appelant
  * doit alors reprendre le chemin fichier.
  */
-export async function lireJSON(fichier: string): Promise<any[] | null> {
+export async function lireJSON(fichier: string): Promise<any> {
   if (!(await disponible())) return null;
   const frais = cache.get(fichier);
   if (frais && frais.expire > Date.now()) return frais.donnees;
@@ -196,6 +206,10 @@ export async function modifierAtomiquement<T>(
 
     if (estSansEcriture(resultat)) return { ok: true, resultat: resultat as T };
 
+    // Une mutation qui renvoie autre chose qu'un tableau renvoie en général
+    // l'enregistrement trouvé, pas le contenu du fichier : on écrit alors le
+    // tableau muté. Corollaire : un fichier portant un OBJET ne peut pas être
+    // modifié par ici — il passe par ecrireJSON (voir google-token.json).
     const aEcrire = Array.isArray(resultat) ? resultat : donnees;
     if (await ecrire(fichier, auth, aEcrire, generation)) {
       // La donnée écrite est celle que verra la prochaine lecture de cette
