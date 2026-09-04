@@ -223,7 +223,6 @@ def page1(c, lot):
     c.setLineWidth(0.4)
     c.line(L + 6 * mm, y, R, y)
     y -= 6 * mm
-    y = ligne_champ(c, y, "Date d'effet de la réception :")
     y = ligne_champ(c, y, "Fait à :")
     y -= 4 * mm
 
@@ -285,7 +284,7 @@ def page1(c, lot):
         c.setLineWidth(0.4)
         c.rect(x, y - 22 * mm, largeur, 16 * mm)
         c.setFont("Helvetica", 6.5)
-        c.drawString(x, y - 25.5 * mm, "Date, signature et mention « lu et approuvé »")
+        c.drawString(x, y - 25.5 * mm, "Signature et mention « lu et approuvé »")
     pied(c, 1)
 
 
@@ -299,7 +298,7 @@ def effets_et_documents(c, y):
     y = titre_section(c, y, "EFFETS DE LA RÉCEPTION")
     c.setFillColorRGB(0.2, 0.2, 0.2)
     c.setFont("Helvetica", 7.6)
-    c.drawString(L, y, "La réception emporte, à compter de sa date d'effet :")
+    c.drawString(L, y, "La réception emporte :")
     y -= 5 * mm
     for p in [
         "le point de départ de la garantie de parfait achèvement — 1 an — portant sur la levée des réserves ;",
@@ -370,8 +369,8 @@ def page2(c, lot):
     # en page 1 : la colonne sert à situer la réserve DANS le lot (la pièce).
     # Sur les parties communes, il faut au contraire nommer l'ouvrage concerné.
     ou = "Localisation (pièce)" if lot else "Ouvrage / localisation"
-    colonnes = [("N°", 10 * mm), (ou, 38 * mm), ("Nature de la réserve", 62 * mm),
-                ("Délai", 20 * mm), ("Levée le", 22 * mm), ("Visa", 18 * mm)]
+    colonnes = [("N°", 10 * mm), (ou, 38 * mm), ("Nature de la réserve", 84 * mm),
+                ("Délai", 20 * mm), ("Visa", 18 * mm)]
     hauteur = 8.2 * mm
     # Une réhabilitation complète produit rarement moins d'une quinzaine de
     # réserves ; les 57,5 mm rendus par le déplacement en page 1 en portent
@@ -409,7 +408,6 @@ def page2(c, lot):
 
     y -= 9 * mm
     y = titre_section(c, y, "LEVÉE DE L'ENSEMBLE DES RÉSERVES")
-    y = ligne_champ(c, y, "Constatée le :")
     y = ligne_champ(c, y, "Signature du maître d'ouvrage :")
     assert y >= 16 * mm, (
         f"la page 2 déborde sur le pied : dernier élément à {y/mm:.0f} mm — "
