@@ -36,6 +36,15 @@ ASL_ADRESSE = "60 rue d'Amiens, 76000 Rouen"
 ASL_NOM_COURANT = "Association Syndicale Libre du 60 rue d'Amiens"
 CHANTIER = "60 rue d'Amiens, 76000 Rouen — réhabilitation complète d'un immeuble"
 MAITRE_OEUVRE = "SBVH"
+# L'ASL n'agit que par son représentant : c'est lui qui signe pour elle sur les
+# neuf documents.
+ASL_REPRESENTANT = "M. Benoit Violette"
+
+# Acquéreurs connus, par numéro de lot. Un lot absent d'ici laisse une ligne à
+# remplir à la main plutôt qu'un nom inventé.
+ACQUEREURS = {
+    "Lot 10": "M. Benoit Violette",
+}
 
 # Les huit appartements, numérotés selon le RÈGLEMENT DE COPROPRIÉTÉ : lots 3
 # à 10. Les lots 1 et 2 sont les locaux du rez-de-chaussée et ne relèvent pas
@@ -160,14 +169,13 @@ def page1(c, lot):
     c.drawString(L + 42 * mm, y + 1.5 * mm,
                  "Association constituée par les copropriétaires de l'immeuble pour la conduite des travaux communs")
     y -= 4 * mm
-    y = ligne_champ(c, y, "Représentée par :")
+    y = ligne_champ(c, y, "Représentée par :", ASL_REPRESENTANT)
     y = ligne_champ(c, y, "Maître d'œuvre :", MAITRE_OEUVRE)
     c.setFillColorRGB(*GRIS)
     c.setFont("Helvetica-Oblique", 7.2)
     c.drawString(L + 42 * mm, y + 1.5 * mm,
                  "Les entreprises intervenantes agissent sous sa maîtrise d'œuvre")
     y -= 4 * mm
-    y = ligne_champ(c, y, "Marché / devis n° :")
     y -= 3 * mm
 
     if lot:
@@ -177,7 +185,7 @@ def page1(c, lot):
         c.setFont("Helvetica-Bold", 13)
         c.drawString(L, y, f"{nom} — {etage} étage — {surface}")
         y -= 6 * mm
-        y = ligne_champ(c, y, "Acquéreur du lot :")
+        y = ligne_champ(c, y, "Acquéreur du lot :", ACQUEREURS.get(nom, ""))
         c.setFillColorRGB(*GRIS)
         c.setFont("Helvetica-Oblique", 7.2)
         c.drawString(L, y + 1.5 * mm,
@@ -243,14 +251,26 @@ def page1(c, lot):
     # « Le président de l'ASL » : c'est la même signature écrite deux fois,
     # une association n'agissant que par son représentant. Deux cadres plus
     # larges valent mieux qu'un troisième qui appelle un paraphe en double.
-    signataires = (
-        [("L'acquéreur", f"{lot[0]} — {lot[1]} étage"),
-         ("Le maître d'œuvre", MAITRE_OEUVRE),
-         ("Pour l'association", "ASL du 60 rue d'Amiens")]
-        if lot else
-        [("Le maître d'ouvrage", "ASL du 60 rue d'Amiens, représentée par son président"),
-         ("Le maître d'œuvre", MAITRE_OEUVRE)]
-    )
+    pour_asl = ("Pour l'association", f"ASL du 60 rue d'Amiens — {ASL_REPRESENTANT}")
+    moe = ("Le maître d'œuvre", MAITRE_OEUVRE)
+    if not lot:
+        signataires = [
+            ("Le maître d'ouvrage", f"ASL du 60 rue d'Amiens, représentée par {ASL_REPRESENTANT}"),
+            moe,
+        ]
+    else:
+        acquereur = ACQUEREURS.get(lot[0], "")
+        sous = f"{acquereur} — {lot[0]}" if acquereur else f"{lot[0]} — {lot[1]} étage"
+        if acquereur and acquereur == ASL_REPRESENTANT:
+            # L'acquéreur de ce lot est aussi celui qui représente l'ASL. Lui
+            # demander deux paraphes sur la même page n'ajoute rien : un seul
+            # cadre, dont l'intitulé dit les deux qualités.
+            signataires = [
+                ("L'acquéreur, également représentant de l'ASL", sous),
+                moe,
+            ]
+        else:
+            signataires = [("L'acquéreur", sous), moe, pour_asl]
     n = len(signataires)
     largeur = (R - L - (n - 1) * 5 * mm) / n
     for i, (qui, sous) in enumerate(signataires):
