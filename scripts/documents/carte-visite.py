@@ -23,7 +23,8 @@ sous « carte-visite » dans les statistiques, séparées du reste du trafic.
 
     python3 scripts/documents/carte-visite.py
     python3 scripts/documents/carte-visite.py --apercu    aperçu seul
-    python3 scripts/documents/carte-visite.py --png       PNG 300 dpi en plus
+    python3 scripts/documents/carte-visite.py --png            PNG 600 dpi en plus
+    python3 scripts/documents/carte-visite.py --png --dpi 1200  plus fin encore
 """
 import sys
 
@@ -273,16 +274,21 @@ def document(nom, apercu):
     return modules
 
 
-def en_png(sources, dpi=300):
+def en_png(sources, dpi=600):
     """Rend les PDF en PNG 300 dpi.
 
     Les images sont RENDUES DEPUIS LE PDF, pas redessinées : la mise en page
     reste unique, et ce qui a été vérifié sur le PDF — dimensions, lisibilité
     du flashcode — vaut donc aussi pour les PNG.
 
-    300 dpi est le standard d'impression ; monter à 600 double le poids sans
-    rien apporter sur un format de 85 mm. L'aperçu arrondi sort sur fond
-    TRANSPARENT : il se pose tel quel sur un site ou dans une signature.
+    600 dpi par défaut. 300 est le minimum d'usage, mais cette carte porte du
+    texte à 4,8 pt et un flashcode de 0,65 mm par module : à 300 dpi un module
+    ne fait que 15 pixels, et les mentions réglementaires, 11. Doubler la
+    résolution leur redonne de la marge, pour des fichiers qui restent légers.
+    Réglable par --dpi.
+
+    L'aperçu arrondi sort sur fond TRANSPARENT : il se pose tel quel sur un
+    site ou dans une signature.
     """
     try:
         import pypdfium2 as pdfium
@@ -318,8 +324,10 @@ def main():
         print(f"écrit : {nom}  ({quoi})")
 
     if "--png" in sys.argv[1:]:
-        for nom, taille in en_png(sorties):
-            print(f"écrit : {nom}  ({taille[0]}×{taille[1]} px)")
+        args = sys.argv[1:]
+        dpi = int(args[args.index("--dpi") + 1]) if "--dpi" in args else 600
+        for nom, taille in en_png(sorties, dpi):
+            print(f"écrit : {nom}  ({taille[0]}×{taille[1]} px, {dpi} dpi)")
 
     cote_mm = 28
     print(f"  carte {LARGEUR/mm:.0f} × {HAUTEUR/mm:.0f} mm, coins R{RAYON/mm:.0f} mm,"
