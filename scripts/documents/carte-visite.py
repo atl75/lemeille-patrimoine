@@ -2,10 +2,15 @@
 """
 Cartes de visite — Arthur Lemeille, Lemeille Patrimoine.
 
-Format français 85 × 55 mm, avec 3 mm de fond perdu sur chaque bord : la page
-mesure donc 91 × 61 mm et l'imprimeur rogne au trait de coupe. Les aplats de
-couleur débordent volontairement jusqu'au bord de page, faute de quoi un
-rognage légèrement décalé laisserait un liseré blanc.
+Carte de 85 × 55 mm avec 1,5 mm de fond perdu sur chaque bord : le document
+mesure donc 88 × 58 mm, la taille que réclame le gabarit de l'imprimeur. Les
+aplats débordent volontairement jusqu'au bord de page, faute de quoi une coupe
+légèrement décalée laisserait un liseré blanc. Coins arrondis à 3 mm.
+
+Le fichier d'impression ne porte QUE le graphisme : ni traits de coupe — à
+1,5 mm ils n'ont plus la place de se tenir dehors — ni tracé de découpe.
+L'éditeur de l'imprimeur montre déjà la coupe, la zone de sécurité et les
+coins ; un repère de plus s'imprimerait sur la carte.
 
 Deux pages : recto (identité et coordonnées) puis verso (flashcode).
 
@@ -54,7 +59,10 @@ BLANC = (1, 1, 1)
 
 # ── Géométrie ─────────────────────────────────────────────────────────────
 LARGEUR, HAUTEUR = 85 * mm, 55 * mm
-FOND_PERDU = 3 * mm
+# 1,5 mm, comme le réclame l'éditeur de l'imprimeur : il annonce un document
+# de 88 × 58 mm pour une carte de 85 × 55. C'était 3 mm auparavant, ce qui
+# donnait une page de 91 × 61 que son gabarit aurait refusée ou recadrée.
+FOND_PERDU = 1.5 * mm
 PAGE = (LARGEUR + 2 * FOND_PERDU, HAUTEUR + 2 * FOND_PERDU)
 # Origine de la carte rognée dans la page : tout se positionne par rapport à
 # elle, le fond perdu n'étant qu'une marge sacrificielle.
@@ -71,35 +79,6 @@ def fond(c, couleur):
     c.rect(0, 0, PAGE[0], PAGE[1], fill=1, stroke=0)
 
 
-def tracé_de_decoupe(c):
-    """Tracé de la découpe à la forme, en magenta 100 %.
-
-    C'est une CONSIGNE pour l'imprimeur, pas un élément à imprimer : il y règle
-    sa forme de découpe puis l'écarte. Convention du métier — un filet magenta
-    fin, sur le contour rogné exact. Beaucoup d'imprimeurs demandent un ton
-    direct nommé « Découpe » ; ce trait suffit à la plupart, et le message
-    ci-dessous lève l'ambiguïté pour les autres.
-
-    Le fond perdu reste RECTANGULAIRE dessous : c'est justement lui qui évite
-    un liseré blanc aux angles quand la forme mord un peu de travers.
-    """
-    c.saveState()
-    c.setStrokeColorRGB(1, 0, 1)
-    c.setLineWidth(0.4)
-    c.roundRect(X0, Y0, LARGEUR, HAUTEUR, RAYON, fill=0, stroke=1)
-    c.restoreState()
-
-
-def note_imprimeur(c):
-    """Consigne écrite, dans le fond perdu : elle disparaît au rognage."""
-    c.saveState()
-    c.setFillColorRGB(1, 0, 1)
-    c.setFont("Helvetica", 2.6)
-    c.drawCentredString(PAGE[0] / 2, 1.1 * mm,
-                        f"Filet magenta = découpe à la forme, coins R{RAYON/mm:.0f} mm — ne pas imprimer")
-    c.restoreState()
-
-
 def masque_arrondi(c):
     """Restreint tout tracé ultérieur au contour arrondi.
 
@@ -110,19 +89,6 @@ def masque_arrondi(c):
     chemin = c.beginPath()
     chemin.roundRect(X0, Y0, LARGEUR, HAUTEUR, RAYON)
     c.clipPath(chemin, stroke=0, fill=0)
-
-
-def traits_de_coupe(c):
-    """Repères de rognage, hors de la zone imprimée."""
-    c.setStrokeColorRGB(0, 0, 0)
-    c.setLineWidth(0.25)
-    lg = 2 * mm
-    for x in (X0, X0 + LARGEUR):
-        for y in (0, Y0 + HAUTEUR):
-            c.line(x, y, x, y + lg if y == 0 else y + lg)
-    for y in (Y0, Y0 + HAUTEUR):
-        for x in (0, X0 + LARGEUR):
-            c.line(x, y, x + lg, y)
 
 
 def monogramme(c, cx, cy, rayon, couleur_trait, couleur_texte):
@@ -274,11 +240,11 @@ def verso(c):
 
 
 def page(c, dessine, apercu):
-    """Trace une face, puis pose ce que le mode réclame.
+    """Trace une face selon le mode.
 
     APERÇU : le contenu est masqué au contour arrondi — on voit la carte finie.
-    IMPRESSION : le contenu garde son fond perdu rectangulaire, et l'on ajoute
-    par-dessus les traits de coupe, le tracé de découpe et la consigne.
+    IMPRESSION : le contenu garde son fond perdu rectangulaire, et rien d'autre
+    n'est ajouté ; c'est le gabarit de l'imprimeur qui porte les repères.
     """
     if apercu:
         c.saveState()
@@ -286,11 +252,13 @@ def page(c, dessine, apercu):
         r = dessine(c)
         c.restoreState()
         return r
-    r = dessine(c)
-    traits_de_coupe(c)
-    tracé_de_decoupe(c)
-    note_imprimeur(c)
-    return r
+    # Le fichier d'impression ne porte QUE le graphisme.
+    #
+    # Ni traits de coupe — avec 1,5 mm de fond perdu ils n'ont plus la place de
+    # se tenir dehors et retomberaient sur la carte — ni tracé de découpe en
+    # magenta : l'éditeur de l'imprimeur montre déjà la coupe, la zone de
+    # sécurité et les coins arrondis, et un filet de plus s'imprimerait.
+    return dessine(c)
 
 
 def document(nom, apercu):
@@ -346,7 +314,7 @@ def main():
 
     for nom, apercu in sorties:
         modules = document(nom, apercu)
-        quoi = "aperçu, coins déjà arrondis" if apercu else "impression, fond perdu + tracé de découpe"
+        quoi = "aperçu, coins déjà arrondis" if apercu else "impression, graphisme nu à fond perdu"
         print(f"écrit : {nom}  ({quoi})")
 
     if "--png" in sys.argv[1:]:
@@ -354,8 +322,9 @@ def main():
             print(f"écrit : {nom}  ({taille[0]}×{taille[1]} px)")
 
     cote_mm = 28
-    print(f"  format {LARGEUR/mm:.0f} × {HAUTEUR/mm:.0f} mm, coins R{RAYON/mm:.0f} mm,"
-          f" + {FOND_PERDU/mm:.0f} mm de fond perdu (page {PAGE[0]/mm:.0f} × {PAGE[1]/mm:.0f} mm)")
+    print(f"  carte {LARGEUR/mm:.0f} × {HAUTEUR/mm:.0f} mm, coins R{RAYON/mm:.0f} mm,"
+          f" + {FOND_PERDU/mm:g} mm de fond perdu"
+          f" → document {PAGE[0]/mm:g} × {PAGE[1]/mm:g} mm")
     print(f"  flashcode {modules}×{modules} modules sur {cote_mm} mm"
           f" — soit {cote_mm/(modules+6):.2f} mm par module")
     print(f"  destination : {URL}")
