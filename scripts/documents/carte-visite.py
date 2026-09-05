@@ -17,7 +17,7 @@ L'URL porte des paramètres UTM : les visites venues des cartes apparaîtront
 sous « carte-visite » dans les statistiques, séparées du reste du trafic.
 
     python3 scripts/documents/carte-visite.py
-    python3 scripts/documents/carte-visite.py --sans-traits   (sans repères de coupe)
+    python3 scripts/documents/carte-visite.py --apercu    aperçu seul
 """
 import sys
 
@@ -59,12 +59,56 @@ PAGE = (LARGEUR + 2 * FOND_PERDU, HAUTEUR + 2 * FOND_PERDU)
 # elle, le fond perdu n'étant qu'une marge sacrificielle.
 X0, Y0 = FOND_PERDU, FOND_PERDU
 MARGE = 6 * mm   # zone de sécurité : aucun texte plus près du bord rogné
+# Rayon des coins. 3 mm est le arrondi courant des cartes de visite : visible
+# sans être ostentatoire. 2 mm passe presque inaperçu, 5 mm fait « badge ».
+RAYON = 3 * mm
 
 
 def fond(c, couleur):
     """Aplat couvrant TOUTE la page, fond perdu compris."""
     c.setFillColorRGB(*couleur)
     c.rect(0, 0, PAGE[0], PAGE[1], fill=1, stroke=0)
+
+
+def tracé_de_decoupe(c):
+    """Tracé de la découpe à la forme, en magenta 100 %.
+
+    C'est une CONSIGNE pour l'imprimeur, pas un élément à imprimer : il y règle
+    sa forme de découpe puis l'écarte. Convention du métier — un filet magenta
+    fin, sur le contour rogné exact. Beaucoup d'imprimeurs demandent un ton
+    direct nommé « Découpe » ; ce trait suffit à la plupart, et le message
+    ci-dessous lève l'ambiguïté pour les autres.
+
+    Le fond perdu reste RECTANGULAIRE dessous : c'est justement lui qui évite
+    un liseré blanc aux angles quand la forme mord un peu de travers.
+    """
+    c.saveState()
+    c.setStrokeColorRGB(1, 0, 1)
+    c.setLineWidth(0.4)
+    c.roundRect(X0, Y0, LARGEUR, HAUTEUR, RAYON, fill=0, stroke=1)
+    c.restoreState()
+
+
+def note_imprimeur(c):
+    """Consigne écrite, dans le fond perdu : elle disparaît au rognage."""
+    c.saveState()
+    c.setFillColorRGB(1, 0, 1)
+    c.setFont("Helvetica", 2.6)
+    c.drawCentredString(PAGE[0] / 2, 1.1 * mm,
+                        f"Filet magenta = découpe à la forme, coins R{RAYON/mm:.0f} mm — ne pas imprimer")
+    c.restoreState()
+
+
+def masque_arrondi(c):
+    """Restreint tout tracé ultérieur au contour arrondi.
+
+    Réservé à l'APERÇU : il montre la carte telle qu'elle sera une fois
+    découpée. À ne jamais utiliser pour le fichier d'impression, où ce masque
+    supprimerait le fond perdu dont la découpe a besoin.
+    """
+    chemin = c.beginPath()
+    chemin.roundRect(X0, Y0, LARGEUR, HAUTEUR, RAYON)
+    c.clipPath(chemin, stroke=0, fill=0)
 
 
 def traits_de_coupe(c):
@@ -91,7 +135,7 @@ def monogramme(c, cx, cy, rayon, couleur_trait, couleur_texte):
     c.drawCentredString(cx, cy - taille * 0.34, "LP")
 
 
-def recto(c, traits):
+def recto(c):
     fond(c, CREME)
 
     # Bande verte à gauche : elle descend jusqu'aux bords de la PAGE, fond
@@ -143,9 +187,6 @@ def recto(c, traits):
     c.setFont("Helvetica", 5.6)
     c.drawString(x, Y0 + MARGE, ADRESSE)
 
-    if traits:
-        traits_de_coupe(c)
-
 
 def flashcode(c, cx, cy, cote):
     """Trace le QR en rectangles vectoriels, sur pastille claire.
@@ -178,7 +219,7 @@ def flashcode(c, cx, cy, cote):
     return n
 
 
-def verso(c, traits):
+def verso(c):
     fond(c, VERT)
 
     # 28 mm plutôt que 24 : à 37 modules, c'était 0,56 mm par module, sous le
@@ -228,29 +269,57 @@ def verso(c, traits):
         yb -= 3.4 * mm
 
     assert yb + 3.4 * mm >= Y0 + MARGE - 0.5 * mm, "les mentions sortent de la zone de sécurité"
+    return modules
 
-    if traits:
-        traits_de_coupe(c)
+
+def page(c, dessine, apercu):
+    """Trace une face, puis pose ce que le mode réclame.
+
+    APERÇU : le contenu est masqué au contour arrondi — on voit la carte finie.
+    IMPRESSION : le contenu garde son fond perdu rectangulaire, et l'on ajoute
+    par-dessus les traits de coupe, le tracé de découpe et la consigne.
+    """
+    if apercu:
+        c.saveState()
+        masque_arrondi(c)
+        r = dessine(c)
+        c.restoreState()
+        return r
+    r = dessine(c)
+    traits_de_coupe(c)
+    tracé_de_decoupe(c)
+    note_imprimeur(c)
+    return r
+
+
+def document(nom, apercu):
+    c = canvas.Canvas(nom, pagesize=PAGE)
+    c.setTitle("Carte de visite — Arthur Lemeille, Lemeille Patrimoine")
+    c.setAuthor(NOM)
+    page(c, recto, apercu)
+    c.showPage()
+    modules = page(c, verso, apercu)
+    c.showPage()
+    c.save()
     return modules
 
 
 def main():
-    traits = "--sans-traits" not in sys.argv[1:]
-    nom = "Carte-de-visite-Arthur-Lemeille" + ("" if traits else "-sans-traits") + ".pdf"
+    apercu_seul = "--apercu" in sys.argv[1:]
 
-    c = canvas.Canvas(nom, pagesize=PAGE)
-    c.setTitle("Carte de visite — Arthur Lemeille, Lemeille Patrimoine")
-    c.setAuthor(NOM)
-    recto(c, traits)
-    c.showPage()
-    modules = verso(c, traits)
-    c.showPage()
-    c.save()
+    sorties = []
+    if not apercu_seul:
+        sorties.append(("Carte-de-visite-Arthur-Lemeille.pdf", False))
+    sorties.append(("Carte-de-visite-Arthur-Lemeille-apercu.pdf", True))
+
+    for nom, apercu in sorties:
+        modules = document(nom, apercu)
+        quoi = "aperçu, coins déjà arrondis" if apercu else "impression, fond perdu + tracé de découpe"
+        print(f"écrit : {nom}  ({quoi})")
 
     cote_mm = 28
-    print(f"écrit : {nom}")
-    print(f"  format {LARGEUR/mm:.0f} × {HAUTEUR/mm:.0f} mm + {FOND_PERDU/mm:.0f} mm de fond perdu"
-          f" (page {PAGE[0]/mm:.0f} × {PAGE[1]/mm:.0f} mm)")
+    print(f"  format {LARGEUR/mm:.0f} × {HAUTEUR/mm:.0f} mm, coins R{RAYON/mm:.0f} mm,"
+          f" + {FOND_PERDU/mm:.0f} mm de fond perdu (page {PAGE[0]/mm:.0f} × {PAGE[1]/mm:.0f} mm)")
     print(f"  flashcode {modules}×{modules} modules sur {cote_mm} mm"
           f" — soit {cote_mm/(modules+6):.2f} mm par module")
     print(f"  destination : {URL}")
