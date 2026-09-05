@@ -29,7 +29,9 @@ from reportlab.pdfgen import canvas
 NOM = "Arthur Lemeille"
 MAISON = "Lemeille Patrimoine"
 TITRES = ["Agent immobilier", "Conseiller en investissements financiers"]
-TEL = "06 87 15 72 59"
+# Forme internationale : une carte se tend aussi à l'étranger, et le numéro
+# reste composable tel quel depuis un téléphone.
+TEL = "+33 6 87 15 72 59"
 EMAIL = "arthur@lemeillepatrimoine.com"
 SITE = "lemeillepatrimoine.com"
 ADRESSE = "50 rue de la Garenne — 76130 Mont-Saint-Aignan"
