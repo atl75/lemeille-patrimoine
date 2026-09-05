@@ -18,6 +18,7 @@ sous « carte-visite » dans les statistiques, séparées du reste du trafic.
 
     python3 scripts/documents/carte-visite.py
     python3 scripts/documents/carte-visite.py --apercu    aperçu seul
+    python3 scripts/documents/carte-visite.py --png       PNG 300 dpi en plus
 """
 import sys
 
@@ -304,6 +305,37 @@ def document(nom, apercu):
     return modules
 
 
+def en_png(sources, dpi=300):
+    """Rend les PDF en PNG 300 dpi.
+
+    Les images sont RENDUES DEPUIS LE PDF, pas redessinées : la mise en page
+    reste unique, et ce qui a été vérifié sur le PDF — dimensions, lisibilité
+    du flashcode — vaut donc aussi pour les PNG.
+
+    300 dpi est le standard d'impression ; monter à 600 double le poids sans
+    rien apporter sur un format de 85 mm. L'aperçu arrondi sort sur fond
+    TRANSPARENT : il se pose tel quel sur un site ou dans une signature.
+    """
+    try:
+        import pypdfium2 as pdfium
+    except ImportError:
+        print("  (PNG non générés : pypdfium2 absent — pip3 install pypdfium2)")
+        return []
+    ecrits = []
+    for nom, apercu in sources:
+        doc = pdfium.PdfDocument(nom)
+        fond_png = (255, 255, 255, 0) if apercu else (255, 255, 255, 255)
+        for i, face in enumerate(("recto", "verso")):
+            img = doc[i].render(scale=dpi / 72, fill_color=fond_png).to_pil()
+            base = nom[:-4] + f"-{face}-{dpi}dpi.png"
+            # La résolution est INSCRITE dans le fichier. Sans elle, un logiciel
+            # de mise en page suppose 72 dpi et croit la carte large de 38 cm ;
+            # l'imprimeur la place alors à la mauvaise échelle.
+            img.save(base, dpi=(dpi, dpi))
+            ecrits.append((base, img.size))
+    return ecrits
+
+
 def main():
     apercu_seul = "--apercu" in sys.argv[1:]
 
@@ -316,6 +348,10 @@ def main():
         modules = document(nom, apercu)
         quoi = "aperçu, coins déjà arrondis" if apercu else "impression, fond perdu + tracé de découpe"
         print(f"écrit : {nom}  ({quoi})")
+
+    if "--png" in sys.argv[1:]:
+        for nom, taille in en_png(sorties):
+            print(f"écrit : {nom}  ({taille[0]}×{taille[1]} px)")
 
     cote_mm = 28
     print(f"  format {LARGEUR/mm:.0f} × {HAUTEUR/mm:.0f} mm, coins R{RAYON/mm:.0f} mm,"
