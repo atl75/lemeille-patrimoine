@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 
 import { seoTitle } from "../lib/seoTitle.ts";
 import { isThinListing } from "../lib/thinListing.ts";
-import { matchesSector, sectorSlugFor, SECTORS, norm, locatifDe } from "../lib/sectors.ts";
+import { matchesSector, sectorSlugFor, SECTORS, norm, locatifDe, codePostalDe } from "../lib/sectors.ts";
 import cloudinaryLoader from "../lib/cloudinaryLoader.js";
 import { needsFollowUp, formatDate } from "../lib/typesLead.ts";
 import {
@@ -325,5 +325,59 @@ describe("cote-d-azur — le secteur d'ensemble ne vole pas les communes du Var"
     for (const ville of ["Cannes", "Nice", "Fréjus", "Saint-Tropez"]) {
       assert.equal(matchesSector({ city: ville, region: "COTE_D_AZUR" }, s), true, ville);
     }
+  });
+});
+
+describe("les deux rives de Rouen", () => {
+  // Signalé le 2026-09-05 : la page rive droite montrait des biens de la rive
+  // gauche, absents de la page rive gauche. Deux causes distinctes.
+  const rive = (cp: string) => ({ city: "Rouen", region: "NORMANDIE", postalCode: cp });
+
+  test("codePostalDe lit le code dans l'adresse de la carte", () => {
+    assert.equal(codePostalDe({ map: { query: "154 Rue Louis Blanc 76100 Rouen" } }), "76100");
+    // Le DERNIER groupe de cinq chiffres, pour ne pas confondre avec un numéro.
+    assert.equal(codePostalDe({ map: { query: "12345 Rue Untel 76000 Rouen" } }), "76000");
+    assert.equal(codePostalDe({ postalCode: "76100" }), "76100");
+    assert.equal(codePostalDe({ city: "Rouen" }), null);
+    assert.equal(codePostalDe(null), null);
+  });
+
+  // Cause 1 : « Rouen » désignait les deux rives, et rouen-rive-gauche ne
+  // listait que les communes voisines — pas Rouen même.
+  test("un bien en 76100 va rive gauche, et PAS au cœur historique", () => {
+    assert.equal(sectorSlugFor(rive("76100")), "rouen-rive-gauche");
+    assert.equal(matchesSector(rive("76100"), SECTORS["rouen-rive-gauche"] as any), true);
+    assert.equal(matchesSector(rive("76100"), SECTORS["rouen-centre"] as any), false);
+  });
+
+  test("un bien en 76000 reste au cœur historique", () => {
+    assert.equal(sectorSlugFor(rive("76000")), "rouen-centre");
+    assert.equal(matchesSector(rive("76000"), SECTORS["rouen-centre"] as any), true);
+    assert.equal(matchesSector(rive("76000"), SECTORS["rouen-rive-gauche"] as any), false);
+  });
+
+  test("sans code postal connu, un bien à Rouen reste au cœur historique", () => {
+    const sansCp = { city: "Rouen", region: "NORMANDIE" };
+    assert.equal(matchesSector(sansCp, SECTORS["rouen-centre"] as any), true);
+  });
+
+  // Cause 2 : matchesSector comparait en sous-chaîne, et
+  // « sotteville-les-rouen » contient « rouen ».
+  test("Sotteville-lès-Rouen ne remonte pas sur le cœur historique", () => {
+    const p = { city: "Sotteville-lès-Rouen", region: "NORMANDIE" };
+    assert.equal(matchesSector(p, SECTORS["rouen-centre"] as any), false,
+      "« sotteville-les-rouen » contient « rouen » : la comparaison doit être exacte");
+    assert.equal(matchesSector(p, SECTORS["rouen-rive-gauche"] as any), true);
+  });
+
+  // Même bug, autre victime : « paris 18e » contient « Paris 1 ».
+  test("Paris 18e ne remonte pas sur le centre historique", () => {
+    const p = { city: "Paris 18e", region: "PARIS", postalCode: "75018" };
+    assert.equal(matchesSector(p, SECTORS["paris-centre-historique"] as any), false);
+    assert.equal(sectorSlugFor(p), "paris");
+  });
+
+  test("le 16e arrive sur Paris Ouest, y compris en 75116", () => {
+    assert.equal(sectorSlugFor({ city: "Paris", region: "PARIS", postalCode: "75116" }), "paris-ouest");
   });
 });

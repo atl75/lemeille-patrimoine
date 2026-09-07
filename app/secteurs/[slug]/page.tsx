@@ -83,6 +83,9 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                 property={p}
                 cityLabel={formatCityWithDistrict(p.city)}
                 priority={index === 0}
+                // Sur une page de secteur, un bien vendu vaut comme référence :
+                // photo en gris, prix masqué, carte non cliquable.
+                vitrine
               />
             ))}
           </div>

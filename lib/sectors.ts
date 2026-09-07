@@ -19,7 +19,35 @@ export type Sector = {
    * préposition : « au » + « Le Mesnil-Esnard » donnerait « au Le ».
    */
   locatif?: string;
+  /**
+   * Codes postaux rattachés au secteur, EN PLUS des communes.
+   * Sert quand une commune s'étend sur deux secteurs et que seul le code
+   * postal les sépare : « Rouen » désigne les deux rives.
+   */
+  postalCodes?: string[];
+  /**
+   * Codes postaux explicitement écartés, même si la commune correspond.
+   * L'exclusion l'emporte sur la commune — c'est ce qui empêche un bien de
+   * la rive gauche de remonter sur la page du cœur historique.
+   */
+  excludePostalCodes?: string[];
 };
+
+/**
+ * Code postal d'un bien, s'il est connu.
+ *
+ * Les cartes le portent en clair (champ `postalCode`) ; sur un bien complet
+ * il faut l'extraire de l'adresse de la carte. On retient le DERNIER groupe
+ * de cinq chiffres : « 154 Rue Louis Blanc 76100 Rouen » donne 76100, et non
+ * un éventuel numéro de rue à cinq chiffres.
+ */
+export function codePostalDe(p: any): string | null {
+  if (!p) return null;
+  if (typeof p.postalCode === "string" && /^\d{5}$/.test(p.postalCode)) return p.postalCode;
+  const source = String(p.map?.query || p.address || "");
+  const trouves = source.match(/\b\d{5}\b/g);
+  return trouves ? trouves[trouves.length - 1] : null;
+}
 
 /** Le secteur en complément de lieu, « à {titre} » par défaut. */
 export function locatifDe(s?: Sector): string {
@@ -32,6 +60,7 @@ export const SECTORS: Record<string, Sector> = {
     subtitle: "7e, 6e, 5e — immeubles haussmanniens et hôtels particuliers.",
     region: "PARIS",
     cities: ["Paris 7", "Paris 7e", "75007", "Paris 6", "Paris 6e", "75006", "Paris 5", "Paris 5e", "75005"],
+    postalCodes: ["75005", "75006", "75007"],
     description: "La Rive gauche incarne le Paris patrimonial par excellence. Des appartements haussmanniens de Saint-Germain-des-Prés aux hôtels particuliers du 7e, c'est un marché de biens rares, recherché des familles comme des investisseurs en quête de valeur refuge. La liquidité y est forte et la valorisation constante.",
     highlights: ["Immeubles haussmanniens & hôtels particuliers", "Saint-Germain, Invalides, Panthéon, Jardin du Luxembourg", "Valeur patrimoniale et liquidité élevées"],
   },
@@ -40,6 +69,9 @@ export const SECTORS: Record<string, Sector> = {
     subtitle: "16e, Neuilly, Boulogne — appartements familiaux, terrasses.",
     region: "PARIS",
     cities: ["Paris 16", "Paris 16e", "75016", "Neuilly", "Neuilly-sur-Seine", "Boulogne", "Boulogne-Billancourt"],
+    // 75116 est l'autre code du 16e arrondissement : l'oublier laissait
+    // l'avenue Raymond Poincaré sans secteur, sa ville n'étant que « Paris ».
+    postalCodes: ["75016", "75116", "92200", "92100"],
     description: "L'Ouest parisien conjugue prestige résidentiel et qualité de vie familiale. Grands appartements traversants, immeubles de standing, terrasses et proximité du Bois de Boulogne : un secteur prisé pour ses adresses cossues et ses écoles recherchées, du 16e à Neuilly-sur-Seine.",
     highlights: ["Grands appartements familiaux & terrasses", "16e arrondissement, Neuilly, Boulogne-Billancourt", "Cadre résidentiel recherché, écoles réputées"],
   },
@@ -48,6 +80,7 @@ export const SECTORS: Record<string, Sector> = {
     subtitle: "1er–4e (Louvre, Marais) — patrimonial et pied-à-terre.",
     region: "PARIS",
     cities: ["75001","75002","75003","75004","Louvre","Marais","Paris 1","Paris 2","Paris 3","Paris 4"],
+    postalCodes: ["75001", "75002", "75003", "75004"],
     description: "Du Louvre au Marais, le centre historique offre un immobilier de caractère chargé d'histoire : poutres apparentes, pierres de taille, cours pavées. Un secteur idéal pour un pied-à-terre d'exception ou un investissement patrimonial, où la rareté de l'offre soutient durablement les valeurs.",
     highlights: ["Biens de caractère : Marais, Louvre, Île Saint-Louis", "Idéal pied-à-terre et investissement patrimonial", "Offre rare, forte demande locative"],
   },
@@ -80,6 +113,10 @@ export const SECTORS: Record<string, Sector> = {
     subtitle: "Saint-Sever, Grammont — investissement et rendement locatif.",
     region: "NORMANDIE",
     cities: ["Sotteville-lès-Rouen", "Petit-Quevilly", "Le Petit-Quevilly", "Grand-Quevilly", "Le Grand-Quevilly", "Saint-Étienne-du-Rouvray"],
+    // Saint-Sever, Grammont, Jardin des Plantes : la rive gauche de Rouen
+    // porte le code 76100 et n'apparaissait sur aucun secteur, la liste des
+    // communes ci-dessus ne contenant pas « Rouen ».
+    postalCodes: ["76100"],
     description: "La rive gauche de Rouen connaît une transformation profonde avec les projets urbains autour de Saint-Sever et de Grammont. Les prix y restent plus accessibles que sur la rive droite, offrant des rendements locatifs supérieurs, portés par la présence étudiante et la desserte en transports. Un secteur à considérer pour l'investissement locatif comme pour un premier achat.",
     highlights: ["Prix d'entrée accessibles, bons rendements locatifs", "Quartiers en renouvellement urbain (Saint-Sever, Grammont)", "Forte demande locative étudiante et jeunes actifs"],
   },
@@ -97,6 +134,9 @@ export const SECTORS: Record<string, Sector> = {
     subtitle: "Quartier des musées, Préfecture, Saint-Maclou.",
     region: "NORMANDIE",
     cities: ["Rouen"],
+    // 76100, c'est la rive gauche : ces biens relèvent de « Rouen Rive
+    // Gauche », pas du cœur historique, bien que leur ville soit « Rouen ».
+    excludePostalCodes: ["76100"],
     description: "Rouen séduit par son centre médiéval, ses maisons à colombages et son riche patrimoine classé. Le quartier des Musées, la Préfecture et Saint-Maclou offrent des appartements de caractère et des immeubles éligibles à la défiscalisation (Malraux, Monument Historique), à des niveaux de prix attractifs face à Paris.",
     highlights: ["Appartements de caractère au cœur historique", "Fort potentiel de défiscalisation (Malraux, MH)", "Marché dynamique, rendement locatif intéressant"],
   },
@@ -131,6 +171,38 @@ export const SECTORS: Record<string, Sector> = {
     cities: ["Agay","Théoule-sur-Mer","Theoule","Mandelieu","Les Adrets","Adrets de l'Estérel"],
     description: "Le massif de l'Estérel et son arrière-pays offrent un cadre naturel préservé, entre roches rouges et Méditerranée. D'Agay à Théoule-sur-Mer, ce secteur confidentiel séduit les amateurs de nature et d'intimité : villas panoramiques, propriétés au calme et vues mer spectaculaires, à l'écart de l'agitation.",
     highlights: ["Villas panoramiques & propriétés au calme", "Agay, Théoule-sur-Mer, Mandelieu, Les Adrets", "Nature préservée, intimité et vues mer"],
+  },
+
+  // Secteur d'ensemble pour l'Île-de-France, pendant de « cote-d-azur ».
+  //
+  // Les trois secteurs parisiens ne couvrent que le centre, la rive gauche et
+  // l'ouest. Les biens en portefeuille sont dans le 18e, le 15e, le 16e et à
+  // Montmorency : deux d'entre eux ne relevaient d'aucun secteur. Le 18e
+  // remontait même sur le centre historique, la comparaison par sous-chaîne
+  // faisant correspondre « paris 18e » à « Paris 1 ».
+  //
+  // Comme pour la Côte d'Azur, ce secteur ne prive pas les autres : à égalité
+  // de correspondance, sectorSlugFor retient celui qui a le MOINS de communes.
+  "paris": {
+    title: "Paris & Île-de-France",
+    subtitle: "Des arrondissements centraux aux communes limitrophes.",
+    region: "PARIS",
+    locatif: "à Paris et en Île-de-France",
+    cities: [
+      "Paris",
+      ...Array.from({ length: 20 }, (_, i) => `Paris ${i + 1}`),
+      ...Array.from({ length: 20 }, (_, i) => `Paris ${i + 1}e`),
+      "Paris 1er",
+      "Neuilly", "Neuilly-sur-Seine", "Boulogne", "Boulogne-Billancourt",
+      "Levallois-Perret", "Vincennes", "Saint-Mandé", "Montmorency",
+    ],
+    postalCodes: [
+      ...Array.from({ length: 20 }, (_, i) => `750${String(i + 1).padStart(2, "0")}`),
+      "75116",            // second code du 16e
+      "92200", "92100", "92300", "94300", "95160",
+    ],
+    description: "De l'hypercentre historique aux communes limitrophes, Paris et sa proche couronne réunissent les marchés les plus recherchés de France : appartements haussmanniens, pied-à-terre patrimoniaux, maisons de faubourg. La rareté du foncier y soutient les valeurs, et les dispositifs de défiscalisation patrimoniale — Malraux, Monument Historique — y trouvent leurs plus beaux supports.",
+    highlights: ["Arrondissements centraux et proche couronne", "Haussmannien, pied-à-terre, maisons de faubourg", "Malraux et Monument Historique"],
   },
 
   // Secteur d'ensemble, couvrant le Var ET les Alpes-Maritimes.
@@ -197,11 +269,23 @@ export function formatCityWithDistrict(city: string): string {
 export function matchesSector(p:any, s: Sector){
   const city = norm(p.city||"");
   const region = norm(p.region||"");
-  const okRegion = s.region ? region.includes(norm(s.region)) : true;
-  const okCity = s.cities && s.cities.length
-    ? s.cities.some(c => city.includes(norm(c)))
+  if (s.region && !region.includes(norm(s.region))) return false;
+
+  // Le code postal tranche avant la commune, et lui seul peut EXCLURE : un
+  // bien rue Louis Blanc a pour ville « Rouen », ce qui le faisait remonter
+  // sur le cœur historique alors qu'il est rive gauche.
+  const cp = codePostalDe(p);
+  if (cp && s.excludePostalCodes?.includes(cp)) return false;
+  if (cp && s.postalCodes?.includes(cp)) return true;
+
+  // Comparaison à l'IDENTIQUE, comme sectorSlugFor. En sous-chaîne,
+  // « sotteville-les-rouen » contient « rouen » : un bien de Sotteville — rive
+  // gauche — remontait donc sur le cœur historique. Les listes de communes
+  // énumèrent déjà leurs variantes (« Theoule » / « Théoule-sur-Mer »,
+  // « Paris 7 » / « Paris 7e » / « 75007 »), l'exactitude ne perd rien.
+  return s.cities && s.cities.length
+    ? s.cities.some(c => norm(c) === city)
     : true;
-  return okRegion && okCity;
 }
 
 
@@ -223,8 +307,12 @@ export function sectorSlugFor(p: any): string | null {
   if (!ville) return null;
   const region = norm(p?.region || "");
 
+  const cp = codePostalDe(p);
   const candidats = Object.entries(SECTORS).filter(([, s]) => {
     if (s.region && !region.includes(norm(s.region))) return false;
+    // Même règle que matchesSector : le code postal prime sur la commune.
+    if (cp && s.excludePostalCodes?.includes(cp)) return false;
+    if (cp && s.postalCodes?.includes(cp)) return true;
     return (s.cities || []).some((c) => norm(c) === ville);
   });
   if (!candidats.length) return null;

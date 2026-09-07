@@ -29,12 +29,13 @@ export function Footer() {
     { href: "/secteurs/mesnil-esnard-franqueville", label: "Le Mesnil-Esnard & Franqueville" },
     // Les deux autres régions d'intervention. Chaque entrée mène là où il y a
     // effectivement des biens :
-    //   Paris → paris-centre-historique, seul secteur parisien qui remonte des
-    //   biens (paris-rive-gauche et paris-ouest en affichent zéro) ;
+    //   Paris → le secteur d'ensemble Paris & Île-de-France, qui liste les
+    //   quatre biens de la région ; les trois secteurs parisiens ne couvrent
+    //   que le centre, la rive gauche et l'ouest ;
     //   Côte d'Azur → le secteur d'ensemble Var + Alpes-Maritimes, qui liste
     //   les quatre biens de la région. Il pointait vers /immobilier tant que
     //   les seuls secteurs définis couvraient le Var, où rien n'est en vente.
-    { href: "/secteurs/paris-centre-historique", label: "Paris" },
+    { href: "/secteurs/paris", label: "Paris" },
     { href: "/secteurs/cote-d-azur", label: "Côte d'Azur" },
   ];
 

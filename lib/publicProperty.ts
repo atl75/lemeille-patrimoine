@@ -1,3 +1,5 @@
+import { codePostalDe } from '@/lib/sectors';
+
 // Projection « publique » d'un bien : ne renvoie que les champs destinés
 // aux visiteurs. Retire les données sensibles jamais destinées au public —
 // propriétaires, notaires, acquéreur, montants financiers (net vendeur,
@@ -26,6 +28,12 @@ export function toPublicPropertyCard(p: any) {
     rooms: p.rooms,
     landSize: p.type === 'MAISON' ? p.landSize : undefined,
     dpe: p.dpe ? { classEnergy: p.dpe.classEnergy, classGES: p.dpe.classGES } : undefined,
+    // Code postal SEUL, jamais la rue : il sert à départager deux secteurs que
+    // la commune ne suffit pas à séparer — « Rouen » couvre les deux rives,
+    // 76000 la droite et 76100 la gauche. Il ne dit rien de plus que le
+    // quartier, ce que la page de secteur affiche déjà en listant le bien ;
+    // la confidentialité de l'adresse exacte reste entière.
+    postalCode: codePostalDe(p),
     features: Array.isArray(p.features) ? p.features : [],
     images: firstImage,
     featured: p.featured,
