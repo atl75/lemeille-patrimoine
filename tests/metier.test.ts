@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 
 import { seoTitle } from "../lib/seoTitle.ts";
 import { isThinListing } from "../lib/thinListing.ts";
-import { matchesSector, sectorSlugFor, SECTORS, norm } from "../lib/sectors.ts";
+import { matchesSector, sectorSlugFor, SECTORS, norm, locatifDe } from "../lib/sectors.ts";
 import cloudinaryLoader from "../lib/cloudinaryLoader.js";
 import { needsFollowUp, formatDate } from "../lib/typesLead.ts";
 import {
@@ -276,5 +276,54 @@ describe("validation d'une fiche bien — ce qui bloque l'enregistrement", () =>
   test("une fiche vide ne bloque rien", () => {
     assert.deepEqual(erreursFiche({}), []);
     assert.deepEqual(erreursFiche(null), []);
+  });
+});
+
+describe("locatifDe — le secteur nommé en complément de lieu", () => {
+  // « Vous vendez à Côte d'Azur ? » : le gabarit collait « à » devant tous les
+  // titres. Une région veut « sur la », et un titre portant un article se
+  // contracte — d'où la locution entière plutôt que la seule préposition, qui
+  // aurait donné « au Le Mesnil-Esnard ».
+  test("une commune garde le « à » par défaut", () => {
+    assert.equal(locatifDe(SECTORS["bihorel"] as any), "à Bihorel");
+  });
+
+  test("une région prend sa propre locution", () => {
+    assert.equal(locatifDe(SECTORS["cote-d-azur"] as any), "sur la Côte d'Azur");
+  });
+
+  test("un titre portant un article ne le redouble pas", () => {
+    const l = locatifDe(SECTORS["mesnil-esnard-franqueville"] as any);
+    assert.equal(l, "au Mesnil-Esnard & Franqueville-Saint-Pierre");
+    assert.ok(!/au Le/.test(l), "« au Le » : la préposition redouble l'article");
+  });
+
+  test("aucun secteur ne produit une locution fautive", () => {
+    for (const [slug, s] of Object.entries(SECTORS) as [string, any][]) {
+      const l = locatifDe(s);
+      assert.ok(!/\b(au|du) L[ae]\b/.test(l), `${slug} : « ${l} »`);
+      assert.ok(l.trim().length > 2, `${slug} : locution vide`);
+    }
+  });
+});
+
+describe("cote-d-azur — le secteur d'ensemble ne vole pas les communes du Var", () => {
+  test("une commune du Var reste sur son secteur étroit", () => {
+    assert.equal(sectorSlugFor({ city: "Fréjus", region: "COTE_D_AZUR" }), "saint-aygulf-frejus");
+    assert.equal(sectorSlugFor({ city: "Sainte-Maxime", region: "COTE_D_AZUR" }), "sainte-maxime-golfe-saint-tropez");
+    assert.equal(sectorSlugFor({ city: "Agay", region: "COTE_D_AZUR" }), "esterel-arriere-pays");
+  });
+
+  test("les Alpes-Maritimes, qui n'ont pas de secteur propre, tombent sur l'ensemble", () => {
+    for (const ville of ["Cannes", "Nice", "Antibes", "Le Rouret"]) {
+      assert.equal(sectorSlugFor({ city: ville, region: "COTE_D_AZUR" }), "cote-d-azur", ville);
+    }
+  });
+
+  test("la page d'ensemble reconnaît les deux départements", () => {
+    const s = SECTORS["cote-d-azur"] as any;
+    for (const ville of ["Cannes", "Nice", "Fréjus", "Saint-Tropez"]) {
+      assert.equal(matchesSector({ city: ville, region: "COTE_D_AZUR" }, s), true, ville);
+    }
   });
 });

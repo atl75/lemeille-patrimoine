@@ -5,7 +5,7 @@ import PropertyCard from "@/components/PropertyCard";
 import { getPropertyCards } from "@/lib/propertiesData";
 import { notFound } from "next/navigation";
 import { seoTitle } from '@/lib/seoTitle';
-import { SECTORS, matchesSector, formatCityWithDistrict, type Sector } from "@/lib/sectors";
+import { SECTORS, matchesSector, formatCityWithDistrict, locatifDe, type Sector } from "@/lib/sectors";
 
 // ISR : régénérée au plus toutes les 5 min (+ revalidation immédiate à l'édition d'un bien).
 export const revalidate = 300;
@@ -36,6 +36,8 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 
   // Visuel commun à tous les bandeaux institutionnels du site.
   const heroImage = "/hero-normandie.jpg";
+  // « à Bihorel », mais « sur la Côte d'Azur » et « au Mesnil-Esnard ».
+  const ou = locatifDe(sector);
 
   return (
     <main>
@@ -71,7 +73,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       )}
 
       <section className="container pb-12">
-        <h2 className="luxe text-2xl mb-4">{items.length ? "Nos biens dans ce secteur" : `Vous cherchez à ${sector.title} ?`}</h2>
+        <h2 className="luxe text-2xl mb-4">{items.length ? "Nos biens dans ce secteur" : `Vous cherchez ${ou} ?`}</h2>
 
         {items.length ? (
           <div className="grid md:grid-cols-2 gap-6">
@@ -88,7 +90,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           <>
             <div className="card p-6 mb-8">
               <p className="opacity-85 leading-relaxed">
-                Nous n&apos;avons pas de bien disponible à {sector.title} en ce moment — le marché y est tendu et
+                Nous n&apos;avons pas de bien disponible {ou} en ce moment — le marché y est tendu et
                 les belles opportunités partent vite, souvent avant même d&apos;être publiées.
                 Dites-nous ce que vous cherchez : nous vous prévenons en priorité dès qu&apos;un bien correspond.
               </p>
@@ -127,7 +129,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       {/* Vendeurs : capture de mandat sur chaque page secteur */}
       <section className="container pb-14">
         <div className="card p-6 md:p-8 text-center">
-          <h2 className="luxe text-2xl mb-2">Vous vendez à {sector.title} ?</h2>
+          <h2 className="luxe text-2xl mb-2">Vous vendez {ou} ?</h2>
           <p className="opacity-80 max-w-2xl mx-auto">
             Obtenez une estimation indicative immédiate, puis un avis de valeur personnalisé sous 3 jours.
             Sans engagement.

@@ -8,7 +8,23 @@ export type Sector = {
   cities?: string[];
   description?: string;
   highlights?: string[];
+  /**
+   * Le secteur nommé en complément de lieu : « Vous vendez {locatif} ? ».
+   *
+   * Vaut « à {titre} » par défaut, ce qui convient à une commune — « à
+   * Bihorel ». Il faut le renseigner dès que la préposition seule ne suffit
+   * pas : une région se dit « sur la Côte d'Azur », et un nom portant un
+   * article se contracte — « au Mesnil-Esnard », où le « Le » du titre
+   * disparaît. C'est bien la locution ENTIÈRE qui est stockée, et non la seule
+   * préposition : « au » + « Le Mesnil-Esnard » donnerait « au Le ».
+   */
+  locatif?: string;
 };
+
+/** Le secteur en complément de lieu, « à {titre} » par défaut. */
+export function locatifDe(s?: Sector): string {
+  return s?.locatif || `à ${s?.title ?? ""}`;
+}
 
 export const SECTORS: Record<string, Sector> = {
   "paris-rive-gauche": {
@@ -69,6 +85,7 @@ export const SECTORS: Record<string, Sector> = {
   },
   "mesnil-esnard-franqueville": {
     title: "Le Mesnil-Esnard & Franqueville-Saint-Pierre",
+    locatif: "au Mesnil-Esnard & Franqueville-Saint-Pierre",
     subtitle: "Plateau Est — maisons familiales et vue sur la vallée.",
     region: "NORMANDIE",
     cities: ["Mesnil-Esnard", "Le Mesnil-Esnard", "Franqueville", "Franqueville-Saint-Pierre"],
@@ -114,7 +131,41 @@ export const SECTORS: Record<string, Sector> = {
     cities: ["Agay","Théoule-sur-Mer","Theoule","Mandelieu","Les Adrets","Adrets de l'Estérel"],
     description: "Le massif de l'Estérel et son arrière-pays offrent un cadre naturel préservé, entre roches rouges et Méditerranée. D'Agay à Théoule-sur-Mer, ce secteur confidentiel séduit les amateurs de nature et d'intimité : villas panoramiques, propriétés au calme et vues mer spectaculaires, à l'écart de l'agitation.",
     highlights: ["Villas panoramiques & propriétés au calme", "Agay, Théoule-sur-Mer, Mandelieu, Les Adrets", "Nature préservée, intimité et vues mer"],
-  }
+  },
+
+  // Secteur d'ensemble, couvrant le Var ET les Alpes-Maritimes.
+  //
+  // Les trois secteurs ci-dessus ne couvraient que le Var — Fréjus, le golfe
+  // de Saint-Tropez, l'Estérel — alors que les biens en portefeuille sont à
+  // Cannes, Nice, Antibes et Le Rouret. Aucun ne remontait, et les trois pages
+  // s'affichaient vides.
+  //
+  // Ce secteur les rassemble sans désactiver les autres : sectorSlugFor
+  // retient le secteur ayant le MOINS de communes, donc un bien à Fréjus reste
+  // rattaché à « Saint-Aygulf & Fréjus », plus étroit. Seules les communes qui
+  // ne figurent nulle part ailleurs — celles des Alpes-Maritimes — tombent
+  // ici. La page, elle, liste tout ce que matchesSector reconnaît : c'est la
+  // vue d'ensemble de la région.
+  "cote-d-azur": {
+    title: "Côte d'Azur",
+    locatif: "sur la Côte d'Azur",
+    subtitle: "Du golfe de Saint-Tropez à Nice, Var et Alpes-Maritimes.",
+    region: "COTE_D_AZUR",
+    cities: [
+      // Var
+      "Saint-Aygulf","Fréjus","Frejus","Sainte-Maxime","Saint-Tropez","Grimaud",
+      "Cogolin","Gassin","La Croix-Valmer","Agay","Les Adrets","Adrets de l'Estérel",
+      // Alpes-Maritimes — littoral
+      "Cannes","Le Cannet","Mandelieu","Théoule-sur-Mer","Theoule","Vallauris",
+      "Golfe-Juan","Antibes","Juan-les-Pins","Villeneuve-Loubet","Cagnes-sur-Mer",
+      "Nice","Villefranche-sur-Mer","Beaulieu-sur-Mer","Saint-Jean-Cap-Ferrat",
+      // Alpes-Maritimes — arrière-pays
+      "Mougins","Biot","Valbonne","Le Rouret","Roquefort-les-Pins","Opio",
+      "Châteauneuf-Grasse","Grasse","Vence","Saint-Paul-de-Vence",
+    ],
+    description: "De la presqu'île de Saint-Tropez aux collines de Nice, la Côte d'Azur réunit deux départements et autant de marchés : villas de standing et domaines vue mer côté Var, appartements de caractère et propriétés de l'arrière-pays côté Alpes-Maritimes. Résidence secondaire, investissement locatif saisonnier ou valeur refuge, la clientèle y est internationale et la demande constante.",
+    highlights: ["Var et Alpes-Maritimes réunis", "Cannes, Antibes, Nice, Saint-Tropez, Fréjus", "Résidence secondaire, locatif saisonnier, valeur refuge"],
+  },
 };
 
 export function norm(s:string=""){ return s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase(); }
