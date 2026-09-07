@@ -17,7 +17,22 @@ type Info = {
   address: string;
   signedAt: string | null;
   error?: string;
+  // Renseigné quand le jeton désigne un AVENANT : même circuit de signature,
+  // mais le document et le vocabulaire diffèrent.
+  document?: "AVENANT";
+  avenant?: {
+    numero: number;
+    objet: string;
+    motif?: string;
+    ancienPrix: number | null;
+    nouveauPrix: number | null;
+    ancienNetVendeur: number | null;
+    nouveauNetVendeur: number | null;
+  };
 };
+
+const eur = (n: number | null | undefined) =>
+  (n || n === 0) ? Math.round(n).toLocaleString("fr-FR") + " €" : "—";
 
 // Défini au niveau module (et non dans le composant) : sinon il serait recréé à
 // chaque frappe, ce qui démonterait/remonterait tout le sous-arbre — le champ nom
@@ -46,6 +61,8 @@ export default function SignMandatPage() {
   const token = params?.token as string;
 
   const [info, setInfo] = useState<Info | null>(null);
+  // Le même écran sert le mandat et ses avenants : seul le vocabulaire change.
+  const estAvenant = info?.document === "AVENANT";
   const [loading, setLoading] = useState(true);
   const [signerName, setSignerName] = useState("");
   const [consent, setConsent] = useState(false);
@@ -135,7 +152,10 @@ export default function SignMandatPage() {
       const res = await fetch(`/api/mandat/sign/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dataUrl, consent: true, signerName: signerName.trim(), mention: "Bon pour mandat" }),
+        body: JSON.stringify({
+          dataUrl, consent: true, signerName: signerName.trim(),
+          mention: estAvenant ? "Bon pour avenant" : "Bon pour mandat",
+        }),
       });
       const d = await res.json();
       if (!res.ok) { setError(d.error || "Une erreur est survenue."); setSubmitting(false); return; }
@@ -154,9 +174,11 @@ export default function SignMandatPage() {
       <Shell>
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 44, marginBottom: 8 }}>✅</div>
-          <h1 style={{ fontFamily: "Georgia, serif", fontSize: 22, color: "#1F3B2C", marginBottom: 8 }}>Mandat signé</h1>
+          <h1 style={{ fontFamily: "Georgia, serif", fontSize: 22, color: "#1F3B2C", marginBottom: 8 }}>
+            {estAvenant ? "Avenant signé" : "Mandat signé"}
+          </h1>
           <p style={{ color: "#444" }}>
-            Merci. Votre mandat de vente {info.mandateNumber ? `N° ${info.mandateNumber} ` : ""}a bien été signé électroniquement.
+            Merci. {estAvenant ? "L'avenant à votre mandat de vente" : "Votre mandat de vente"} {info.mandateNumber ? `N° ${info.mandateNumber} ` : ""}a bien été signé électroniquement.
             {info.signedAt && !done ? ` Le ${new Date(info.signedAt).toLocaleString("fr-FR")}.` : ""}
           </p>
           <p style={{ color: "#666", fontSize: 13, marginTop: 12 }}>Un exemplaire signé vous sera transmis par votre conseiller.</p>
@@ -168,24 +190,57 @@ export default function SignMandatPage() {
   return (
     <Shell>
       <h1 style={{ fontFamily: "Georgia, serif", fontSize: 20, color: "#1F3B2C", marginBottom: 4 }}>
-        Mandat de vente{info.mandateNumber ? ` — N° ${info.mandateNumber}` : ""}
+        {estAvenant ? "Avenant au mandat de vente" : "Mandat de vente"}{info.mandateNumber ? ` — N° ${info.mandateNumber}` : ""}
       </h1>
       <p style={{ color: "#555", fontSize: 14, marginBottom: 4 }}>
         {info.typeLabel}{info.address ? ` — ${info.address}` : ""}
       </p>
       <p style={{ color: "#555", fontSize: 14, marginBottom: 16 }}>Mandataire : NOVUS CAPITAL SAS (Arthur Lemeille).</p>
 
+      {/* Ce que l'avenant change, annoncé AVANT l'ouverture du document : le
+          signataire doit savoir sur quoi il s'engage sans avoir à déplier le
+          PDF. Le détail complet reste dans l'avenant lui-même. */}
+      {estAvenant && info.avenant && (
+        <div style={{ border: "1px solid #B89C6D", background: "#FBF8F2", borderRadius: 10, padding: 14, marginBottom: 18 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#1F3B2C", marginBottom: 8 }}>
+            Ce que cet avenant modifie
+          </div>
+          <table style={{ width: "100%", fontSize: 14, borderCollapse: "collapse" }}>
+            <tbody>
+              <tr>
+                <td style={{ color: "#666", padding: "3px 0" }}>Prix de vente</td>
+                <td style={{ textAlign: "right", color: "#888", textDecoration: "line-through" }}>{eur(info.avenant.ancienPrix)}</td>
+                <td style={{ textAlign: "right", fontWeight: 700, color: "#1F3B2C", paddingLeft: 12 }}>{eur(info.avenant.nouveauPrix)}</td>
+              </tr>
+              <tr>
+                <td style={{ color: "#666", padding: "3px 0" }}>Net vendeur</td>
+                <td style={{ textAlign: "right", color: "#888", textDecoration: "line-through" }}>{eur(info.avenant.ancienNetVendeur)}</td>
+                <td style={{ textAlign: "right", fontWeight: 700, color: "#1F3B2C", paddingLeft: 12 }}>{eur(info.avenant.nouveauNetVendeur)}</td>
+              </tr>
+            </tbody>
+          </table>
+          {info.avenant.motif && (
+            <div style={{ fontSize: 13, color: "#666", marginTop: 8 }}>Motif : {info.avenant.motif}</div>
+          )}
+          <div style={{ fontSize: 12, color: "#777", marginTop: 8 }}>
+            Toutes les autres clauses du mandat restent inchangées.
+          </div>
+        </div>
+      )}
+
       <button type="button" onClick={() => setReading(true)}
         style={{ display: "block", width: "100%", marginBottom: 18, padding: "12px", background: "#fff",
                  border: "2px solid #1F3B2C", color: "#1F3B2C", borderRadius: 10, fontWeight: 600,
                  fontSize: 14, cursor: "pointer" }}
         data-testid="button-read-mandate">
-        📄 {mandateRead ? "Relire le mandat" : "Lire le mandat complet avant de signer"}
+        📄 {mandateRead
+          ? (estAvenant ? "Relire l'avenant" : "Relire le mandat")
+          : (estAvenant ? "Lire l'avenant avant de signer" : "Lire le mandat complet avant de signer")}
       </button>
 
       {!mandateRead && (
         <p style={{ fontSize: 13, color: "#777", textAlign: "center", marginBottom: 4 }} data-testid="text-signature-locked">
-          La signature sera disponible après lecture et validation du mandat.
+          La signature sera disponible après lecture et validation {estAvenant ? "de l'avenant" : "du mandat"}.
         </p>
       )}
 

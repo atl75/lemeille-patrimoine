@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { readJSON, writeJSON, updateJSON } from '@/lib/utils';
 import { buildMandatePdf } from '@/lib/mandatPdf';
+import { buildAvenantPdf } from '@/lib/avenantPdf';
 import { MAIL_COPY } from '@/lib/mailCopy';
 import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
 
@@ -43,17 +44,54 @@ async function emailSignedMandate(rec: any) {
   } catch (e) { console.error('Envoi mandat signé échoué:', e); }
 }
 
+// Avenant entièrement signé : envoi aux mandants, PDF en pièce jointe.
+//
+// Le PDF n'est PAS stocké dans les données : il est reconstruit à la demande à
+// partir du mandat et de l'avenant, tous deux figés une fois signés. Un PDF en
+// base64 dans le JSON, c'est le défaut que le mandat traîne déjà et qu'on
+// n'ajoute pas ici.
+async function emailSignedAvenant(mandat: any, avenant: any) {
+  try {
+    if (!process.env.RESEND_API_KEY) return;
+    const owners = Array.isArray(mandat.owners) ? mandat.owners : [];
+    const to = Array.from(new Set<string>(owners.map((o: any) => (o?.email || '').trim()).filter((e: string) => /@/.test(e))));
+    if (!to.length) return;
+    const bytes = await buildAvenantPdf(mandat, avenant);
+    const b64 = Buffer.from(bytes).toString('base64');
+    const { Resend } = await import('resend');
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const num = mandat.mandateNumber ? ` N° ${mandat.mandateNumber}` : '';
+    const prix = Math.round(Number(avenant?.nouveau?.price) || 0).toLocaleString('fr-FR');
+    await resend.emails.send({
+      from: process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>',
+      to,
+      bcc: MAIL_COPY,
+      subject: `Avenant signé — mandat de vente${num}`,
+      html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#222;font-size:14px;line-height:1.5"><p>Bonjour,</p><p>L'avenant à votre mandat de vente${num} a été signé par l'ensemble des parties. Le prix de vente est désormais de ${prix} €. Vous en trouverez copie en pièce jointe.</p>${EMAIL_SIGNATURE_HTML}</div>`,
+      attachments: [{ filename: `avenant-${avenant?.numero || 1}-mandat-${mandat.mandateNumber || ''}.pdf`, content: b64 }],
+    });
+  } catch (e) { console.error('Envoi avenant signé échoué:', e); }
+}
+
 // Route PUBLIQUE : le mandant accède au mandat via un jeton unique et y appose
 // sa signature électronique simple. Multi-signataires : chaque mandant a son
 // propre jeton (mandat.signers[].token). Rétrocompatible : ancien jeton unique
 // (mandat.mandateSignToken / property.mandateSignToken).
 
-type Resolved = { file: string; data: any[]; idx: number; signerIndex: number };
+// `avenantIdx` renseigné = le jeton désigne un AVENANT du mandat, pas le
+// mandat lui-même. Les deux se signent par le même circuit et la même page.
+type Resolved = { file: string; data: any[]; idx: number; signerIndex: number; avenantIdx?: number };
 
 async function resolveByToken(token: string): Promise<Resolved | null> {
   const mandats = await readJSON('mandats.json');
   const ms = Array.isArray(mandats) ? mandats : [];
   for (let i = 0; i < ms.length; i++) {
+    const avenants = Array.isArray(ms[i].avenants) ? ms[i].avenants : [];
+    for (let a = 0; a < avenants.length; a++) {
+      const sa = Array.isArray(avenants[a].signers) ? avenants[a].signers : [];
+      const k = sa.findIndex((s: any) => s.token && s.token === token);
+      if (k >= 0) return { file: 'mandats.json', data: ms, idx: i, signerIndex: k, avenantIdx: a };
+    }
     const signers = Array.isArray(ms[i].signers) ? ms[i].signers : [];
     const si = signers.findIndex((s: any) => s.token && s.token === token);
     if (si >= 0) return { file: 'mandats.json', data: ms, idx: i, signerIndex: si };
@@ -73,6 +111,33 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
   const p = r.data[r.idx];
   const typeLabel = ((p.type || 'APPARTEMENT') === 'MAISON' ? 'Maison' : 'Appartement') + (p.rooms ? ` T${p.rooms}` : '');
   const address = p.map?.query || [p.city, String(p.region || '').replaceAll('_', ' ')].filter(Boolean).join(', ');
+
+  if (r.avenantIdx !== undefined) {
+    const av = p.avenants[r.avenantIdx];
+    const s = av.signers[r.signerIndex];
+    return NextResponse.json({
+      document: 'AVENANT',
+      status: s.dataUrl ? 'SIGNED' : 'PENDING',
+      signed: !!s.dataUrl,
+      signerName: s.name || '',
+      mandateNumber: p.mandateNumber || '',
+      mandateType: p.mandateType || '',
+      typeLabel, address,
+      signedAt: s.signedAt || null,
+      signerPosition: r.signerIndex + 1,
+      signerTotal: av.signers.length,
+      othersSigned: av.signers.filter((x: any) => !!x.dataUrl).length,
+      avenant: {
+        numero: av.numero,
+        objet: av.objet,
+        motif: av.motif || '',
+        ancienPrix: av.ancien?.price ?? null,
+        nouveauPrix: av.nouveau?.price ?? null,
+        ancienNetVendeur: av.ancien?.netSellerAmount ?? null,
+        nouveauNetVendeur: av.nouveau?.netSellerAmount ?? null,
+      },
+    });
+  }
 
   if (r.signerIndex >= 0) {
     const s = p.signers[r.signerIndex];
@@ -121,6 +186,61 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || req.headers.get('x-real-ip') || '';
   const userAgent = (req.headers.get('user-agent') || '').slice(0, 400);
   const rec = r.data[r.idx];
+
+  if (r.avenantIdx !== undefined) {
+    // Capturé hors de la closure : TypeScript y perdrait le rétrécissement.
+    const ai = r.avenantIdx;
+    const si = r.signerIndex;
+    const av0 = rec.avenants[ai];
+    if (av0.signers[si]?.dataUrl) {
+      return NextResponse.json({ error: 'Vous avez déjà signé cet avenant.' }, { status: 409 });
+    }
+
+    // Écriture par compare-et-échange, contrairement au reste de ce fichier :
+    // deux mandants peuvent signer à la même seconde, et readJSON puis
+    // writeJSON perdrait la signature de l'un des deux.
+    let issue: any = null;
+    await updateJSON('mandats.json', (data: any[]) => {
+      const liste = Array.isArray(data) ? data : [];
+      const i = liste.findIndex((x: any) => x.id === rec.id);
+      if (i < 0) { issue = { error: 'Mandat introuvable' }; return data; }
+      const avenants = [...(liste[i].avenants || [])];
+      const av = { ...avenants[ai] };
+      const signers = [...(av.signers || [])];
+      signers[si] = {
+        ...signers[si],
+        name: (body.signerName || signers[si]?.name || '').toString().slice(0, 200),
+        dataUrl: body.dataUrl,
+        mention: (body.mention || 'Bon pour avenant').toString().slice(0, 120),
+        signedAt: new Date().toISOString(),
+        ip, userAgent,
+      };
+      av.signers = signers;
+      const tousSignes = signers.length > 0 && signers.every((x: any) => !!x.dataUrl);
+      av.signStatus = tousSignes ? 'SIGNED' : 'PENDING';
+      avenants[ai] = av;
+      liste[i] = { ...liste[i], avenants };
+
+      // Avenant entièrement signé : le mandat prend les nouvelles conditions.
+      // Le PDF du mandat d'origine reste archivé tel quel, et l'avenant garde
+      // l'ancien prix : l'historique n'est pas effacé, il est complété.
+      if (tousSignes && av.nouveau) {
+        liste[i] = {
+          ...liste[i],
+          price: av.nouveau.price,
+          commissionPercentage: av.nouveau.commissionPercentage,
+          commissionAmount: av.nouveau.commissionAmount,
+          netSellerAmount: av.nouveau.netSellerAmount,
+        };
+      }
+      issue = { mandat: liste[i], avenant: av, tousSignes };
+      return liste;
+    });
+
+    if (issue?.error) return NextResponse.json({ error: issue.error }, { status: 404 });
+    if (issue.tousSignes) await emailSignedAvenant(issue.mandat, issue.avenant);
+    return NextResponse.json({ ok: true, allSigned: issue.tousSignes });
+  }
 
   if (r.signerIndex >= 0) {
     const s = rec.signers[r.signerIndex];

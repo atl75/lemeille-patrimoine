@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { readJSON } from '@/lib/utils';
 import { buildMandatePdf } from '@/lib/mandatPdf';
+import { buildAvenantPdf } from '@/lib/avenantPdf';
 
 // Route PUBLIQUE : sert le PDF du mandat correspondant au jeton de signature,
 // affiché en ligne (inline) pour que le mandant puisse le lire avant de signer.
@@ -12,6 +13,25 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
     // unique dans les mandats autonomes, puis (héritage) les biens.
     const mandatsRaw = await readJSON('mandats.json');
     const mandats = Array.isArray(mandatsRaw) ? mandatsRaw : [];
+
+    // Un jeton d'AVENANT sert l'avenant, pas le mandat : sans cela le mandant
+    // relirait le contrat d'origine et signerait sans avoir vu le nouveau prix.
+    for (const m of mandats) {
+      for (const av of (Array.isArray(m.avenants) ? m.avenants : [])) {
+        if ((av.signers || []).some((s: any) => s.token && s.token === token)) {
+          const bytes = await buildAvenantPdf(m, av);
+          return new NextResponse(Buffer.from(bytes), {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/pdf',
+              'Content-Disposition': `inline; filename="avenant-${av.numero || 1}-mandat-${m.mandateNumber || 'vente'}.pdf"`,
+              'Content-Length': bytes.length.toString(),
+            },
+          });
+        }
+      }
+    }
+
     let p = mandats.find((x: any) => Array.isArray(x.signers) && x.signers.some((s: any) => s.token && s.token === token));
     if (!p) p = mandats.find((x: any) => x.mandateSignToken && x.mandateSignToken === token);
     if (!p) {

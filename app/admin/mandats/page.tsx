@@ -3,7 +3,7 @@ import AdminShell from "@/components/AdminShell";
 import { useToast } from "@/components/Toast";
 import Breadcrumb from "@/components/Breadcrumb";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { Printer, FileText, PenLine, Trash2, Save, Plus, Lock } from "lucide-react";
+import { Printer, FileText, PenLine, Trash2, Save, Plus, Lock, FilePlus2 } from "lucide-react";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import CompanyAutocomplete from "@/components/CompanyAutocomplete";
 
@@ -33,6 +33,20 @@ type Mandat = {
   mandateSignStatus?: 'PENDING' | 'SIGNED';
   mandateSignature?: { signedAt?: string };
   mandateSignerEmail?: string;
+  avenants?: Avenant[];
+};
+
+// Un mandat signé est figé : l'avenant est la seule façon d'en changer le prix.
+type Avenant = {
+  id: string;
+  numero: number;
+  objet: string;
+  createdAt: string;
+  motif?: string;
+  ancien: { price?: number; netSellerAmount?: number; commissionAmount?: number; commissionPercentage?: number };
+  nouveau: { price?: number; netSellerAmount?: number; commissionAmount?: number; commissionPercentage?: number };
+  signers?: { ownerIndex?: number; name?: string; signedAt?: string; dataUrl?: string }[];
+  signStatus?: 'PENDING' | 'SIGNED';
 };
 
 const eur = (n?: number) => (n || n === 0) ? Math.round(n as number).toLocaleString('fr-FR').replace(/[  ]/g, ' ') + ' €' : '—';
@@ -51,6 +65,53 @@ export default function Page() {
   const [signingId, setSigningId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [signInfo, setSignInfo] = useState<Record<string, Signer[]>>({});
+  // Avenant en cours de rédaction, par mandat.
+  const [avenantId, setAvenantId] = useState<string | null>(null);
+  const [avPrix, setAvPrix] = useState<string>('');
+  const [avPct, setAvPct] = useState<string>('');
+  const [avMotif, setAvMotif] = useState<string>('');
+  const [avEnvoi, setAvEnvoi] = useState(false);
+
+  const ouvrirAvenant = (m: Mandat) => {
+    if (avenantId === m.id) { setAvenantId(null); return; }
+    setAvenantId(m.id);
+    setAvPrix('');
+    setAvPct(m.commissionPercentage != null ? String(m.commissionPercentage) : '');
+    setAvMotif('');
+  };
+
+  // Mêmes formules que le mandat : honoraires = prix x taux, net = prix - honoraires.
+  const apercuAvenant = (m: Mandat) => {
+    const prix = Number(String(avPrix).replace(/[  ]/g, '').replace(',', '.'));
+    if (!Number.isFinite(prix) || prix <= 0) return null;
+    const pctBrut = String(avPct).replace(',', '.');
+    const pct = pctBrut === '' ? (m.commissionPercentage ?? null) : Number(pctBrut);
+    const honoraires = pct != null && Number.isFinite(pct)
+      ? Math.round(prix * pct / 100)
+      : (m.commissionAmount ?? 0);
+    return { prix, pct, honoraires, net: prix - honoraires };
+  };
+
+  const creerAvenant = async (m: Mandat) => {
+    const a = apercuAvenant(m);
+    if (!a) { alert('Indiquez un nouveau prix valide.'); return; }
+    if (!confirm(`Créer un avenant portant le prix de ${eur(m.price)} à ${eur(a.prix)} ?\n\nUn lien de signature sera envoyé à chaque mandant.`)) return;
+    setAvEnvoi(true);
+    try {
+      const res = await fetch(`/api/mandats/${m.id}/avenants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPrice: a.prix, newCommissionPercentage: avPct === '' ? undefined : a.pct, motif: avMotif }),
+      });
+      const j = await res.json();
+      if (!res.ok) { alert(j?.error || "Création de l'avenant impossible."); return; }
+      setSignInfo(prev => ({ ...prev, [m.id]: j.signers || [] }));
+      setAvenantId(null);
+      load();
+    } catch {
+      alert("Création de l'avenant impossible.");
+    } finally { setAvEnvoi(false); }
+  };
 
   const load = () => {
     fetch('/api/mandats')
@@ -263,7 +324,16 @@ export default function Page() {
                       <td className="px-3 py-2 no-print">
                         <div className="flex gap-2 items-center">
                           {m.mandateSignStatus === 'SIGNED' ? (
-                            <span className="text-xs px-2 py-1 border rounded bg-green-50 border-green-200 text-green-700 flex items-center gap-1" title="Mandat signé — figé, non modifiable"><Lock className="w-3 h-3" /> Figé</span>
+                            <>
+                              <span className="text-xs px-2 py-1 border rounded bg-green-50 border-green-200 text-green-700 flex items-center gap-1" title="Mandat signé — figé, non modifiable"><Lock className="w-3 h-3" /> Figé</span>
+                              <button
+                                onClick={() => ouvrirAvenant(m)}
+                                title="Avenant — changement de prix"
+                                className={`text-xs px-2 py-1 border rounded flex items-center gap-1 ${avenantId === m.id ? 'bg-[#B89C6D] text-white border-[#B89C6D]' : 'border-[#B89C6D] text-[#B89C6D] hover:bg-[#B89C6D]/10'}`}
+                                data-testid={`button-avenant-${m.id}`}>
+                                <FilePlus2 className="w-3 h-3" /> {avenantId === m.id ? 'Fermer' : 'Avenant'}
+                              </button>
+                            </>
                           ) : (
                             <button onClick={() => setEditingId(editingId === m.id ? null : m.id)} className={`text-xs px-2 py-1 border rounded ${editingId === m.id ? 'bg-[#1F3B2C] text-white border-[#1F3B2C]' : 'hover:bg-black/5'}`} data-testid={`button-edit-${m.id}`}>
                               {editingId === m.id ? 'Fermer' : 'Modifier'}
@@ -301,6 +371,101 @@ export default function Page() {
                         </td>
                       </tr>
                     )}
+
+                    {/* Avenants déjà établis : chacun garde son PDF et son état. */}
+                    {(m.avenants?.length || 0) > 0 && (
+                      <tr className="no-print">
+                        <td colSpan={10} className="px-3 py-2 bg-[#B89C6D]/5" style={{ borderBottom: '1px solid #eee' }}>
+                          <div className="text-xs font-medium mb-2">Avenants ({m.avenants!.length})</div>
+                          <div className="space-y-1">
+                            {m.avenants!.map(av => {
+                              const total = av.signers?.length || 1;
+                              const faits = (av.signers || []).filter(x => x.dataUrl || x.signedAt).length;
+                              return (
+                                <div key={av.id} className="flex gap-3 items-center flex-wrap text-xs">
+                                  <span className="font-medium whitespace-nowrap">N° {av.numero} — prix</span>
+                                  <span className="opacity-70 line-through whitespace-nowrap">{eur(av.ancien?.price)}</span>
+                                  <span className="whitespace-nowrap">→</span>
+                                  <span className="font-semibold text-[#1F3B2C] whitespace-nowrap">{eur(av.nouveau?.price)}</span>
+                                  <span className="opacity-60 whitespace-nowrap">{new Date(av.createdAt).toLocaleDateString('fr-FR')}</span>
+                                  {av.signStatus === 'SIGNED'
+                                    ? <span className="text-green-700 font-medium whitespace-nowrap">✔ Signé</span>
+                                    : <span className="text-amber-700 whitespace-nowrap">En attente ({faits}/{total})</span>}
+                                  <a href={`/api/mandats/${m.id}/avenants/${av.id}/pdf`} target="_blank" rel="noopener noreferrer"
+                                     className="text-[#B89C6D] hover:underline whitespace-nowrap">PDF</a>
+                                  {av.motif && <span className="opacity-60 truncate">{av.motif}</span>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+
+                    {avenantId === m.id && (() => {
+                      const a = apercuAvenant(m);
+                      return (
+                        <tr className="no-print">
+                          <td colSpan={10} className="px-3 py-3 bg-[#B89C6D]/10" style={{ borderBottom: '1px solid #eee' }}>
+                            <div className="text-sm font-medium mb-1">Avenant — changement de prix</div>
+                            <p className="text-xs opacity-70 mb-3 max-w-3xl">
+                              Le mandat signé n&apos;est pas modifié : l&apos;avenant s&apos;y ajoute et porte l&apos;ancien prix
+                              autant que le nouveau. Chaque mandant recevra un lien pour le signer, et le prix du mandat
+                              ne changera qu&apos;une fois toutes les signatures recueillies.
+                            </p>
+                            <div className="flex gap-4 flex-wrap items-end">
+                              <label className="text-xs">
+                                <span className="block mb-1 font-medium">Nouveau prix FAI</span>
+                                <input value={avPrix} onChange={e => setAvPrix(e.target.value)} inputMode="decimal"
+                                  placeholder={m.price != null ? String(m.price) : '0'}
+                                  className="px-2 py-1.5 border rounded w-40 text-sm" data-testid={`input-avenant-prix-${m.id}`} />
+                              </label>
+                              <label className="text-xs">
+                                <span className="block mb-1 font-medium">Honoraires (%)</span>
+                                <input value={avPct} onChange={e => setAvPct(e.target.value)} inputMode="decimal"
+                                  className="px-2 py-1.5 border rounded w-24 text-sm" />
+                              </label>
+                              <label className="text-xs flex-1 min-w-[220px]">
+                                <span className="block mb-1 font-medium">Motif (facultatif)</span>
+                                <input value={avMotif} onChange={e => setAvMotif(e.target.value)}
+                                  placeholder="Réajustement après trois mois sans offre"
+                                  className="px-2 py-1.5 border rounded w-full text-sm" />
+                              </label>
+                            </div>
+                            {a && (
+                              <div className="mt-3 text-xs bg-white border rounded p-2 inline-block">
+                                <table>
+                                  <tbody>
+                                    <tr>
+                                      <td className="pr-4 opacity-70">Prix FAI</td>
+                                      <td className="pr-3 text-right opacity-60 line-through">{eur(m.price)}</td>
+                                      <td className="text-right font-semibold text-[#1F3B2C]">{eur(a.prix)}</td>
+                                    </tr>
+                                    <tr>
+                                      <td className="pr-4 opacity-70">Honoraires</td>
+                                      <td className="pr-3 text-right opacity-60 line-through">{eur(m.commissionAmount)}</td>
+                                      <td className="text-right">{eur(a.honoraires)}</td>
+                                    </tr>
+                                    <tr>
+                                      <td className="pr-4 opacity-70">Net vendeur</td>
+                                      <td className="pr-3 text-right opacity-60 line-through">{eur(m.netSellerAmount)}</td>
+                                      <td className="text-right font-semibold text-[#1F3B2C]">{eur(a.net)}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                            <div className="mt-3 flex gap-2">
+                              <button onClick={() => creerAvenant(m)} disabled={avEnvoi || !a}
+                                className="btn-luxe text-sm disabled:opacity-60" data-testid={`button-avenant-creer-${m.id}`}>
+                                {avEnvoi ? 'Envoi…' : "Créer l'avenant et envoyer à signer"}
+                              </button>
+                              <button onClick={() => setAvenantId(null)} className="text-sm px-3 py-1.5 border rounded hover:bg-black/5">Annuler</button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })()}
 
                     {editingId === m.id && (
                       <tr className="no-print">
