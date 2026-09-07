@@ -19,39 +19,25 @@ export function Footer() {
     { href: "/confidentialite", label: "Confidentialité" },
     { href: "/cookies", label: "Cookies" },
   ];
-  // Les treize secteurs de lib/sectors.ts, groupés par région. À plat, la
-  // liste mettait Bihorel à côté de Saint-Tropez ; et seule la Normandie y
-  // figurait, alors que les six pages Paris et Côte d'Azur existent depuis
-  // le début et n'étaient reliées par aucun lien du pied de page.
   const secteurs = [
-    {
-      region: "Normandie",
-      lieux: [
-        { href: "/secteurs/rouen-centre", label: "Rouen centre" },
-        { href: "/secteurs/rouen-rive-gauche", label: "Rouen Rive Gauche" },
-        { href: "/secteurs/mont-saint-aignan-bois-guillaume", label: "Mont-Saint-Aignan" },
-        { href: "/secteurs/bois-guillaume", label: "Bois-Guillaume" },
-        { href: "/secteurs/bihorel", label: "Bihorel" },
-        { href: "/secteurs/isneauville", label: "Isneauville" },
-        { href: "/secteurs/mesnil-esnard-franqueville", label: "Le Mesnil-Esnard & Franqueville" },
-      ],
-    },
-    {
-      region: "Paris",
-      lieux: [
-        { href: "/secteurs/paris-centre-historique", label: "Paris centre historique" },
-        { href: "/secteurs/paris-rive-gauche", label: "Paris Rive gauche" },
-        { href: "/secteurs/paris-ouest", label: "Paris Ouest" },
-      ],
-    },
-    {
-      region: "Côte d'Azur",
-      lieux: [
-        { href: "/secteurs/saint-aygulf-frejus", label: "Saint-Aygulf & Fréjus" },
-        { href: "/secteurs/sainte-maxime-golfe-saint-tropez", label: "Sainte-Maxime & Golfe de Saint-Tropez" },
-        { href: "/secteurs/esterel-arriere-pays", label: "Estérel & arrière-pays" },
-      ],
-    },
+    { href: "/secteurs/rouen-centre", label: "Rouen centre" },
+    { href: "/secteurs/rouen-rive-gauche", label: "Rouen Rive Gauche" },
+    { href: "/secteurs/mont-saint-aignan-bois-guillaume", label: "Mont-Saint-Aignan" },
+    { href: "/secteurs/bois-guillaume", label: "Bois-Guillaume" },
+    { href: "/secteurs/bihorel", label: "Bihorel" },
+    { href: "/secteurs/isneauville", label: "Isneauville" },
+    { href: "/secteurs/mesnil-esnard-franqueville", label: "Le Mesnil-Esnard & Franqueville" },
+    // Les deux autres régions d'intervention. Chaque entrée mène là où il y a
+    // effectivement des biens, plutôt que vers une page portant le nom d'une
+    // commune sans rien à montrer :
+    //   Paris → paris-centre-historique, seul secteur parisien qui remonte des
+    //   biens (paris-rive-gauche et paris-ouest en affichent zéro) ;
+    //   Côte d'Azur → la liste des biens, car les trois secteurs définis
+    //   couvrent le Var — Fréjus, Saint-Tropez, Estérel — alors que les
+    //   annonces sont à Cannes, Nice, Antibes et Le Rouret : aucun secteur ne
+    //   leur correspond, tous affichent zéro bien.
+    { href: "/secteurs/paris-centre-historique", label: "Paris" },
+    { href: "/immobilier", label: "Côte d'Azur" },
   ];
 
   const heading = "text-[11px] font-semibold uppercase tracking-[0.18em] text-luxe/70 mb-4";
@@ -135,17 +121,10 @@ export function Footer() {
       {/* Secteurs d'intervention — maillage interne / SEO local */}
       <div className="border-t border-gold/15">
         <div className="container py-5">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-luxe/70 mb-3">Secteurs d&apos;intervention</div>
-          <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
-            {secteurs.map(groupe => (
-              <div key={groupe.region}>
-                <div className="text-[11px] font-semibold text-luxe/50 mb-1">{groupe.region}</div>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                  {groupe.lieux.map(s => (
-                    <Link key={s.href} href={s.href} className="inline-block py-1.5 text-luxe/70 hover:text-gold transition-colors">{s.label}</Link>
-                  ))}
-                </div>
-              </div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-luxe/70 mb-2">Secteurs d&apos;intervention</div>
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs">
+            {secteurs.map(s => (
+              <Link key={s.href} href={s.href} className="inline-block py-1.5 text-luxe/70 hover:text-gold transition-colors">{s.label}</Link>
             ))}
           </div>
         </div>
