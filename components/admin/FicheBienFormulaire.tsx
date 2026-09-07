@@ -1039,14 +1039,23 @@ export default function FicheBienFormulaire({
               )}
             </div>
 
-            {/* Images */}
-            <div className="mb-3">
-              <label className="block text-xs font-medium mb-1">Images</label>
+            {/* Photos, en tiroir : la grille de vignettes occupait toute la
+                hauteur de l'écran et repoussait le reste du formulaire, alors
+                qu'on ne la touche pas à chaque édition. Le nombre est annoncé
+                sur l'onglet, pour savoir sans avoir à ouvrir. */}
+            <CollapsibleSection
+              title="Photos"
+              subtitle={
+                (editing.images?.length || 0) === 0
+                  ? "Aucune photo — la fiche sort de l'index sans visuel"
+                  : `${editing.images!.length} photo${editing.images!.length > 1 ? 's' : ''} · la première sert de couverture`
+              }
+            >
               <ImageUploader
                 images={editing.images || []}
                 onChange={images => updateField('images', images)}
               />
-            </div>
+            </CollapsibleSection>
 
             {/* Vidéo */}
             <div className="mb-3">
