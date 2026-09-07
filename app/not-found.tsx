@@ -13,6 +13,10 @@ export default function NotFound() {
         subtitle="La page que vous recherchez n'existe pas ou a été déplacée."
         primary={{ label: "Retour à l'accueil", href: "/" }}
         secondary={{ label: "Voir nos biens", href: "/immobilier" }}
+        // Sans image, Hero retombe sur sa variante blanche : la page d'erreur
+        // ne ressemblait à aucune autre du site, ce qui n'aide pas un visiteur
+        // déjà perdu. Même visuel que les neuf autres bandeaux.
+        image="/hero-normandie.jpg"
       />
       <section className="container py-10">
         <p className="text-black/70">

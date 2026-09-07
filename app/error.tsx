@@ -21,6 +21,9 @@ export default function Error({
       <Hero
         title="Une erreur est survenue"
         subtitle="Un problème technique a interrompu le chargement de cette page. Vous pouvez réessayer."
+        // Même raison que sur la page introuvable : ces deux pages système
+        // étaient les seules à s'afficher sans bandeau illustré.
+        image="/hero-normandie.jpg"
       />
       <section className="container py-10 flex flex-wrap items-center gap-4">
         <button onClick={() => reset()} className="btn btn-gold">
