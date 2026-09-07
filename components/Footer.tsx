@@ -27,6 +27,10 @@ export function Footer() {
     { href: "/secteurs/bihorel", label: "Bihorel" },
     { href: "/secteurs/isneauville", label: "Isneauville" },
     { href: "/secteurs/mesnil-esnard-franqueville", label: "Le Mesnil-Esnard & Franqueville" },
+    // Les communes de la métropole que les sept secteurs ci-dessus laissaient
+    // passer, et la Côte Fleurie, qui relève d'un tout autre marché.
+    { href: "/secteurs/couronne-rouennaise", label: "Couronne rouennaise" },
+    { href: "/secteurs/deauville-cote-fleurie", label: "Deauville & Côte Fleurie" },
     // Les deux autres régions d'intervention. Chaque entrée mène là où il y a
     // effectivement des biens :
     //   Paris → le secteur d'ensemble Paris & Île-de-France, qui liste les

@@ -381,3 +381,44 @@ describe("les deux rives de Rouen", () => {
     assert.equal(sectorSlugFor({ city: "Paris", region: "PARIS", postalCode: "75116" }), "paris-ouest");
   });
 });
+
+describe("aucun bien ne doit rester sans secteur", () => {
+  // Sept biens ne relevaient d'aucun secteur : Bonsecours (×2), Houppeville,
+  // Maromme, Roncherolles, Saint-Pierre-de-Varengeville et Deauville. Les six
+  // premiers sont dans la métropole rouennaise ; Deauville est dans le
+  // Calvados, à quatre-vingt-dix kilomètres et sur un autre marché — d'où deux
+  // secteurs distincts plutôt qu'un fourre-tout.
+  const villes = [
+    ["Bonsecours", "couronne-rouennaise"],
+    ["Houppeville", "couronne-rouennaise"],
+    ["Maromme", "couronne-rouennaise"],
+    ["Roncherolles-sur-le-Vivier", "couronne-rouennaise"],
+    ["Saint-Pierre-de-Varengeville", "couronne-rouennaise"],
+    ["Deauville", "deauville-cote-fleurie"],
+  ] as const;
+
+  for (const [ville, attendu] of villes) {
+    test(`${ville} est rattaché à ${attendu}`, () => {
+      assert.equal(sectorSlugFor({ city: ville, region: "NORMANDIE" }), attendu);
+    });
+  }
+
+  // Le secteur large ne doit pas voler les communes des secteurs étroits :
+  // sectorSlugFor retient celui qui a le moins de communes.
+  test("les secteurs étroits gardent la priorité sur la couronne", () => {
+    for (const [ville, attendu] of [
+      ["Bois-Guillaume", "bois-guillaume"],
+      ["Bihorel", "bihorel"],
+      ["Isneauville", "isneauville"],
+      ["Le Mesnil-Esnard", "mesnil-esnard-franqueville"],
+    ] as const) {
+      assert.equal(sectorSlugFor({ city: ville, region: "NORMANDIE" }), attendu, ville);
+    }
+  });
+
+  test("Deauville ne remonte pas sur la couronne rouennaise", () => {
+    const p = { city: "Deauville", region: "NORMANDIE" };
+    assert.equal(matchesSector(p, SECTORS["couronne-rouennaise"] as any), false);
+    assert.equal(matchesSector(p, SECTORS["deauville-cote-fleurie"] as any), true);
+  });
+});

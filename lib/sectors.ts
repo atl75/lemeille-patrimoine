@@ -173,6 +173,52 @@ export const SECTORS: Record<string, Sector> = {
     highlights: ["Villas panoramiques & propriétés au calme", "Agay, Théoule-sur-Mer, Mandelieu, Les Adrets", "Nature préservée, intimité et vues mer"],
   },
 
+  // Les communes de la métropole rouennaise que les secteurs ci-dessus ne
+  // couvrent pas. Sept biens n'étaient rattachés à rien : Bonsecours (×2),
+  // Houppeville, Maromme, Roncherolles-sur-le-Vivier, Saint-Pierre-de-
+  // Varengeville — et Deauville, qui relève d'un tout autre marché (ci-dessous).
+  //
+  // Secteur volontairement large : il ramasse ce que les sept secteurs étroits
+  // laissent passer. À égalité, sectorSlugFor retient celui qui a le MOINS de
+  // communes : Bois-Guillaume ou Bihorel gardent donc la priorité chez eux.
+  "couronne-rouennaise": {
+    title: "Couronne rouennaise",
+    subtitle: "Bonsecours, Houppeville, Maromme, Roncherolles — les communes de la métropole.",
+    region: "NORMANDIE",
+    locatif: "dans la couronne rouennaise",
+    cities: [
+      // Plateau Est
+      "Bonsecours", "Saint-Léger-du-Bourg-Denis", "Amfreville-la-Mi-Voie", "Belbeuf",
+      "Darnétal", "Roncherolles-sur-le-Vivier", "Bois-Guillaume-Bihorel",
+      // Nord et vallée du Cailly
+      "Houppeville", "Maromme", "Notre-Dame-de-Bondeville", "Déville-lès-Rouen",
+      "Le Houlme", "Malaunay", "Quincampoix", "Saint-Martin-du-Vivier",
+      // Ouest et boucles de Seine
+      "Saint-Pierre-de-Varengeville", "Canteleu", "Barentin", "Duclair",
+      "Le Trait", "Pavilly", "Montville",
+    ],
+    description: "Autour de Rouen, la métropole aligne des communes résidentielles recherchées pour ce que la ville ne peut pas offrir : le terrain, le calme et l'école à pied. Du plateau Est, qui domine la vallée de la Seine, aux vallées du Cailly et de l'Austreberthe, on y trouve surtout des maisons familiales, souvent avec jardin, à des prix inférieurs à ceux du cœur historique et pour des surfaces sans commune mesure.",
+    highlights: ["Maisons familiales avec jardin", "Plateau Est, vallée du Cailly, boucles de Seine", "Le terrain et le calme à dix minutes de Rouen"],
+  },
+
+  // Deauville n'est PAS la région rouennaise : Calvados, 14800, à quatre-vingt-
+  // dix kilomètres, et un marché de résidence secondaire qui n'a rien de commun
+  // avec celui de la métropole. D'où un secteur distinct plutôt qu'un fourre-tout.
+  "deauville-cote-fleurie": {
+    title: "Deauville & Côte Fleurie",
+    subtitle: "Résidence secondaire, planches et arrière-pays augeron.",
+    region: "NORMANDIE",
+    locatif: "à Deauville et sur la Côte Fleurie",
+    cities: [
+      "Deauville", "Trouville-sur-Mer", "Trouville", "Touques", "Saint-Arnoult",
+      "Bénerville-sur-Mer", "Blonville-sur-Mer", "Villers-sur-Mer", "Houlgate",
+      "Cabourg", "Dives-sur-Mer", "Pont-l'Évêque",
+    ],
+    postalCodes: ["14800", "14360", "14910", "14113", "14640", "14390", "14130"],
+    description: "La Côte Fleurie tient son rang depuis un siècle et demi : deux heures de Paris, des planches, un hippodrome et des villas normandes à colombages. Le marché y est celui de la résidence secondaire — saisonnier dans ses rythmes, mais remarquablement stable dans ses valeurs — et s'étend de Deauville et Trouville jusqu'aux villages de l'arrière-pays augeron.",
+    highlights: ["Résidence secondaire, valeur stable", "Deauville, Trouville, Villers, Cabourg", "À deux heures de Paris"],
+  },
+
   // Secteur d'ensemble pour l'Île-de-France, pendant de « cote-d-azur ».
   //
   // Les trois secteurs parisiens ne couvrent que le centre, la rive gauche et
