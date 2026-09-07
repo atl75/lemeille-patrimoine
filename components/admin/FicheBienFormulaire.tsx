@@ -73,6 +73,20 @@ export default function FicheBienFormulaire({
   const formErrors = erreursFiche(editing);
   const errCls = "text-xs text-red-600 mt-1";
 
+  // Résumé porté par l'onglet du tiroir « Prix et finances ». Replier ne doit
+  // pas obliger à ouvrir pour lire les deux chiffres qui comptent — ni,
+  // surtout, masquer une erreur qui empêche d'enregistrer.
+  const eurCourt = (n?: number) =>
+    (n || n === 0) ? Math.round(n).toLocaleString('fr-FR') + ' €' : null;
+  const resumePrix = (() => {
+    if (priceError || netError) return '⚠ ' + (priceError || netError) + ' — à corriger pour enregistrer';
+    if (editing?.priceOnRequest) return 'Prix sur demande — « Nous consulter »';
+    const fai = eurCourt(editing?.price);
+    const net = eurCourt(editing?.netSellerAmount);
+    if (!fai && !net) return 'Aucun prix saisi';
+    return [fai && `${fai} FAI`, net && `net vendeur ${net}`].filter(Boolean).join(' · ');
+  })();
+
   // Fonction pour rechercher la parcelle cadastrale
   const searchCadastralReference = async () => {
     // Utiliser l'adresse complète du champ map.query, ou construire à partir de la ville
@@ -253,81 +267,6 @@ export default function FicheBienFormulaire({
               {editing.id ? 'Modifier le bien' : 'Nouveau bien'}
             </h2>
 
-            {/* Tiroir de modification rapide — ce qui change le plus souvent au fil
-                d'une commercialisation. Les champs pilotent le même état que ceux
-                du formulaire détaillé ci-dessous : les deux restent synchronisés. */}
-            <div className="mb-4">
-                <CollapsibleSection
-                  title="Modifications rapides"
-                  subtitle="Prix · description · prestations · photos et vidéo — sans parcourir toute la fiche"
-                >
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div>
-                      <label htmlFor="rapide-prix" className="block text-xs font-medium mb-1">Prix FAI (€)</label>
-                      <MoneyInput
-                        id="rapide-prix"
-                        value={editing.price ?? ''}
-                        onChange={e => updateField('price', e.target.value ? parseInt(e.target.value) : undefined)}
-                        className="w-full px-2 py-1.5 text-sm border rounded"
-                        placeholder="ex : 250 000"
-                        data-testid="input-rapide-prix"
-                      />
-                      <label className="mt-2 flex items-center gap-2 text-xs">
-                        <input
-                          type="checkbox"
-                          checked={!!editing.priceOnRequest}
-                          onChange={e => updateField('priceOnRequest', e.target.checked || undefined)}
-                        />
-                        <span>Prix sur demande — « Nous consulter »</span>
-                      </label>
-                      <p className="mt-2 text-[11px] opacity-70">
-                        Le net vendeur et la commission se recalculent dans la section Finances.
-                      </p>
-                    </div>
-
-                    <div>
-                      <label htmlFor="rapide-video" className="block text-xs font-medium mb-1">Vidéo (YouTube / Vimeo)</label>
-                      <input
-                        id="rapide-video"
-                        type="url"
-                        value={editing.videoUrl || ''}
-                        onChange={e => updateField('videoUrl', e.target.value)}
-                        className="w-full px-2 py-1.5 text-sm border rounded"
-                        placeholder="https://www.youtube.com/watch?v=…"
-                        data-testid="input-rapide-video"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label htmlFor="rapide-description" className="block text-xs font-medium mb-1">Description</label>
-                      <textarea
-                        id="rapide-description"
-                        value={editing.description || ''}
-                        onChange={e => updateField('description', e.target.value)}
-                        className="w-full px-2 py-1.5 text-sm border rounded resize-y min-h-[8rem]"
-                        rows={7}
-                        data-testid="input-rapide-description"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-xs font-medium mb-1">Prestations</label>
-                      <FeaturePicker
-                        value={editing.features || []}
-                        onChange={features => updateField('features', features)}
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-xs font-medium mb-1">Photos</label>
-                      <ImageUploader
-                        images={editing.images || []}
-                        onChange={images => updateField('images', images)}
-                      />
-                    </div>
-                  </div>
-                </CollapsibleSection>
-            </div>
 
             {/* Infos générales + Propriétaires en 2 colonnes */}
             <div className="grid md:grid-cols-2 gap-3 mb-3">
@@ -858,14 +797,29 @@ export default function FicheBienFormulaire({
               </div>
             </div>
 
-        {/* Prix, finances et mandat — voir components/admin/SectionFinances. */}
-        <SectionFinances
-          bien={editing}
-          setBien={setEditing}
-          updateField={updateField}
-          priceError={priceError}
-          netError={netError}
-        />
+        {/* Prix, finances et mandat — voir components/admin/SectionFinances.
+            En tiroir, comme les photos : le bloc déroule le mode de calcul, le
+            net vendeur, la commission et la génération de mandat, alors qu'on
+            n'y revient pas à chaque édition.
+
+            DEUX PRÉCAUTIONS. Les chiffres qui comptent — prix FAI et net
+            vendeur — sont annoncés sur l'onglet : replier ne doit pas obliger
+            à ouvrir pour les lire. Et le tiroir s'ouvre de lui-même si le prix
+            porte une erreur : ces erreurs bloquent l'enregistrement, et fermé,
+            le tiroir aurait caché la raison du refus. */}
+        <CollapsibleSection
+          title="Prix et finances"
+          subtitle={resumePrix}
+          defaultOpen={!!priceError || !!netError}
+        >
+          <SectionFinances
+            bien={editing}
+            setBien={setEditing}
+            updateField={updateField}
+            priceError={priceError}
+            netError={netError}
+          />
+        </CollapsibleSection>
             {/* Description */}
             <div className="mb-3">
               <label className="block text-xs font-medium mb-1">Description</label>
@@ -1044,21 +998,24 @@ export default function FicheBienFormulaire({
                 qu'on ne la touche pas à chaque édition. Le nombre est annoncé
                 sur l'onglet, pour savoir sans avoir à ouvrir. */}
             <CollapsibleSection
-              title="Photos"
+              title="Photos et vidéo"
               subtitle={
                 (editing.images?.length || 0) === 0
                   ? "Aucune photo — la fiche sort de l'index sans visuel"
-                  : `${editing.images!.length} photo${editing.images!.length > 1 ? 's' : ''} · la première sert de couverture`
+                  : `${editing.images!.length} photo${editing.images!.length > 1 ? 's' : ''}`
+                    + ' · la première sert de couverture'
+                    + (editing.videoUrl ? ' · une vidéo' : '')
               }
             >
               <ImageUploader
                 images={editing.images || []}
                 onChange={images => updateField('images', images)}
               />
-            </CollapsibleSection>
 
-            {/* Vidéo */}
-            <div className="mb-3">
+              {/* La vidéo tient au même sujet que les photos : c'est le visuel
+                  du bien. Elle vivait juste sous le tiroir, seule, ce qui
+                  laissait une ligne orpheline sous un bloc replié. */}
+              <div className="mt-3">
               <label className="block text-xs font-medium mb-1">Vidéo (lien YouTube / Vimeo)</label>
               <input
                 type="url"
@@ -1068,7 +1025,8 @@ export default function FicheBienFormulaire({
                 placeholder="https://www.youtube.com/watch?v=..."
                 data-testid="input-video-url"
               />
-            </div>
+              </div>
+            </CollapsibleSection>
 
             {/* Documents (repliable) */}
             <DocumentsSection editing={editing} updateField={updateField} setEditing={setEditing} analyzing={analyzing} analyzeDocument={analyzeDocument} />
