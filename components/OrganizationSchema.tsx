@@ -24,7 +24,12 @@ export function OrganizationSchema() {
       // aucune identité vérifiable — c'est le signal d'expertise qui manquait.
       "url": `${baseUrl}/qui-suis-je`,
       "image": `${baseUrl}/images/arthur-lemeille.jpg`,
+      // LinkedIn est rattaché à la PERSONNE, pas à l'entreprise : c'est un
+      // profil personnel. C'est aussi le lien le plus utile ici — le
+      // commentaire ci-dessus notait qu'il manquait une identité vérifiable
+      // à laquelle Google puisse relier Arthur Lemeille.
       "sameAs": [
+        "https://www.linkedin.com/in/arthurlemeille/",
         "https://www.instagram.com/lempatrimoine",
         "https://www.orias.fr/home/showIntermediaire/89"
       ],

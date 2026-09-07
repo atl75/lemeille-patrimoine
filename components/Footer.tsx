@@ -89,6 +89,18 @@ export function Footer() {
               </svg>
               Notre chaîne YouTube
             </a>
+            <a
+              href="https://www.linkedin.com/in/arthurlemeille/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${link} inline-flex items-center gap-2`}
+              aria-label="Le profil LinkedIn d'Arthur Lemeille"
+            >
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true">
+                <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05a3.75 3.75 0 0 1 3.37-1.85c3.6 0 4.27 2.37 4.27 5.46zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z" />
+              </svg>
+              Arthur Lemeille sur LinkedIn
+            </a>
           </div>
           <div className="mt-5 flex flex-col gap-2.5">
             {bureaux.map(b => (
