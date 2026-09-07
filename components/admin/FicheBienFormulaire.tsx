@@ -78,6 +78,33 @@ export default function FicheBienFormulaire({
   // surtout, masquer une erreur qui empêche d'enregistrer.
   const eurCourt = (n?: number) =>
     (n || n === 0) ? Math.round(n).toLocaleString('fr-FR') + ' €' : null;
+  // Résumés portés par les onglets des tiroirs : replier ne doit pas obliger
+  // à ouvrir pour savoir ce qu'il y a dedans.
+  const resumeDescription = (() => {
+    const d = String(editing?.description || '').trim();
+    if (!d) return 'Vide — une fiche vendue sans texte ni photo sort de l\'index';
+    const n = d.length;
+    // Seuil réel de lib/thinListing : moins de 40 caractères ET au plus une
+    // photo, sur un bien VENDU. Sur un bien en vente, la longueur n'exclut rien.
+    const vendu = editing?.status === 'SOLD' || editing?.status === 'UNDER_OFFER' || !!(editing as any)?.sold;
+    const court = n < 40 && (editing?.images?.length || 0) <= 1 && vendu;
+    return `${n} caractère${n > 1 ? 's' : ''}` + (court ? ' — trop court : la fiche sort de l\'index' : '');
+  })();
+
+  const resumeCarteDpe = (() => {
+    const adresse = String((editing as any)?.map?.query || '').trim();
+    const classe = (editing as any)?.dpe?.classEnergy;
+    return [
+      adresse ? 'adresse renseignée' : 'aucune adresse',
+      classe ? `DPE ${classe}` : 'DPE non renseigné',
+    ].join(' · ');
+  })();
+
+  const resumePrestations = (() => {
+    const n = editing?.features?.length || 0;
+    return n === 0 ? 'Aucune prestation cochée' : `${n} prestation${n > 1 ? 's' : ''}`;
+  })();
+
   const resumePrix = (() => {
     if (priceError || netError) return '⚠ ' + (priceError || netError) + ' — à corriger pour enregistrer';
     if (editing?.priceOnRequest) return 'Prix sur demande — « Nous consulter »';
@@ -820,8 +847,12 @@ export default function FicheBienFormulaire({
             netError={netError}
           />
         </CollapsibleSection>
-            {/* Description */}
-            <div className="mb-3">
+            {/* Description, en tiroir. Le sous-titre compte les caractères et
+                rappelle le seuil réel : une fiche VENDUE de moins de 40
+                caractères et d'au plus une photo sort de l'index — c'est la
+                règle de lib/thinListing, pas une estimation. */}
+            <CollapsibleSection title="Description" subtitle={resumeDescription}>
+              <div>
               <label className="block text-xs font-medium mb-1">Description</label>
               <textarea
                 value={editing.description || ''}
@@ -830,9 +861,11 @@ export default function FicheBienFormulaire({
                 rows={10}
                 data-testid="input-description"
               />
-            </div>
+              </div>
+            </CollapsibleSection>
 
-            {/* Carte + DPE en 2 colonnes */}
+            {/* Carte et DPE, en tiroir : deux blocs qu'on renseigne une fois. */}
+            <CollapsibleSection title="Carte et DPE" subtitle={resumeCarteDpe}>
             <div className="grid md:grid-cols-2 gap-3 mb-3">
               <div className="p-2 bg-gray-50 rounded">
                 <h3 className="font-semibold text-sm mb-2">Carte</h3>
@@ -934,15 +967,16 @@ export default function FicheBienFormulaire({
                 </div>
               </div>
             </div>
+            </CollapsibleSection>
 
-            {/* Prestations */}
-            <div className="mb-3">
-              <label className="block text-xs font-medium mb-1">Prestations</label>
+            {/* Prestations, en tiroir : la liste des cases à cocher est longue
+                et l'on n'y revient pas à chaque édition. */}
+            <CollapsibleSection title="Prestations" subtitle={resumePrestations}>
               <FeaturePicker
                 value={editing.features || []}
                 onChange={features => updateField('features', features)}
               />
-            </div>
+            </CollapsibleSection>
 
             {/* Statut + Options */}
             <div className="mb-3 p-2 bg-gray-50 rounded">
