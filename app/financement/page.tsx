@@ -4,12 +4,14 @@ import CapaciteEmpruntSimulator from "@/components/CapaciteEmpruntSimulator";
 import Breadcrumb from "@/components/Breadcrumb";
 import Section from "@/components/Section";
 import type { Metadata } from "next";
+import { OG_IMAGE } from '@/lib/ogImage';
 
 export const metadata: Metadata = {
   title: "Capacité d'emprunt à Rouen | Lemeille Patrimoine",
   description: "Calculez votre capacité d'emprunt pour un achat immobilier à Rouen : mensualité, budget maximal et apport nécessaire, selon la règle des 35 %.",
   alternates: { canonical: "/financement" },
   openGraph: {
+      images: OG_IMAGE,
     title: "Simulateur de capacité d'emprunt — Lemeille Patrimoine",
     description: "Estimez votre budget d'achat immobilier à Rouen en quelques secondes.",
     url: "/financement",

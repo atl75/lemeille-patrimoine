@@ -7,6 +7,7 @@ import DefiscalisationSimulator from "@/components/DefiscalisationSimulator";
 import GuideDownload from "@/components/GuideDownload";
 import { dispositifsOf } from "@/lib/dispositifs";
 import type { Metadata } from 'next';
+import { OG_IMAGE } from '@/lib/ogImage';
 
 export const metadata: Metadata = {
   title: 'Défiscalisation immobilière | Lemeille Patrimoine',
@@ -15,6 +16,7 @@ export const metadata: Metadata = {
     canonical: '/programmes'
   },
   openGraph: {
+      images: OG_IMAGE,
     title: 'Défiscalisation immobilière — Malraux, Monument Historique, Déficit Foncier',
     description: "Réduisez votre imposition grâce à l'immobilier ancien de caractère. Accompagnement sur mesure.",
     url: '/programmes',

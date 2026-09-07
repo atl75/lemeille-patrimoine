@@ -17,6 +17,7 @@ import {
   erreursProprietaires,
   erreursFiche,
 } from "../lib/validationBien.ts";
+import { leadJoignable, tronqueLead } from "../lib/validationLead.ts";
 
 describe("seoTitle — 62 caractères, marque sacrifiée avant troncature", () => {
   test("titre court : la marque est conservée", () => {
@@ -420,5 +421,58 @@ describe("aucun bien ne doit rester sans secteur", () => {
     const p = { city: "Deauville", region: "NORMANDIE" };
     assert.equal(matchesSector(p, SECTORS["couronne-rouennaise"] as any), false);
     assert.equal(matchesSector(p, SECTORS["deauville-cote-fleurie"] as any), true);
+  });
+});
+
+describe("recevabilité d'un lead — un lead doit être joignable", () => {
+  // /api/leads acceptait un corps VIDE et créait l'enregistrement. Le limiteur
+  // de débit borne la cadence, pas le contenu : un robot pouvait remplir le
+  // CRM d'entrées creuses. Constaté en production le 2026-09-07 — deux leads
+  // vides créés pendant l'audit, supprimés dans la foulée.
+  test("un corps vide est refusé", () => {
+    assert.equal(typeof leadJoignable({}), "string");
+    assert.equal(typeof leadJoignable(null), "string");
+  });
+
+  test("un email seul suffit", () => {
+    assert.equal(leadJoignable({ email: "a@b.fr" }), null);
+  });
+
+  test("un téléphone seul suffit", () => {
+    assert.equal(leadJoignable({ phone: "06 87 15 72 59" }), null);
+    assert.equal(leadJoignable({ phone: "+33687157259" }), null);
+  });
+
+  test("un email manifestement faux est refusé, et le dit", () => {
+    const m = leadJoignable({ email: "pas-un-email" });
+    assert.match(String(m), /email/i);
+  });
+
+  test("un numéro trop court ne suffit pas", () => {
+    assert.equal(typeof leadJoignable({ phone: "0687" }), "string");
+  });
+
+  test("les formulaires réels du site passent tous", () => {
+    // Champs relevés un par un dans les composants qui postent sur /api/leads.
+    const envois = [
+      { firstName: "Marie", lastName: "Durand", email: "m@d.fr", source: "contact-form" },
+      { firstName: "Jean", email: "j@x.com", phone: "0612345678", source: "estimation-immobilier" },
+      { email: "k@y.fr", source: "guide-defiscalisation", consent: true },
+      { firstName: "Luc", email: "l@z.fr", phone: "+33 6 12 34 56 78", source: "simulateur-defiscalisation" },
+    ];
+    for (const e of envois) assert.equal(leadJoignable(e), null, JSON.stringify(e));
+  });
+
+  test("les champs démesurés sont bornés", () => {
+    const t = tronqueLead({ message: "x".repeat(9000), firstName: "y".repeat(500), email: "a@b.fr" });
+    assert.equal(t.message.length, 5000);
+    assert.equal(t.firstName.length, 120);
+    assert.equal(t.email, "a@b.fr");
+  });
+
+  test("tronqueLead ne touche pas aux champs non textuels", () => {
+    const t = tronqueLead({ email: "a@b.fr", meta: { surface: 80 }, consent: true } as any);
+    assert.deepEqual((t as any).meta, { surface: 80 });
+    assert.equal((t as any).consent, true);
   });
 });

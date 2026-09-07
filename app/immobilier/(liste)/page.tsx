@@ -10,6 +10,7 @@ import { allFeatures } from "@/lib/features";
 import { getPropertyCards } from "@/lib/propertiesData";
 import { propertyTypology } from "@/lib/propertyLabel";
 import type { Metadata } from 'next';
+import { OG_IMAGE } from '@/lib/ogImage';
 
 export const metadata: Metadata = {
   title: 'Biens à vendre à Rouen | Lemeille Patrimoine',
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
     canonical: '/immobilier'
   },
   openGraph: {
+      images: OG_IMAGE,
     title: 'Biens à vendre à Rouen & Plateau Nord',
     description: 'Maisons et appartements de caractère à Rouen et sur le Plateau Nord.',
     url: '/immobilier',

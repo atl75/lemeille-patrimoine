@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { OG_IMAGE } from '@/lib/ogImage';
 
 export const metadata: Metadata = {
   title: 'Contact — Agence immobilière à Rouen | Lemeille Patrimoine',
@@ -7,6 +8,7 @@ export const metadata: Metadata = {
     canonical: '/contact'
   },
   openGraph: {
+      images: OG_IMAGE,
     title: 'Contact — Agence immobilière à Rouen',
     description: 'Contactez Lemeille Patrimoine, agence immobilière à Rouen et Mont-Saint-Aignan.',
     url: '/contact',

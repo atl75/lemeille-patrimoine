@@ -6,6 +6,7 @@ import ArticleSeoJsonLd from "@/components/ArticleSeoJsonLd";
 import { notFound } from "next/navigation";
 import type { Metadata } from 'next';
 import { seoTitle } from '@/lib/seoTitle';
+import { OG_IMAGE } from '@/lib/ogImage';
 
 async function getArticle(slug: string) {
   const base = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT || '3000'}`;
@@ -34,7 +35,10 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
       description,
       url: `/actualites/${a.slug}`,
       type: 'article',
-      images: a.coverImage ? [{ url: a.coverImage }] : undefined,
+      // Repli sur l'image du site : sans elle, un article partagé sur
+      // LinkedIn ou WhatsApp n'affichait qu'une vignette grise, aucun
+      // article n'ayant de couverture propre.
+      images: a.coverImage ? [{ url: a.coverImage }] : OG_IMAGE,
     }
   };
 }

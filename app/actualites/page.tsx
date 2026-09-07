@@ -3,6 +3,7 @@ import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import Img from "@/components/Img";
 import type { Metadata } from 'next';
+import { OG_IMAGE } from '@/lib/ogImage';
 
 export const metadata: Metadata = {
   title: "Actualités immobilières | Lemeille Patrimoine",
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
     canonical: '/actualites'
   },
   openGraph: {
+      images: OG_IMAGE,
     title: "Actualités immobilières et patrimoniales",
     description: "Analyses de marché, fiscalité et conseils patrimoniaux.",
     url: '/actualites',

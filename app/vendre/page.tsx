@@ -5,6 +5,7 @@ import Section from "@/components/Section";
 import EstimationForm from "@/components/EstimationFormLazy";
 import { getPropertyCards } from "@/lib/propertiesData";
 import type { Metadata } from "next";
+import { OG_IMAGE } from '@/lib/ogImage';
 
 // Chiffre annoncé, aligné sur l'accueil — voir app/page.tsx.
 const VENTES_REALISEES = '50+';
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
   description: "Vendre votre maison ou appartement à Rouen et sur le Plateau Nord : estimation gratuite sous 3 jours, photos professionnelles, accompagnement complet.",
   alternates: { canonical: "/vendre" },
   openGraph: {
+      images: OG_IMAGE,
     title: "Vendre son bien à Rouen — estimation gratuite",
     description:
       "Estimation gratuite et avis de valeur sous 3 jours pour votre maison ou appartement à Rouen et sur le Plateau Nord.",

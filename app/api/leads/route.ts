@@ -3,6 +3,7 @@ import { readJSON, uid, updateJSON } from '@/lib/utils';
 import { Resend } from 'resend';
 import { isAdmin } from '@/lib/adminGuard';
 import { rateLimit, getClientIp } from '@/lib/rateLimit';
+import { leadJoignable, tronqueLead } from '@/lib/validationLead';
 import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
 
 // Accusé de réception envoyé au prospect (s'il a laissé un email), avec la
@@ -205,7 +206,12 @@ export async function POST(req: Request){
 
   if (contentType.includes('application/json')) {
     // JSON from simulator/estimation
-    const body = await req.json();
+    const brut = await req.json();
+    if (!isAdmin(req)) {
+      const souci = leadJoignable(brut);
+      if (souci) return NextResponse.json({ error: souci }, { status: 400 });
+    }
+    const body = tronqueLead(brut);
     payload = {
       id: uid('L'),
       createdAt: new Date().toISOString(),
@@ -247,6 +253,16 @@ export async function POST(req: Request){
   } else {
     // FormData from contact form
     const formData = await req.formData();
+    // Le formulaire de contact passe par la MÊME règle que la voie JSON :
+    // sans elle, il suffisait de poster un formulaire vide pour créer un lead.
+    const contact = {
+      email: String(formData.get('email') || ''),
+      phone: String(formData.get('phone') || ''),
+    };
+    if (!isAdmin(req)) {
+      const souci = leadJoignable(contact);
+      if (souci) return NextResponse.json({ error: souci }, { status: 400 });
+    }
     payload = {
       id: uid('L'),
       createdAt: new Date().toISOString(),

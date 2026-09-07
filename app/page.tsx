@@ -8,12 +8,14 @@ import { getPropertyCards } from "@/lib/propertiesData";
 import type { Metadata } from "next";
 import BandeauReassurance from "@/components/BandeauReassurance";
 import PreuveVentes from "@/components/PreuveVentes";
+import { OG_IMAGE } from '@/lib/ogImage';
 
 export const metadata: Metadata = {
   title: "Agence immobilière à Rouen | Lemeille Patrimoine",
   description: "Agence immobilière à Rouen, Mont-Saint-Aignan et Bois-Guillaume. Vente de maisons et appartements de caractère, estimation gratuite sous 3 jours.",
   alternates: { canonical: "/" },
   openGraph: {
+      images: OG_IMAGE,
     title: "Agence immobilière à Rouen & Plateau Nord | Lemeille Patrimoine",
     description:
       "Maisons et appartements de caractère à Rouen, Mont-Saint-Aignan, Bois-Guillaume. Estimation gratuite et conseil en défiscalisation.",
