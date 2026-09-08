@@ -172,8 +172,8 @@ header .logo-text{ transition: fill 0.3s ease; }
 }
 
 /* ── Apparition des sections au défilement ────────────────────────────────
-   L'état masqué dépend de la classe .anim, posée sur <html> par le script du
-   <head> UNIQUEMENT si JavaScript s'exécute et que le visiteur n'a pas demandé
+   L'état masqué dépend de la classe .anim, posée sur <body> par le script en
+   tête de <body> UNIQUEMENT si JavaScript s'exécute et que le visiteur n'a pas demandé
    moins d'animations. Sans cette classe — sans JS, robots d'indexation compris
    — rien n'est masqué. La première section de chaque page (le Hero) est
    exclue : elle doit s'afficher tout de suite. */

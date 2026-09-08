@@ -67,10 +67,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="fr" className={`${inter.variable} ${playfair.variable}`}>
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+      </head>
+      {/* suppressHydrationWarning : le script juste en dessous pose la classe
+          « anim » sur <body> AVANT que React n'hydrate. Le HTML servi et le DOM
+          client diffèrent donc d'exactement cette classe, et React le signalait
+          en console à chaque chargement. C'est précisément le cas que cet
+          attribut couvre, et il ne concerne que les attributs de CET élément.
+
+          La classe était auparavant posée sur <html>, où l'attribut n'a pas
+          d'effet — React traite l'élément racine à part. Le sélecteur CSS
+          « .anim main > section » fonctionne indifféremment depuis l'un ou
+          l'autre : les deux sont ancêtres de <main>. */}
+      <body className={inter.className} suppressHydrationWarning>
         {/* Apparition des sections au défilement — voir components/RevealOnScroll.
-            Ce script est volontairement en <head> et synchrone : il pose la
-            classe AVANT le premier rendu, donc pas de clignotement. Et comme
-            c'est lui qui la pose, une page servie sans JavaScript — un robot
+            En TÊTE de <body> et synchrone : la classe est posée avant que le
+            contenu ne soit peint, donc pas de clignotement. Et comme c'est ce
+            script qui la pose, une page servie sans JavaScript — un robot
             d'indexation, par exemple — n'a rien de masqué.
             Le garde-fou de 3 s rend le contenu visible si le composant ne
             démarre pas : mieux vaut une page sans animation qu'une page vide. */}
@@ -78,13 +90,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{
             __html:
               "try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches){" +
-              "document.documentElement.classList.add('anim');" +
-              "setTimeout(function(){if(document.body&&document.body.dataset.revealPret!=='1')" +
-              "document.documentElement.classList.remove('anim');},3000);}}catch(e){}",
+              "document.body.classList.add('anim');" +
+              "setTimeout(function(){if(document.body.dataset.revealPret!=='1')" +
+              "document.body.classList.remove('anim');},3000);}}catch(e){}",
           }}
         />
-      </head>
-      <body className={inter.className}>
         <OrganizationSchema />
         {gaId && (
           <>

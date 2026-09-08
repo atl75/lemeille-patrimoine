@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation";
  * Trois précautions, dans l'ordre d'importance :
  *
  * 1. SANS JAVASCRIPT, RIEN N'EST MASQUÉ. L'état caché est porté par la classe
- *    `.anim` posée sur <html> par un script en <head> (voir app/layout.tsx).
+ *    `.anim` posée sur <body> par un script en tête de <body> (voir app/layout.tsx).
  *    Sans JS — donc pour un robot d'indexation qui n'exécute rien — la classe
  *    n'existe pas et toutes les sections sont visibles. Une page dont le
  *    contenu naît en opacity:0 est une page vide pour Google.
@@ -36,7 +36,7 @@ export default function RevealOnScroll() {
     // anticipé : sinon il retire `.anim` au bout de 3 s et l'effet ne joue plus.
     document.body.dataset.revealPret = "1";
 
-    const anime = document.documentElement.classList.contains("anim");
+    const anime = document.body.classList.contains("anim");
 
     // Volontairement SANS IntersectionObserver. Le mode de défaillance d'une
     // apparition au défilement, c'est une page blanche sous la ligne de
