@@ -155,20 +155,6 @@ export default function Page() {
   };
 
 
-  const handleDelete = async (id: string) => {
-    if (!(await confirm('Ce bien sera définitivement supprimé.', { title: 'Supprimer ce bien ?' }))) return;
-    try {
-      const res = await fetch(`/api/properties/${id}`, { 
-        method: 'DELETE',
-        credentials: 'include'
-      });
-      if (res.ok) {
-        await fetchProperties();
-      }
-    } catch (err) {
-      toast('Erreur lors de la suppression');
-    }
-  };
 
 
   return (
@@ -458,13 +444,6 @@ export default function Page() {
                           data-testid={`button-edit-${property.id}`}
                         >
                           Modifier
-                        </button>
-                        <button
-                          onClick={() => handleDelete(property.id)}
-                          className="px-3 py-1 border border-red-500 text-red-500 rounded hover:bg-red-500 hover:text-white"
-                          data-testid={`button-delete-${property.id}`}
-                        >
-                          Supprimer
                         </button>
                       </div>
                     </div>

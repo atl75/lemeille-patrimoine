@@ -53,6 +53,36 @@ export default function FicheBienFormulaire({
   const [searchingCadastre, setSearchingCadastre] = useState(false);
   const [calculationMode, setCalculationMode] = useState<'FROM_NET' | 'FROM_FAI'>('FROM_NET');
   const [dirty, setDirty] = useState(false);
+  const [suppression, setSuppression] = useState(false);
+
+  /**
+   * Suppression définitive du bien.
+   *
+   * Déplacée depuis la liste, où elle voisinait « Modifier » sur chaque ligne :
+   * un clic de travers sur la mauvaise carte et le bien disparaissait. Ici, il
+   * faut d'abord avoir ouvert LA fiche que l'on supprime — le geste engage
+   * quelqu'un qui sait ce qu'il regarde.
+   *
+   * `setDirty(false)` avant de partir, sinon l'avertissement « modifications
+   * non enregistrées » se déclenche au moment de quitter une fiche qui vient
+   * précisément d'être effacée.
+   */
+  const supprimer = async () => {
+    if (!editing?.id) return;
+    const quoi = [editing.title, editing.city].filter(Boolean).join(' — ') || 'ce bien';
+    if (!(await confirm(`« ${quoi} » sera définitivement supprimé, ainsi que ses photos et documents.`,
+                        { title: 'Supprimer ce bien ?' }))) return;
+    setSuppression(true);
+    try {
+      const res = await fetch(`/api/properties/${editing.id}`, { method: 'DELETE', credentials: 'include' });
+      if (!res.ok) { toast('Erreur lors de la suppression.'); setSuppression(false); return; }
+      setDirty(false);
+      onEnregistre();
+    } catch {
+      toast('Erreur réseau lors de la suppression.');
+      setSuppression(false);
+    }
+  };
 
   // Avertit avant de quitter la page si des modifications ne sont pas
   // enregistrées. Repris tel quel de la page liste.
@@ -1077,6 +1107,20 @@ export default function FicheBienFormulaire({
               >
                 Annuler
               </button>
+
+              {/* Écarté des deux autres et repoussé à droite : une action
+                  irréversible ne se place pas à côté d'« Annuler ». Absent
+                  d'une fiche neuve, qui n'a rien à supprimer. */}
+              {editing.id && (
+                <button
+                  onClick={supprimer}
+                  disabled={suppression}
+                  className="ml-auto px-4 py-2 border border-red-500 text-red-600 rounded hover:bg-red-500 hover:text-white disabled:opacity-50"
+                  data-testid="button-delete-property"
+                >
+                  {suppression ? 'Suppression…' : 'Supprimer ce bien'}
+                </button>
+              )}
             </div>
           </div>
     </>
