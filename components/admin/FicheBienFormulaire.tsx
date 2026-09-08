@@ -387,6 +387,7 @@ export default function FicheBienFormulaire({
                       });
                     }}
                     placeholder="123 Avenue, Paris"
+                    className="w-full px-2 py-1.5 text-sm border rounded"
                   />
                 </div>
 

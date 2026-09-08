@@ -24,11 +24,21 @@ type Props = {
   value: string;
   onChange: (components: AddressComponents) => void;
   placeholder?: string;
+  /**
+   * Style de l'input. Sans lui, le champ n'avait AUCUNE classe : ni largeur,
+   * ni bordure, ni marge interne — un input brut du navigateur, large d'une
+   * vingtaine de caractères et désaligné de tous ses voisins. C'est ce qui
+   * arrivait aux deux champs adresse de la fiche bien. D'où le repli
+   * ci-dessous : un appel qui oublie le style obtient un champ correct, pas
+   * un champ nu.
+   */
   className?: string;
   // Optionnel : remonte le texte brut à chaque frappe (pour conserver une saisie
   // libre non issue d'une suggestion). onChange reste déclenché à la sélection.
   onTextChange?: (text: string) => void;
 };
+
+const STYLE_PAR_DEFAUT = 'w-full px-2 py-1.5 text-sm border rounded';
 
 export default function AddressAutocomplete({ value, onChange, placeholder, className, onTextChange }: Props) {
   const [inputValue, setInputValue] = useState(value);
@@ -129,7 +139,7 @@ export default function AddressAutocomplete({ value, onChange, placeholder, clas
         ref={inputRef}
         type="text"
         aria-label="Adresse"
-        className={className}
+        className={className ?? STYLE_PAR_DEFAUT}
         value={inputValue}
         onChange={handleInputChange}
         onFocus={() => { isFocusedRef.current = true; }}
