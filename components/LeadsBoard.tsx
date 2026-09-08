@@ -5,10 +5,11 @@ import Breadcrumb from "@/components/Breadcrumb";
 import { useConfirm } from "@/components/ConfirmDialog";
 import CompanyAutocomplete from "@/components/CompanyAutocomplete";
 import { useEffect, useState } from "react";
-import { Plus, X, Calendar, CheckCircle2, Circle, Edit2, Trash2, Paperclip, Download, Eye, FileText, Search, Mail } from "lucide-react";
+import { Plus, X, Calendar, CheckCircle2, Circle, Edit2, Trash2, Paperclip, Download, Eye, FileText, Search, Mail, MessageSquare } from "lucide-react";
 import MoneyInput from "@/components/MoneyInput";
 import { needsFollowUp, formatDate, PRIORITY_META, PRIORITY_CYCLE } from "@/lib/typesLead";
 import type { Lead, Action, Attachment } from "@/lib/typesLead";
+import { parOrdreAntichronologique } from "@/lib/commentairesLead";
 
 
 export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
@@ -44,6 +45,10 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
     description: '',
     dueDate: ''
   });
+  // Brouillons de commentaire, indexés par lead : replier une fiche puis la
+  // rouvrir ne doit pas effacer une note à moitié écrite.
+  const [commentaireBrouillon, setCommentaireBrouillon] = useState<Record<string, string>>({});
+  const [commentaireEnCours, setCommentaireEnCours] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [properties, setProperties] = useState<any[]>([]);
@@ -409,6 +414,40 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
       }
     } catch (error) {
       toast('Erreur lors de l\'ajout de l\'action');
+    }
+  };
+
+  const ajouterCommentaire = async (leadId: string) => {
+    const texte = (commentaireBrouillon[leadId] || '').trim();
+    if (!texte) return;
+    setCommentaireEnCours(leadId);
+    try {
+      const r = await fetch(`/api/leads/${leadId}/commentaires`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texte }),
+      });
+      if (r.ok) {
+        setCommentaireBrouillon(b => ({ ...b, [leadId]: '' }));
+        fetchLeads();
+      } else {
+        toast('Erreur lors de l\'ajout du commentaire');
+      }
+    } catch {
+      toast('Erreur lors de l\'ajout du commentaire');
+    } finally {
+      setCommentaireEnCours(null);
+    }
+  };
+
+  const supprimerCommentaire = async (leadId: string, commentaireId: string) => {
+    if (!(await confirm('Cette note de suivi sera définitivement supprimée.', { title: 'Supprimer ce commentaire ?' }))) return;
+    try {
+      const r = await fetch(`/api/leads/${leadId}/commentaires/${commentaireId}`, { method: 'DELETE' });
+      if (r.ok) fetchLeads();
+      else toast('Erreur lors de la suppression');
+    } catch {
+      toast('Erreur lors de la suppression');
     }
   };
 
@@ -1491,6 +1530,81 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                       </div>
                     ) : (
                       <p className="text-sm opacity-75 italic">Aucune action planifiée</p>
+                    )}
+                  </div>
+
+                  {/* Section Suivi du dossier — journal horodaté */}
+                  <div className="mt-4 border-t pt-4">
+                    <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
+                      <MessageSquare className="w-4 h-4" />
+                      Suivi du dossier
+                      {lead.commentaires && lead.commentaires.length > 0 && (
+                        <span className="text-xs font-normal opacity-75">
+                          ({lead.commentaires.length})
+                        </span>
+                      )}
+                    </h4>
+
+                    <div className="mb-3">
+                      <textarea
+                        rows={2}
+                        className="input text-sm w-full"
+                        placeholder="Ex : rappelé ce matin, visite calée samedi 14h."
+                        value={commentaireBrouillon[lead.id] || ''}
+                        onChange={e => setCommentaireBrouillon(b => ({ ...b, [lead.id]: e.target.value }))}
+                        onKeyDown={e => {
+                          // Raccourci de saisie rapide : la note se prend souvent
+                          // le téléphone encore à l'oreille.
+                          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                            e.preventDefault();
+                            ajouterCommentaire(lead.id);
+                          }
+                        }}
+                        data-testid={`input-commentaire-${lead.id}`}
+                      />
+                      <div className="flex items-center gap-3 mt-2">
+                        <button
+                          onClick={() => ajouterCommentaire(lead.id)}
+                          disabled={!(commentaireBrouillon[lead.id] || '').trim() || commentaireEnCours === lead.id}
+                          className="btn-luxe text-sm px-3 py-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                          data-testid={`button-add-commentaire-${lead.id}`}
+                        >
+                          {commentaireEnCours === lead.id ? 'Enregistrement…' : 'Ajouter la note'}
+                        </button>
+                        <span className="text-xs opacity-60">Horodatée automatiquement · ⌘/Ctrl + Entrée</span>
+                      </div>
+                    </div>
+
+                    {lead.commentaires && lead.commentaires.length > 0 ? (
+                      <div className="space-y-2">
+                        {parOrdreAntichronologique(lead.commentaires).map(c => (
+                          <div
+                            key={c.id}
+                            className="group flex items-start gap-3 p-3 rounded border bg-white border-gray-200"
+                            data-testid={`commentaire-${c.id}`}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs opacity-75 mb-1">
+                                🕒 {formatDate(c.createdAt)}
+                                {c.auteur && <span className="ml-2">· {c.auteur}</span>}
+                              </div>
+                              {/* whitespace-pre-wrap : les retours à la ligne saisis sont conservés */}
+                              <p className="text-sm whitespace-pre-wrap break-words">{c.texte}</p>
+                            </div>
+                            <button
+                              onClick={() => supprimerCommentaire(lead.id, c.id)}
+                              className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"
+                              title="Supprimer cette note"
+                              aria-label="Supprimer cette note"
+                              data-testid={`button-delete-commentaire-${c.id}`}
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm opacity-75 italic">Aucune note pour le moment</p>
                     )}
                   </div>
                 </div>

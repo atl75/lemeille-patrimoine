@@ -15,6 +15,17 @@ export type Action = {
   createdAt: string;
 };
 
+/**
+ * Une note de suivi horodatée. Écrite une fois, jamais modifiée : c'est ce qui
+ * en fait un journal fiable. Voir lib/commentairesLead.ts pour les règles.
+ */
+export type Commentaire = {
+  id: string;
+  texte: string;
+  createdAt: string;
+  auteur?: string;
+};
+
 export type Attachment = {
   id: string;
   name: string;
@@ -47,6 +58,7 @@ export type Lead = {
   meta?: any;
   actions?: Action[];
   attachments?: Attachment[];
+  commentaires?: Commentaire[];
   // Critères de recherche (leads acheteurs)
   buyerCriteria?: { budgetMin?: number; budgetMax?: number; sector?: string; type?: string; roomsMin?: number; surfaceMin?: number };
   buyerSegment?: 'ANCIEN' | 'DEFISCALISATION';

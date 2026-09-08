@@ -18,6 +18,12 @@ import {
   erreursFiche,
 } from "../lib/validationBien.ts";
 import { leadJoignable, tronqueLead } from "../lib/validationLead.ts";
+import {
+  erreurCommentaire,
+  nouveauCommentaire,
+  parOrdreAntichronologique,
+  LONGUEUR_MAX,
+} from "../lib/commentairesLead.ts";
 
 describe("seoTitle — 62 caractères, marque sacrifiée avant troncature", () => {
   test("titre court : la marque est conservée", () => {
@@ -474,5 +480,60 @@ describe("recevabilité d'un lead — un lead doit être joignable", () => {
     const t = tronqueLead({ email: "a@b.fr", meta: { surface: 80 }, consent: true } as any);
     assert.deepEqual((t as any).meta, { surface: 80 });
     assert.equal((t as any).consent, true);
+  });
+});
+
+describe("commentairesLead — le journal de suivi d'un dossier", () => {
+  test("un texte vide ou blanc est refusé", () => {
+    for (const v of ["", "   ", "\n\t", null, undefined]) {
+      assert.equal(erreurCommentaire(v), "Le commentaire est vide.");
+    }
+  });
+
+  test("un texte réel passe", () => {
+    assert.equal(erreurCommentaire("Rappelé, visite samedi."), null);
+  });
+
+  test("le commentaire est horodaté et le texte élagué", () => {
+    const avant = Date.now();
+    const c = nouveauCommentaire("  Visite faite, offre à venir.  ");
+    assert.equal(c.texte, "Visite faite, offre à venir.");
+    const t = new Date(c.createdAt).getTime();
+    assert.ok(t >= avant && t <= Date.now(), "horodatage dans la fenêtre d'appel");
+    assert.match(c.createdAt, /^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  test("l'auteur n'est présent que s'il est fourni", () => {
+    assert.equal("auteur" in nouveauCommentaire("x"), false);
+    assert.equal(nouveauCommentaire("x", "Arthur").auteur, "Arthur");
+  });
+
+  test("les identifiants ne collident pas dans la même milliseconde", () => {
+    const ids = new Set(Array.from({ length: 500 }, () => nouveauCommentaire("x").id));
+    assert.equal(ids.size, 500);
+  });
+
+  test("un texte démesuré est borné", () => {
+    assert.equal(nouveauCommentaire("z".repeat(9000)).texte.length, LONGUEUR_MAX);
+  });
+
+  test("l'affichage va du plus récent au plus ancien", () => {
+    const cs = [
+      { id: "a", texte: "premier", createdAt: "2026-01-05T09:00:00.000Z" },
+      { id: "b", texte: "dernier", createdAt: "2026-03-20T18:30:00.000Z" },
+      { id: "c", texte: "milieu", createdAt: "2026-02-11T12:00:00.000Z" },
+    ];
+    assert.deepEqual(parOrdreAntichronologique(cs).map(c => c.id), ["b", "c", "a"]);
+  });
+
+  test("le tri ne modifie pas le tableau reçu, et encaisse le vide", () => {
+    const cs = [
+      { id: "a", texte: "x", createdAt: "2026-01-05T09:00:00.000Z" },
+      { id: "b", texte: "y", createdAt: "2026-03-20T18:30:00.000Z" },
+    ];
+    parOrdreAntichronologique(cs);
+    assert.deepEqual(cs.map(c => c.id), ["a", "b"], "l'ordre d'origine est préservé");
+    assert.deepEqual(parOrdreAntichronologique([]), []);
+    assert.deepEqual(parOrdreAntichronologique(undefined), []);
   });
 });
