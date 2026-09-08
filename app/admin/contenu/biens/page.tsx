@@ -29,6 +29,9 @@ export default function Page() {
   const [showSoldView, setShowSoldView] = useState(false);
   const [gmail, setGmail] = useState<{ configured: boolean; connected: boolean; email: string }>({ configured: false, connected: false, email: '' });
   const [notaireBusy, setNotaireBusy] = useState<string | null>(null);
+  // Filtres de la liste. « » = tous.
+  const [filtreVille, setFiltreVille] = useState('');
+  const [filtreType, setFiltreType] = useState('');
   const { confirm, dialog } = useConfirm();
   const toast = useToast();
 
@@ -181,7 +184,7 @@ export default function Page() {
       {/* Boutons de bascule entre vues */}
       <div className="flex gap-3 mb-6">
         <button
-          onClick={() => setShowSoldView(false)}
+          onClick={() => { setShowSoldView(false); setFiltreVille(""); setFiltreType(""); }}
           className={`px-6 py-3 rounded-lg font-medium transition-all ${
             !showSoldView
               ? 'bg-[#1F3B2C] text-white shadow-lg'
@@ -192,7 +195,7 @@ export default function Page() {
           Biens en vente
         </button>
         <button
-          onClick={() => setShowSoldView(true)}
+          onClick={() => { setShowSoldView(true); setFiltreVille(""); setFiltreType(""); }}
           className={`px-6 py-3 rounded-lg font-medium transition-all ${
             showSoldView
               ? 'bg-[#1F3B2C] text-white shadow-lg'
@@ -250,16 +253,97 @@ export default function Page() {
           filteredProperties = enVenteOrdered();
         }
 
+        // Les listes déroulantes sont construites sur la vue COURANTE, pas sur
+        // tout le portefeuille : on ne propose jamais une ville ou un type qui
+        // ne donnerait aucun résultat ici.
+        const compter = (liste: Property[], cle: (p: Property) => string) => {
+          const m = new Map<string, number>();
+          for (const p of liste) {
+            const v = (cle(p) || '').trim();
+            if (v) m.set(v, (m.get(v) || 0) + 1);
+          }
+          return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0], 'fr'));
+        };
+        const villes = compter(filteredProperties, (p) => String(p.city || ''));
+        const types = compter(filteredProperties, (p) => String(p.type || ''));
+
+        const avantFiltres = filteredProperties.length;
+        if (filtreVille) filteredProperties = filteredProperties.filter(p => String(p.city || '') === filtreVille);
+        if (filtreType) filteredProperties = filteredProperties.filter(p => String(p.type || '') === filtreType);
+        const filtreActif = !!(filtreVille || filtreType);
+
         return (
           <>
-            {/* Compteur */}
-            <div className="mb-4 text-lg font-medium text-gray-700">
-              {filteredProperties.length} bien{filteredProperties.length > 1 ? 's' : ''} {showSoldView ? 'vendu' : 'en vente'}{filteredProperties.length > 1 ? 's' : ''}
+            {/* Filtres + compteur */}
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <div className="text-lg font-medium text-gray-700">
+                {/* « vendu » s'accorde, « en vente » est invariable : le
+                    pluriel était collé aux deux et donnait « en ventes ». */}
+                {filteredProperties.length} bien{filteredProperties.length > 1 ? 's' : ''}{' '}
+                {showSoldView ? (filteredProperties.length > 1 ? 'vendus' : 'vendu') : 'en vente'}
+                {filtreActif && (
+                  <span className="ml-2 text-sm font-normal opacity-70">sur {avantFiltres}</span>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 ml-auto">
+                <label className="sr-only" htmlFor="filtre-ville">Filtrer par ville</label>
+                <select
+                  id="filtre-ville"
+                  value={filtreVille}
+                  onChange={(e) => setFiltreVille(e.target.value)}
+                  className="px-3 py-1.5 text-sm border rounded bg-white"
+                  data-testid="select-filtre-ville"
+                >
+                  <option value="">Toutes les villes</option>
+                  {villes.map(([v, n]) => (
+                    <option key={v} value={v}>{v} ({n})</option>
+                  ))}
+                </select>
+
+                <label className="sr-only" htmlFor="filtre-type">Filtrer par type</label>
+                <select
+                  id="filtre-type"
+                  value={filtreType}
+                  onChange={(e) => setFiltreType(e.target.value)}
+                  className="px-3 py-1.5 text-sm border rounded bg-white"
+                  data-testid="select-filtre-type"
+                >
+                  <option value="">Tous les types</option>
+                  {types.map(([t, n]) => (
+                    <option key={t} value={t}>
+                      {t === 'MAISON' ? 'Maison' : t === 'APPARTEMENT' ? 'Appartement' : t} ({n})
+                    </option>
+                  ))}
+                </select>
+
+                {filtreActif && (
+                  <button
+                    onClick={() => { setFiltreVille(''); setFiltreType(''); }}
+                    className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50"
+                    data-testid="button-reinitialiser-filtres"
+                  >
+                    Tout afficher
+                  </button>
+                )}
+              </div>
             </div>
 
             {filteredProperties.length === 0 ? (
               <div className="card p-6 opacity-70">
-                Aucun bien {showSoldView ? 'vendu' : 'en vente'}.
+                {filtreActif ? (
+                  <>
+                    Aucun bien {showSoldView ? 'vendu' : 'en vente'} ne correspond à ce filtre.{' '}
+                    <button
+                      onClick={() => { setFiltreVille(''); setFiltreType(''); }}
+                      className="underline hover:text-[#1F3B2C]"
+                    >
+                      Tout afficher
+                    </button>
+                  </>
+                ) : (
+                  <>Aucun bien {showSoldView ? 'vendu' : 'en vente'}.</>
+                )}
               </div>
             ) : (
               <div className="grid gap-4">
@@ -319,7 +403,12 @@ export default function Page() {
                         })()}
                       </div>
                       <div className="flex gap-2 items-start">
-                        {!showSoldView && (
+                        {/* Le réordonnancement est masqué dès qu'un filtre est
+                            actif : moveProperty travaille sur la liste COMPLÈTE,
+                            donc le déplacement resterait juste — mais échangerait
+                            avec un voisin masqué, et rien ne bougerait à l'écran.
+                            Un bouton qui a l'air cassé est pire qu'un bouton absent. */}
+                        {!showSoldView && !filtreActif && (
                           <div className="flex flex-col gap-1 mr-1">
                             <button
                               onClick={() => moveProperty(property.id, 'up')}
