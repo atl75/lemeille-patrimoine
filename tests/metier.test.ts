@@ -19,6 +19,12 @@ import {
 } from "../lib/validationBien.ts";
 import { leadJoignable, tronqueLead } from "../lib/validationLead.ts";
 import {
+  PERIODES,
+  periodeValide,
+  etiquettePoint,
+  plageCouverte,
+} from "../lib/periodesAnalytics.ts";
+import {
   erreurCommentaire,
   nouveauCommentaire,
   parOrdreAntichronologique,
@@ -535,5 +541,42 @@ describe("commentairesLead — le journal de suivi d'un dossier", () => {
     assert.deepEqual(cs.map(c => c.id), ["a", "b"], "l'ordre d'origine est préservé");
     assert.deepEqual(parOrdreAntichronologique([]), []);
     assert.deepEqual(parOrdreAntichronologique(undefined), []);
+  });
+});
+
+describe("periodesAnalytics — semaine, mois, année", () => {
+  test("les trois fenêtres existent et sont croissantes", () => {
+    assert.deepEqual(Object.keys(PERIODES), ["semaine", "mois", "annee"]);
+    const jours = (k) => Number(PERIODES[k].debut.replace(/\D/g, ""));
+    assert.ok(jours("semaine") < jours("mois"), "la semaine est plus courte que le mois");
+    assert.ok(jours("mois") < jours("annee"), "le mois est plus court que l'année");
+  });
+
+  test("l'année s'agrège par mois, les fenêtres courtes par jour", () => {
+    assert.equal(PERIODES.semaine.dimension, "date");
+    assert.equal(PERIODES.mois.dimension, "date");
+    assert.equal(PERIODES.annee.dimension, "yearMonth");
+  });
+
+  test("une période inconnue retombe sur le mois, jamais d'erreur", () => {
+    for (const v of ["", "trimestre", null, undefined, 42, "../../etc"]) {
+      assert.equal(periodeValide(v), "mois");
+    }
+    assert.equal(periodeValide("SEMAINE"), "semaine", "insensible à la casse");
+    assert.equal(periodeValide("annee"), "annee");
+  });
+
+  test("étiquettes : un jour se lit JJ/MM, un mois en toutes lettres", () => {
+    assert.equal(etiquettePoint("20260908"), "08/09");
+    assert.equal(etiquettePoint("202601"), "janv. 2026");
+    assert.equal(etiquettePoint("202612"), "déc. 2026");
+    assert.equal(etiquettePoint("bizarre"), "bizarre");
+  });
+
+  test("la plage couverte annonce les bornes réelles des données reçues", () => {
+    const pts = [{ date: "20260906" }, { date: "20260904" }, { date: "20260908" }];
+    assert.equal(plageCouverte(pts), "04/09 → 08/09");
+    assert.equal(plageCouverte([{ date: "20260904" }]), "04/09", "un seul point : pas de flèche");
+    assert.equal(plageCouverte([]), null);
   });
 });

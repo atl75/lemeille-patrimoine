@@ -1,4 +1,5 @@
 import { getAccessToken } from '@/lib/googleMail';
+import { PERIODES, PERIODE_PAR_DEFAUT, type ClePeriode } from '@/lib/periodesAnalytics';
 
 // Accès aux statistiques Google Analytics 4 (Data API v1beta), via le jeton
 // OAuth Google déjà connecté (scope analytics.readonly). Sans dépendance externe.
@@ -31,8 +32,8 @@ function parseReport(rep: any): Report {
   return { rows, totals };
 }
 
-// Récupère l'ensemble des rapports (28 derniers jours) en 2 appels batch.
-export async function ga4Reports(propertyId: string) {
+// Récupère l'ensemble des rapports en 2 appels batch, sur la fenêtre demandée.
+export async function ga4Reports(propertyId: string, periode: ClePeriode = PERIODE_PAR_DEFAUT) {
   const token = await getAccessToken();
   const call = async (requests: any[]) => {
     const r = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:batchRunReports`, {
@@ -43,11 +44,12 @@ export async function ga4Reports(propertyId: string) {
     if (!r.ok) throw new Error(`data ${r.status}: ${(await r.text()).slice(0, 200)}`);
     return (await r.json()).reports || [];
   };
-  const dr = [{ startDate: '28daysAgo', endDate: 'today' }];
+  const { debut, dimension } = PERIODES[periode] ?? PERIODES[PERIODE_PAR_DEFAUT];
+  const dr = [{ startDate: debut, endDate: 'today' }];
 
   const b1 = await call([
     { dateRanges: dr, metrics: [{ name: 'activeUsers' }, { name: 'newUsers' }, { name: 'sessions' }, { name: 'screenPageViews' }, { name: 'averageSessionDuration' }, { name: 'bounceRate' }] },
-    { dateRanges: dr, dimensions: [{ name: 'date' }], metrics: [{ name: 'activeUsers' }, { name: 'sessions' }], orderBys: [{ dimension: { dimensionName: 'date' } }] },
+    { dateRanges: dr, dimensions: [{ name: dimension }], metrics: [{ name: 'activeUsers' }, { name: 'sessions' }], orderBys: [{ dimension: { dimensionName: dimension } }] },
     { dateRanges: dr, dimensions: [{ name: 'pagePath' }], metrics: [{ name: 'screenPageViews' }, { name: 'averageSessionDuration' }], orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }], limit: 12 },
     { dateRanges: dr, dimensions: [{ name: 'sessionSourceMedium' }], metrics: [{ name: 'sessions' }], orderBys: [{ metric: { metricName: 'sessions' }, desc: true }], limit: 10 },
     { dateRanges: dr, dimensions: [{ name: 'country' }, { name: 'city' }], metrics: [{ name: 'activeUsers' }], orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }], limit: 12 },

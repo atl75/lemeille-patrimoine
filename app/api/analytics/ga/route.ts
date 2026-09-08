@@ -3,18 +3,23 @@ import type { NextRequest } from 'next/server';
 import { isAdmin } from '@/lib/adminGuard';
 import { isConnected } from '@/lib/googleMail';
 import { ga4PropertyId, ga4Reports } from '@/lib/ga4';
+import { periodeValide } from '@/lib/periodesAnalytics';
 
 // Statistiques de visite (Google Analytics 4) pour le tableau de bord admin.
 // Renvoie toujours 200 : { ok:false, reason } permet à l'UI d'afficher un
 // message clair (Google non connecté / scope Analytics manquant / pas d'accès).
 export async function GET(req: NextRequest) {
   if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Fenêtre demandée par l'UI, lue avant tout court-circuit pour que la réponse
+  // dise toujours sur quoi elle porte. Une valeur inconnue retombe sur le mois
+  // plutôt que d'échouer : le tableau de bord doit afficher quelque chose.
+  const periode = periodeValide(req.nextUrl.searchParams.get('periode'));
   if (!(await isConnected())) {
-    return NextResponse.json({ ok: false, reason: 'not_connected', message: 'Google non connecté.' });
+    return NextResponse.json({ ok: false, reason: 'not_connected', message: 'Google non connecté.', periode });
   }
   try {
     const propertyId = await ga4PropertyId();
-    const r = await ga4Reports(propertyId);
+    const r = await ga4Reports(propertyId, periode);
 
     const s = r.summary.totals; // [users, newUsers, sessions, views, avgDuration, bounceRate]
     const summary = {
@@ -32,11 +37,11 @@ export async function GET(req: NextRequest) {
     const devices = r.devices.rows.map((row) => ({ device: row.dims[0], users: Number(row.vals[0] || 0) }));
     const newReturning = r.newReturning.rows.map((row) => ({ type: row.dims[0], users: Number(row.vals[0] || 0) }));
 
-    return NextResponse.json({ ok: true, propertyId, summary, trend, pages, sources, geo, devices, newReturning });
+    return NextResponse.json({ ok: true, propertyId, periode, summary, trend, pages, sources, geo, devices, newReturning });
   } catch (e: any) {
     const msg = String(e?.message || e);
     // 401/403 → scope manquant ou pas d'accès à la propriété : demander une reconnexion.
     const scope = /401|403|insufficient|permission|scope|n'a accès à aucune/i.test(msg);
-    return NextResponse.json({ ok: false, reason: scope ? 'scope' : 'error', message: msg });
+    return NextResponse.json({ ok: false, reason: scope ? 'scope' : 'error', message: msg, periode });
   }
 }

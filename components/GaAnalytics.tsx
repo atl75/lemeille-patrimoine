@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { PERIODES, PERIODE_PAR_DEFAUT, etiquettePoint, plageCouverte, type ClePeriode } from "@/lib/periodesAnalytics";
 
 type Data = {
-  ok: boolean; reason?: string; message?: string; propertyId?: string;
+  ok: boolean; reason?: string; message?: string; propertyId?: string; periode?: ClePeriode;
   summary?: { users: number; newUsers: number; sessions: number; pageViews: number; avgDuration: number; bounceRate: number };
   trend?: { date: string; users: number; sessions: number }[];
   pages?: { path: string; views: number; avgDuration: number }[];
@@ -18,17 +19,24 @@ const fmtDur = (s: number) => {
   const m = Math.floor(s / 60), r = s % 60;
   return m ? `${m} min ${r}s` : `${r}s`;
 };
-const fmtDate = (d: string) => (d && d.length === 8 ? `${d.slice(6, 8)}/${d.slice(4, 6)}` : d);
 const fmtDevice = (d: string) => ({ desktop: "Ordinateur", mobile: "Mobile", tablet: "Tablette" } as any)[d] || d;
 const fmtNR = (t: string) => (t === "new" ? "Nouveaux" : t === "returning" ? "Récurrents" : t || "—");
 
 export default function GaAnalytics() {
   const [d, setD] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
+  const [periode, setPeriode] = useState<ClePeriode>(PERIODE_PAR_DEFAUT);
 
   useEffect(() => {
-    fetch("/api/analytics/ga").then(r => r.json()).then((j) => { setD(j); setLoading(false); }).catch(() => { setD({ ok: false, reason: "error", message: "Erreur réseau." }); setLoading(false); });
-  }, []);
+    let vivant = true;
+    setLoading(true);
+    fetch(`/api/analytics/ga?periode=${periode}`)
+      .then(r => r.json())
+      .then((j) => { if (vivant) { setD(j); setLoading(false); } })
+      .catch(() => { if (vivant) { setD({ ok: false, reason: "error", message: "Erreur réseau." }); setLoading(false); } });
+    // Une réponse lente à « année » ne doit pas écraser un retour à « semaine ».
+    return () => { vivant = false; };
+  }, [periode]);
 
   const Card = ({ label, value, sub }: { label: string; value: string | number; sub?: string }) => (
     <div className="p-4 bg-black/[0.03] rounded-lg text-center">
@@ -58,12 +66,29 @@ export default function GaAnalytics() {
 
   return (
     <div className="mt-8">
-      <h2 className="luxe text-2xl mb-1">Statistiques de visite</h2>
-      <p className="text-xs opacity-75 mb-4">
-        Google Analytics — 28 derniers jours{d?.propertyId ? ` · propriété ${d.propertyId}` : ""}
-        {" · "}
-        <a href="/api/google/oauth/start?return=/admin/kpi" className="underline hover:text-[#1F3B2C]" title="Ré-autoriser Google (ajouter/mettre à jour les droits)">Reconnecter Google</a>
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+        <div>
+          <h2 className="luxe text-2xl mb-1">Statistiques de visite</h2>
+          <p className="text-xs opacity-75">
+            Google Analytics — {PERIODES[periode].intitule}{d?.propertyId ? ` · propriété ${d.propertyId}` : ""}
+            {" · "}
+            <a href="/api/google/oauth/start?return=/admin/kpi" className="underline hover:text-[#1F3B2C]" title="Ré-autoriser Google (ajouter/mettre à jour les droits)">Reconnecter Google</a>
+          </p>
+        </div>
+        <div className="inline-flex rounded-lg border overflow-hidden shrink-0" role="group" aria-label="Période d'observation">
+          {(Object.keys(PERIODES) as ClePeriode[]).map(k => (
+            <button
+              key={k}
+              onClick={() => setPeriode(k)}
+              aria-pressed={periode === k}
+              className={`px-3 py-1.5 text-sm transition-colors ${periode === k ? "bg-[#1F3B2C] text-white" : "hover:bg-black/[0.04]"}`}
+              data-testid={`periode-${k}`}
+            >
+              {PERIODES[k].label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {loading && <div className="card p-6 opacity-70">Chargement des statistiques…</div>}
 
@@ -93,9 +118,15 @@ export default function GaAnalytics() {
 
           {d.trend && d.trend.length > 0 && (
             <div className="card p-4">
-              <div className="font-semibold text-sm mb-2 text-[#1F3B2C]">Fréquentation quotidienne</div>
+              <div className="font-semibold text-sm text-[#1F3B2C]">{PERIODES[periode].titreCourbe}</div>
+              {/* La propriété GA ne porte de données que depuis sa mise en service :
+                  afficher la plage réelle évite de prendre un historique court
+                  pour un compteur en panne. */}
+              <div className="text-xs opacity-60 mb-2">
+                {plageCouverte(d.trend) ? `Données disponibles : ${plageCouverte(d.trend)}` : "Aucune donnée sur la période."}
+              </div>
               <ResponsiveContainer width="100%" height={240}>
-                <LineChart data={d.trend.map(t => ({ ...t, label: fmtDate(t.date) }))} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
+                <LineChart data={d.trend.map(t => ({ ...t, label: etiquettePoint(t.date) }))} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                   <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
