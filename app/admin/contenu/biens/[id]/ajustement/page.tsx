@@ -43,6 +43,11 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [dateMiseEnVente, setDateMiseEnVente] = useState<string>("");
   const [commentaire, setCommentaire] = useState<string>("");
   const [saisie, setSaisie] = useState({ ...COMPARABLE_VIERGE });
+  const [collage, setCollage] = useState("");
+  const [analyse, setAnalyse] = useState(false);
+  /** Champs remplis par l'extraction et pas encore relus par un humain. */
+  const [proposes, setProposes] = useState<Record<string, string>>({});
+  const [motExtraction, setMotExtraction] = useState<string | null>(null);
   const [enregistrement, setEnregistrement] = useState(false);
 
   useEffect(() => {
@@ -87,6 +92,80 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     return Math.max(0, Math.round((Date.now() - d) / 86400000));
   }, [dateMiseEnVente]);
 
+  /**
+   * Toute frappe humaine annule la marque « proposé » du champ : relire, c'est
+   * passer dessus. Et la main de l'utilisateur prime toujours sur le réseau.
+   */
+  /** Teinte discrète d'un champ proposé et pas encore relu. */
+  const propose = (champ: string) => (champ in proposes ? " bg-amber-50 border-amber-300" : "");
+
+  const maj = (champ: keyof typeof COMPARABLE_VIERGE, valeur: string) => {
+    setSaisie(s => ({ ...s, [champ]: valeur }));
+    setProposes(p => { const { [champ]: _, ...reste } = p; return reste; });
+  };
+
+  /** Un collage sur une seule ligne qui commence par http est un lien. */
+  const estUnLien = (v: string) =>
+    !/\s/.test(v.trim()) && /^https?:\/\//i.test(v.trim());
+
+  /**
+   * Lit l'annonce et PRÉ-REMPLIT le formulaire — sans jamais ajouter la ligne.
+   * Un champ à retaper coûte huit secondes ; un prix faux dans le tableau posé
+   * devant le vendeur coûte l'argumentaire entier.
+   */
+  const analyserCollage = async () => {
+    const v = collage.trim();
+    if (!v) return;
+    setAnalyse(true);
+    setMotExtraction(null);
+    try {
+      const r = await fetch("/api/annonces/extraire", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(estUnLien(v) ? { url: v } : { texte: v }),
+      });
+      const d = await r.json();
+      if (!r.ok) { toast(d?.error ?? "Lecture impossible."); return; }
+
+      const c = d.champs ?? {};
+      const prov = d.provenance ?? {};
+      const nouveaux: Record<string, string> = {};
+      setSaisie(s => {
+        const suite = { ...s };
+        const poser = (champ: keyof typeof COMPARABLE_VIERGE, valeur: any) => {
+          if (valeur == null || valeur === "") return;
+          // On n'écrase JAMAIS ce que l'utilisateur a déjà tapé lui-même.
+          if (suite[champ] && !(champ in proposes)) return;
+          suite[champ] = String(valeur);
+          nouveaux[champ] = prov[champ] ?? "trouvé dans l'annonce";
+        };
+        poser("titre", c.titre);
+        poser("ville", c.ville);
+        poser("prix", c.prix);
+        poser("surface", c.surface);
+        poser("source", c.source);
+        poser("lien", c.lien);
+        // prixVente n'est jamais proposé : il déclenche le statut VENDU et
+        // c'est l'argument le plus fort du dossier. Il se saisit en conscience.
+        return suite;
+      });
+      setProposes(nouveaux);
+
+      const manque = [!c.prix && "le prix", !c.surface && "la surface"].filter(Boolean);
+      setMotExtraction(
+        d.avertissement
+          ? `${d.avertissement} Collez le texte de l'annonce : Ctrl+A puis Ctrl+C sur sa page.`
+          : manque.length
+            ? `Rempli depuis l'annonce. Il manque ${manque.join(" et ")} — sans ${manque.length > 1 ? "elles" : "elle"}, ce bien ne pèsera pas dans la médiane.`
+            : "Rempli depuis l'annonce — vérifiez le prix et la surface avant d'ajouter.",
+      );
+    } catch {
+      toast("Lecture impossible.");
+    } finally {
+      setAnalyse(false);
+    }
+  };
+
   const ajouterSaisie = () => {
     const prix = Number(saisie.prix), surface = Number(saisie.surface);
     if (!saisie.titre.trim() || !(prix > 0) || !(surface > 0)) {
@@ -104,6 +183,11 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       lien: saisie.lien.trim() || undefined,
     }]);
     setSaisie({ ...COMPARABLE_VIERGE });
+    // La marque « proposé » ne survit pas à l'ajout : le doute se règle avant,
+    // il n'a pas à voyager dans un tableau montré au vendeur.
+    setProposes({});
+    setCollage("");
+    setMotExtraction(null);
   };
 
   const enregistrer = async () => {
@@ -318,14 +402,42 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           <div className="card p-5 mb-4 sans-impression">
             <h2 className="font-semibold text-sm mb-1 text-[#1F3B2C]">Ajouter un bien vu ailleurs</h2>
             <p className="text-xs opacity-70 mb-3">Une annonce SeLoger, LeBonCoin, une vitrine concurrente. Renseignez le prix de vente si le bien est déjà parti : c&apos;est l&apos;argument le plus solide.</p>
+
+            <div className="mb-4">
+              <textarea
+                className="input text-sm w-full"
+                rows={collage.trim() && !estUnLien(collage) ? 5 : 2}
+                placeholder="Collez ici le lien de l'annonce, ou son texte (Ctrl+A puis Ctrl+C sur la page de l'annonce)"
+                value={collage}
+                onChange={e => setCollage(e.target.value)}
+                data-testid="collage-annonce"
+              />
+              <div className="flex items-center gap-3 mt-2">
+                <button
+                  onClick={analyserCollage}
+                  disabled={analyse || !collage.trim()}
+                  className="btn text-xs disabled:opacity-50"
+                  data-testid="analyser-annonce"
+                >
+                  {analyse ? "Lecture…" : estUnLien(collage) ? "Lire ce lien" : "Lire ce texte"}
+                </button>
+                {motExtraction && (
+                  <p className="text-xs opacity-80" data-testid="mot-extraction">{motExtraction}</p>
+                )}
+              </div>
+              <p className="text-[11px] opacity-55 mt-1">
+                Les grands portails refusent d&apos;être lus par un serveur : pour eux, collez le texte, cela fonctionne toujours.
+              </p>
+            </div>
+
             <div className="grid md:grid-cols-3 gap-3">
-              <input className="input text-sm md:col-span-2" placeholder="Intitulé (ex. T3 avec balcon, rue Jeanne d'Arc)" value={saisie.titre} onChange={e => setSaisie({ ...saisie, titre: e.target.value })} data-testid="saisie-titre" />
-              <input className="input text-sm" placeholder="Ville" value={saisie.ville} onChange={e => setSaisie({ ...saisie, ville: e.target.value })} data-testid="saisie-ville" />
-              <input className="input text-sm" type="number" placeholder="Prix affiché (€)" value={saisie.prix} onChange={e => setSaisie({ ...saisie, prix: e.target.value })} data-testid="saisie-prix" />
-              <input className="input text-sm" type="number" placeholder="Surface (m²)" value={saisie.surface} onChange={e => setSaisie({ ...saisie, surface: e.target.value })} data-testid="saisie-surface" />
-              <input className="input text-sm" type="number" placeholder="Prix de vente si vendu (€)" value={saisie.prixVente} onChange={e => setSaisie({ ...saisie, prixVente: e.target.value })} data-testid="saisie-prix-vente" />
-              <input className="input text-sm" placeholder="Source" value={saisie.source} onChange={e => setSaisie({ ...saisie, source: e.target.value })} data-testid="saisie-source" />
-              <input className="input text-sm md:col-span-2" placeholder="Lien vers l'annonce (facultatif)" value={saisie.lien} onChange={e => setSaisie({ ...saisie, lien: e.target.value })} data-testid="saisie-lien" />
+              <input className={`input text-sm md:col-span-2${propose("titre")}`} title={proposes.titre} placeholder="Intitulé (ex. T3 avec balcon, rue Jeanne d'Arc)" value={saisie.titre} onChange={e => maj("titre", e.target.value)} data-testid="saisie-titre" />
+              <input className={`input text-sm${propose("ville")}`} title={proposes.ville} placeholder="Ville" value={saisie.ville} onChange={e => maj("ville", e.target.value)} data-testid="saisie-ville" />
+              <input className={`input text-sm${propose("prix")}`} title={proposes.prix} type="number" placeholder="Prix affiché (€)" value={saisie.prix} onChange={e => maj("prix", e.target.value)} data-testid="saisie-prix" />
+              <input className={`input text-sm${propose("surface")}`} title={proposes.surface} type="number" placeholder="Surface (m²)" value={saisie.surface} onChange={e => maj("surface", e.target.value)} data-testid="saisie-surface" />
+              <input className="input text-sm" type="number" placeholder="Prix de vente si vendu (€)" value={saisie.prixVente} onChange={e => maj("prixVente", e.target.value)} data-testid="saisie-prix-vente" />
+              <input className={`input text-sm${propose("source")}`} title={proposes.source} placeholder="Source" value={saisie.source} onChange={e => maj("source", e.target.value)} data-testid="saisie-source" />
+              <input className={`input text-sm md:col-span-2${propose("lien")}`} title={proposes.lien} placeholder="Lien vers l'annonce (facultatif)" value={saisie.lien} onChange={e => maj("lien", e.target.value)} data-testid="saisie-lien" />
             </div>
             <button onClick={ajouterSaisie} className="btn-luxe text-sm px-3 py-1 mt-3" data-testid="saisie-ajouter">Ajouter ce bien</button>
           </div>

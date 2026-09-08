@@ -10,6 +10,11 @@ import { seoTitle } from "../lib/seoTitle.ts";
 import { isThinListing } from "../lib/thinListing.ts";
 import { matchesSector, sectorSlugFor, SECTORS, norm, locatifDe, codePostalDe } from "../lib/sectors.ts";
 import cloudinaryLoader from "../lib/cloudinaryLoader.js";
+import { adresseInterdite, urlAutorisee } from "../lib/urlSortante.ts";
+import {
+  nombreFr, sourceDepuisUrl, prixDepuisTexte, surfaceDepuisTexte,
+  piecesDepuisTexte, villeDepuisTexte, extraireDepuisTexte, extraireDepuisHtml,
+} from "../lib/annonceConcurrente.ts";
 import { needsFollowUp, formatDate } from "../lib/typesLead.ts";
 import {
   erreurPrix,
@@ -678,5 +683,246 @@ describe("ajustementPrix — situer un bien face à ses concurrents", () => {
     assert.deepEqual(cs.map(x => x.id).sort(), ["ok", "vendu"]);
     assert.equal(cs.find(x => x.id === "vendu")!.statut, "VENDU", "casse de la ville ignorée");
     assert.equal(cs.find(x => x.id === "ok")!.statut, "EN_VENTE");
+  });
+});
+
+describe("annonceConcurrente — lire une annonce sans se faire piéger", () => {
+  test("nombres à la française, y compris la fine insécable de toLocaleString", () => {
+    assert.equal(nombreFr("249 900"), 249900);
+    assert.equal(nombreFr("249 900"), 249900);
+    assert.equal(nombreFr("249 900"), 249900);   // celle que produit fr-FR
+    assert.equal(nombreFr("1 250 000"), 1250000);
+    assert.equal(nombreFr("249.900"), 249900);        // point = séparateur de milliers
+    assert.equal(nombreFr("65,5"), 65.5);             // virgule = décimale
+    assert.equal(nombreFr((249900).toLocaleString("fr-FR")), 249900);
+  });
+
+  test("la source se déduit du domaine", () => {
+    assert.equal(sourceDepuisUrl("https://www.seloger.com/annonces/1.htm"), "SeLoger");
+    assert.equal(sourceDepuisUrl("https://www.leboncoin.fr/ad/2"), "LeBonCoin");
+    assert.equal(sourceDepuisUrl("https://www.bienici.com/a/3"), "Bien'ici");
+    assert.equal(sourceDepuisUrl("https://immo-durand.fr/bien/4"), "immo-durand.fr");
+    assert.equal(sourceDepuisUrl("pas une url"), undefined);
+  });
+
+  test("PRIX : les charges et la taxe foncière ne sont pas un prix de vente", () => {
+    const t = "Appartement T3. Prix : 249 900 € FAI. Charges 120 €/mois. Taxe foncière 1 240 €.";
+    assert.equal(prixDepuisTexte(t)?.valeur, 249900);
+  });
+
+  test("PRIX : un loyer mensuel n'est jamais retenu", () => {
+    assert.equal(prixDepuisTexte("Loyer 850 €/mois, charges comprises."), null);
+  });
+
+  test("PRIX : « à partir de » d'un programme neuf est écarté", () => {
+    assert.equal(prixDepuisTexte("Programme neuf, à partir de 189 000 €."), null);
+  });
+
+  test("PRIX : sous 10 000 €, ce n'est pas un bien", () => {
+    assert.equal(prixDepuisTexte("Honoraires 5 000 € à la charge du vendeur."), null);
+  });
+
+  test("PRIX : le montant qualifié l'emporte sur le plus gros montant", () => {
+    // Le budget travaux est plus élevé, mais c'est « Prix » qui désigne la vente.
+    const t = "Prix 180 000 €. Enveloppe de travaux estimée à 250 000 € par l'architecte.";
+    assert.equal(prixDepuisTexte(t)?.valeur, 180000);
+  });
+
+  test("SURFACE : le terrain n'est pas la surface habitable", () => {
+    const t = "Maison de 95 m² sur un terrain de 620 m².";
+    assert.equal(surfaceDepuisTexte(t)?.valeur, 95);
+  });
+
+  test("SURFACE : un prix au m² n'est pas une surface", () => {
+    assert.equal(surfaceDepuisTexte("Quartier coté à 3 500 €/m²."), null);
+  });
+
+  test("SURFACE : loi Carrez avec décimale", () => {
+    assert.equal(surfaceDepuisTexte("Surface habitable Loi Carrez : 64,20 m²")?.valeur, 64.2);
+  });
+
+  test("SURFACE : le balcon et la cave ne comptent pas", () => {
+    const t = "Surface habitable 72 m², balcon de 9 m², cave de 6 m².";
+    assert.equal(surfaceDepuisTexte(t)?.valeur, 72);
+  });
+
+  test("PIÈCES : T3, F3, « 3 pièces » et studio", () => {
+    assert.equal(piecesDepuisTexte("Appartement T3"), 3);
+    assert.equal(piecesDepuisTexte("Beau F4 rénové"), 4);
+    assert.equal(piecesDepuisTexte("Logement de 5 pièces"), 5);
+    assert.equal(piecesDepuisTexte("Studio meublé"), 1);
+  });
+
+  test("VILLE : ancrée par le code postal, dans les deux ordres", () => {
+    assert.equal(villeDepuisTexte("Bien situé 76000 Rouen, proche gare"), "Rouen");
+    assert.equal(villeDepuisTexte("À vendre à Mont-Saint-Aignan (76130)"), "Mont-Saint-Aignan");
+    assert.equal(villeDepuisTexte("Aucun code postal ici"), null);
+  });
+
+  test("une annonce complète collée depuis le navigateur", () => {
+    const colle = `
+      Appartement 3 pièces 65 m² — 76000 Rouen
+      Prix : 249 900 € FAI (honoraires inclus)
+      Charges de copropriété : 145 €/mois
+      Taxe foncière : 1 180 €
+      DPE : D (180 kWh/m²/an) — GES : 25 kg CO2/m²/an
+      Cave de 8 m² et place de parking.
+    `;
+    const { champs, provenance } = extraireDepuisTexte(colle);
+    assert.equal(champs.prix, 249900);
+    assert.equal(champs.surface, 65);
+    assert.equal(champs.pieces, 3);
+    assert.equal(champs.ville, "Rouen");
+    assert.equal(champs.titre, "Appartement 3 pièces 65 m² — Rouen");
+    assert.ok(provenance.prix?.includes("249"), "la provenance cite le montant trouvé");
+  });
+
+  test("le prix de vente signé n'est JAMAIS extrait", () => {
+    // Il déclenche le statut VENDU et c'est l'argument le plus fort : il se
+    // saisit à la main, en conscience.
+    const { champs } = extraireDepuisTexte("Vendu 232 000 € le mois dernier, affiché 249 900 €.");
+    assert.equal("prixVente" in champs, false);
+  });
+
+  test("HTML : le balisage schema.org prime sur le texte visible", () => {
+    const html = `<html><head>
+      <meta property="og:title" content="T3 de 65 m² — Rouen centre">
+      <script type="application/ld+json">
+      {"@context":"https://schema.org","@graph":[
+        {"@type":"BreadcrumbList","itemListElement":[]},
+        {"@type":"Product","offers":{"@type":"Offer","price":"249900","priceCurrency":"EUR"}}
+      ]}
+      </script>
+      <script type="application/ld+json">
+      {"@type":"RealEstateListing","floorSize":{"value":65},"numberOfRooms":3,
+       "address":{"addressLocality":"Rouen","postalCode":"76000"}}
+      </script>
+      </head><body>
+      <h1>Appartement 3 pièces</h1>
+      <p>Charges 120 €/mois — terrain de 400 m²</p>
+      </body></html>`;
+    const { champs, provenance } = extraireDepuisHtml(html, "https://www.seloger.com/annonces/1.htm");
+    assert.equal(champs.prix, 249900);
+    assert.equal(champs.surface, 65);
+    assert.equal(champs.pieces, 3);
+    assert.equal(champs.ville, "Rouen");
+    assert.equal(champs.source, "SeLoger");
+    assert.equal(champs.lien, "https://www.seloger.com/annonces/1.htm");
+    assert.equal(provenance.prix, "balisage schema.org");
+  });
+
+  test("HTML : une balise JSON-LD cassée ne fait pas tomber l'analyse", () => {
+    const html = `<html><head>
+      <script type="application/ld+json">{ ceci n'est pas du JSON }</script>
+      </head><body><h1>Maison 120 m²</h1><p>Prix 349 000 €</p></body></html>`;
+    const { champs } = extraireDepuisHtml(html, "https://immo-durand.fr/b/1");
+    assert.equal(champs.prix, 349000);
+    assert.equal(champs.surface, 120);
+    assert.equal(champs.source, "immo-durand.fr");
+  });
+
+  test("HTML : le pied de page ne dicte pas la ville du bien", () => {
+    // Constaté en conditions réelles : la ville sortait du pied de page
+    // (« Siège social … 76000 Rouen ») pour une annonce parisienne. Sur une
+    // annonce concurrente, ce serait la ville de l'agence adverse.
+    const html = `<html><body>
+      <main><h1>Appartement T2</h1><p>75018 Paris — 59 m² — 699 000 €</p></main>
+      <footer><p>Siège social : 12 rue des Carmes, 76000 Rouen</p></footer>
+      </body></html>`;
+    const { champs } = extraireDepuisHtml(html, "https://agence-x.fr/b/1");
+    assert.equal(champs.ville, "Paris");
+    assert.equal(champs.prix, 699000);
+    assert.equal(champs.surface, 59);
+  });
+
+  test("HTML : une coquille JavaScript vide ne propose rien plutôt qu'inventer", () => {
+    // Bien'ici sert exactement cela : 200 OK, aucun prix, aucune surface.
+    const { champs } = extraireDepuisHtml(
+      "<html><head><title>Annonce</title></head><body><div id=app></div></body></html>",
+      "https://www.bienici.com/a/1");
+    assert.equal(champs.prix, undefined);
+    assert.equal(champs.surface, undefined);
+    assert.equal(champs.source, "Bien'ici");  // le lien sert quand même à quelque chose
+  });
+});
+
+describe("urlSortante — ne pas devenir un proxy vers l'intérieur", () => {
+  test("le serveur de métadonnées Cloud Run est refusé", () => {
+    // La cible d'un SSRF sur Cloud Run : il délivre des jetons d'identité
+    // de service, et l'instance tourne sans connecteur VPC.
+    assert.equal(adresseInterdite("169.254.169.254"), true);
+  });
+
+  test("boucle locale et réseaux privés refusés", () => {
+    for (const ip of ["127.0.0.1", "127.1.2.3", "10.0.0.1", "10.255.255.254",
+                      "192.168.1.1", "172.16.0.1", "172.31.255.255",
+                      "100.64.0.1", "0.0.0.0", "224.0.0.1"]) {
+      assert.equal(adresseInterdite(ip), true, `${ip} devrait être refusée`);
+    }
+  });
+
+  test("les bornes de plages sont justes : ce qui est dehors passe", () => {
+    // 172.16/12 va de 172.16 à 172.31 : 172.15 et 172.32 sont publiques.
+    assert.equal(adresseInterdite("172.15.0.1"), false);
+    assert.equal(adresseInterdite("172.32.0.1"), false);
+    assert.equal(adresseInterdite("100.63.255.255"), false); // hors CGNAT
+    assert.equal(adresseInterdite("11.0.0.1"), false);
+    assert.equal(adresseInterdite("8.8.8.8"), false);
+    assert.equal(adresseInterdite("1.1.1.1"), false);
+  });
+
+  test("IPv6 : boucle locale, uniques locales, lien-local", () => {
+    for (const ip of ["::1", "::", "fc00::1", "fd12:3456::1", "fe80::1", "ff02::1"]) {
+      assert.equal(adresseInterdite(ip), true, `${ip} devrait être refusée`);
+    }
+    assert.equal(adresseInterdite("2001:4860:4860::8888"), false); // Google DNS
+  });
+
+  test("IPv4 mappée en IPv6, sous TOUTES ses écritures", () => {
+    // Le piège : new URL() CANONISE l'adresse. « [::ffff:169.254.169.254] »
+    // devient « [::ffff:a9fe:a9fe] ». Un contrôle écrit pour la seule notation
+    // pointée laissait donc repasser le serveur de métadonnées — trou constaté
+    // en essai de bout en bout, pas par ce test, qui ne l'aurait pas vu.
+    assert.equal(adresseInterdite("::ffff:127.0.0.1"), true);
+    assert.equal(adresseInterdite("::ffff:7f00:1"), true);        // forme canonisée
+    assert.equal(adresseInterdite("::ffff:169.254.169.254"), true);
+    assert.equal(adresseInterdite("::ffff:a9fe:a9fe"), true);     // forme canonisée
+    assert.equal(adresseInterdite("::ffff:8.8.8.8"), false);
+    assert.equal(adresseInterdite("::ffff:808:808"), false);      // 8.8.8.8 canonisé
+  });
+
+  test("ce que new URL() rend vraiment, c'est cela qu'on doit refuser", () => {
+    // On interroge le garde avec la chaîne que l'URL produit réellement.
+    for (const brut of ["http://[::ffff:127.0.0.1]/",
+                        "http://[::ffff:169.254.169.254]/",
+                        "http://0177.0.0.1/",        // octal
+                        "http://2130706433/"]) {     // entier
+      const hote = new URL(brut).hostname.replace(/^\[|\]$/g, "");
+      assert.equal(adresseInterdite(hote), true, `${brut} → ${hote} devrait être refusée`);
+    }
+  });
+
+  test("ce qui n'est pas une adresse IP est refusé par défaut", () => {
+    assert.equal(adresseInterdite("pas une ip"), true);
+    assert.equal(adresseInterdite(""), true);
+  });
+
+  test("seuls http et https sont acceptés", async () => {
+    for (const u of ["file:///etc/passwd", "ftp://x.fr/a", "gopher://x.fr",
+                     "data:text/html,<b>x", "javascript:alert(1)"]) {
+      const v = await urlAutorisee(u);
+      assert.equal(v.ok, false, `${u} devrait être refusée`);
+    }
+  });
+
+  test("une IP interne écrite en clair dans l'URL est refusée sans résolution", async () => {
+    const v = await urlAutorisee("http://169.254.169.254/computeMetadata/v1/");
+    assert.equal(v.ok, false);
+    assert.match((v as any).raison, /interne/);
+  });
+
+  test("une URL malformée est refusée proprement", async () => {
+    const v = await urlAutorisee("pas du tout une url");
+    assert.equal(v.ok, false);
   });
 });
