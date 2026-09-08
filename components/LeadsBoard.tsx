@@ -833,10 +833,12 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
               )}
 
               <div>
-                <label className="block text-sm font-medium mb-1">Email *</label>
+                {/* Pas obligatoire : un contact pris au téléphone ou sur un
+                    salon n'a souvent qu'un numéro. Le serveur ne l'exige pas
+                    non plus pour une saisie admin — voir leadJoignable. */}
+                <label className="block text-sm font-medium mb-1">Email</label>
                 <input
                   type="email"
-                  required
                   value={formData.email}
                   onChange={e => setFormData({...formData, email: e.target.value})}
                   className="input"
@@ -1106,7 +1108,9 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                   </div>
                   
                   <div className="grid md:grid-cols-2 gap-2 text-sm mb-3">
-                    <div>📧 {lead.email}</div>
+                    {/* Conditionnel comme les autres : sans cela, une fiche sans
+                        adresse affichait une enveloppe suivie de rien. */}
+                    {lead.email && <div>📧 {lead.email}</div>}
                     {lead.phone && <div>📞 {lead.phone}</div>}
                     {lead.address && <div>📍 {lead.address}</div>}
                     {lead.topic && <div>🏷️ {lead.topic}</div>}
@@ -1647,7 +1651,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                         <span className="font-medium text-sm truncate">{lead.firstName} {lead.lastName}</span>
                         {lead.priority && <span className={`pill text-[10px] font-semibold shrink-0 ${PRIORITY_META[lead.priority].cls}`}>{PRIORITY_META[lead.priority].label}</span>}
                       </div>
-                      <div className="text-xs opacity-70 truncate">{lead.email}</div>
+                      {lead.email && <div className="text-xs opacity-70 truncate">{lead.email}</div>}
                       {lead.phone && <div className="text-xs opacity-70">{lead.phone}</div>}
                       {lead.topic && <div className="text-xs opacity-75 truncate mt-1">🏷️ {lead.topic}</div>}
                       <div className="mt-2 flex items-center justify-between">

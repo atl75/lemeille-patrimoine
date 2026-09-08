@@ -23,6 +23,7 @@ import {
   periodeValide,
   etiquettePoint,
   plageCouverte,
+  type ClePeriode,
 } from "../lib/periodesAnalytics.ts";
 import {
   erreurCommentaire,
@@ -547,7 +548,7 @@ describe("commentairesLead — le journal de suivi d'un dossier", () => {
 describe("periodesAnalytics — semaine, mois, année", () => {
   test("les trois fenêtres existent et sont croissantes", () => {
     assert.deepEqual(Object.keys(PERIODES), ["semaine", "mois", "annee"]);
-    const jours = (k) => Number(PERIODES[k].debut.replace(/\D/g, ""));
+    const jours = (k: ClePeriode) => Number(PERIODES[k].debut.replace(/\D/g, ""));
     assert.ok(jours("semaine") < jours("mois"), "la semaine est plus courte que le mois");
     assert.ok(jours("mois") < jours("annee"), "le mois est plus court que l'année");
   });
