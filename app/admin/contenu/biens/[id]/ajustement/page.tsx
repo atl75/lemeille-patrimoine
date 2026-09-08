@@ -126,7 +126,46 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       });
       const d = await r.json();
       if (!r.ok) { toast(d?.error ?? "Lecture impossible."); return; }
+      appliquer(d);
+    } catch {
+      toast("Lecture impossible.");
+    } finally {
+      setAnalyse(false);
+    }
+  };
 
+  /**
+   * Lit l'IMPRESSION PDF d'une annonce, dans le navigateur.
+   *
+   * Le fichier ne part pas : pdf.js en tire le texte sur le poste, seul le
+   * texte est envoyé. C'est la parade aux portails qui refusent d'être lus par
+   * un serveur — imprimer la page est un geste que l'agent fait déjà.
+   */
+  const analyserPdf = async (fichier: File) => {
+    setAnalyse(true);
+    setMotExtraction(null);
+    try {
+      const { texteDepuisPdf } = await import("@/lib/pdfTexte");
+      const lu = await texteDepuisPdf(fichier);
+      const r = await fetch("/api/annonces/extraire", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texte: lu.texte, titre: lu.titre }),
+      });
+      const d = await r.json();
+      if (!r.ok) { toast(d?.error ?? "Lecture impossible."); return; }
+      appliquer(d, lu.pages > lu.pagesLues
+        ? `Lu depuis l'impression (${lu.pagesLues} premières pages sur ${lu.pages} : au-delà, ce sont les biens similaires).`
+        : undefined);
+    } catch {
+      toast("Ce PDF n'a pas pu être lu.");
+    } finally {
+      setAnalyse(false);
+    }
+  };
+
+  /** Pose les valeurs trouvées dans le formulaire, sans jamais ajouter la ligne. */
+  const appliquer = (d: any, motPrefixe?: string) => {
       const c = d.champs ?? {};
       const prov = d.provenance ?? {};
       const nouveaux: Record<string, string> = {};
@@ -157,13 +196,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           ? `${d.avertissement} Collez le texte de l'annonce : Ctrl+A puis Ctrl+C sur sa page.`
           : manque.length
             ? `Rempli depuis l'annonce. Il manque ${manque.join(" et ")} — sans ${manque.length > 1 ? "elles" : "elle"}, ce bien ne pèsera pas dans la médiane.`
-            : "Rempli depuis l'annonce — vérifiez le prix et la surface avant d'ajouter.",
+            : motPrefixe ?? "Rempli depuis l'annonce — vérifiez le prix et la surface avant d'ajouter.",
       );
-    } catch {
-      toast("Lecture impossible.");
-    } finally {
-      setAnalyse(false);
-    }
   };
 
   const ajouterSaisie = () => {
@@ -426,8 +460,25 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                 )}
               </div>
               <p className="text-[11px] opacity-55 mt-1">
-                Les grands portails refusent d&apos;être lus par un serveur : pour eux, collez le texte, cela fonctionne toujours.
+                Les grands portails refusent d&apos;être lus par un serveur. Pour eux : collez le texte, ou déposez l&apos;impression PDF de l&apos;annonce.
               </p>
+              <label className="inline-flex items-center gap-2 mt-2 text-xs cursor-pointer">
+                <span className="btn text-xs">Déposer une impression PDF</span>
+                <input
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  className="sr-only"
+                  data-testid="pdf-annonce"
+                  onChange={e => {
+                    const f = e.target.files?.[0];
+                    // On vide la sélection : redéposer le même fichier doit
+                    // relancer la lecture.
+                    e.target.value = "";
+                    if (f) analyserPdf(f);
+                  }}
+                />
+                <span className="opacity-60">Imprimez la page de l&apos;annonce en PDF depuis votre navigateur.</span>
+              </label>
             </div>
 
             <div className="grid md:grid-cols-3 gap-3">

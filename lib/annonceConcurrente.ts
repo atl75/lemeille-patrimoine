@@ -138,7 +138,11 @@ const PRIX_QUALIFIANT = ['prix', 'vendu', 'fai', 'hai', 'honoraires inclus', 'ne
  */
 export function prixDepuisTexte(texte: string): { valeur: number; extrait: string } | null {
   const t = texte.replace(/\s+/g, ' ');
-  const motif = /((?:\d[\d \u00A0\u202F\u2009\u2007\u200A.,]{2,})\d)\s*(?:€|EUR\b|euros?\b)/gi;
+  // Le regard en arrière n'est PAS un ornement. Après NFKC, « m² » devient
+  // « m2 », et sans lui « 56.59 m2 735000 € » se lit « 2 735000 € » : le 2 de
+  // l'unité se colle au prix, qui passe de 735 000 à 2 735 000 €. Constaté
+  // sur un vrai titre d'annonce SeLoger.
+  const motif = /(?<![A-Za-zÀ-ÿ\d.,])((?:\d[\d \u00A0\u202F\u2009\u2007\u200A.,]{2,})\d)\s*(?:€|EUR\b|euros?\b)/gi;
   const candidats: { valeur: number; score: number; extrait: string }[] = [];
 
   for (const m of t.matchAll(motif)) {
@@ -179,7 +183,7 @@ const SURFACE_QUALIFIANTE = ['habitable', 'carrez', 'surface', 'appartement', 'm
 
 export function surfaceDepuisTexte(texte: string): { valeur: number; extrait: string } | null {
   const t = texte.replace(/\s+/g, ' ');
-  const motif = /(\d{1,4}(?:[.,]\d{1,2})?)\s*(?:m²|m2|m\s?carr[ée]s?)(?![\w²])/gi;
+  const motif = /(?<![A-Za-zÀ-ÿ\d.,])(\d{1,4}(?:[.,]\d{1,2})?)\s*(?:m²|m2|m\s?carr[ée]s?)(?![\w²])/gi;
   const candidats: { valeur: number; score: number; extrait: string }[] = [];
 
   for (const m of t.matchAll(motif)) {
@@ -295,9 +299,30 @@ function titreDeduit(texte: string, champs: ChampsAnnonce): string | undefined {
 
   const bouts = [nature];
   if (champs.pieces) bouts.push(champs.pieces === 1 ? 'studio' : `${champs.pieces} pièces`);
-  if (champs.surface) bouts.push(`${champs.surface} m²`);
+  if (champs.surface) bouts.push(`${String(champs.surface).replace('.', ',')} m²`);
   if (champs.ville) bouts.push(`— ${champs.ville}`);
   return bouts.join(' ');
+}
+
+/**
+ * Deux lectures d'un même bien, la première faisant autorité.
+ *
+ * Sert aux impressions PDF : le titre du document est normalisé par le
+ * portail — « Appartement à vendre T3-F3 56.59 m² 735000 € Montmartre Paris
+ * (75018) » — alors que le corps d'une impression de quinze pages mélange la
+ * fiche et les « biens similaires », dont les prix fausseraient tout. Le titre
+ * dicte donc, le corps ne fait que combler.
+ */
+export function fusionner(prioritaire: Extraction, secours: Extraction): Extraction {
+  const champs: ChampsAnnonce = { ...secours.champs };
+  const provenance: Provenance = { ...secours.provenance };
+  for (const cle of Object.keys(prioritaire.champs) as (keyof ChampsAnnonce)[]) {
+    const v = prioritaire.champs[cle];
+    if (v == null || v === '') continue;
+    (champs as any)[cle] = v;
+    provenance[cle] = prioritaire.provenance[cle] ?? provenance[cle];
+  }
+  return { champs, provenance };
 }
 
 /* ------------------------------------------------------------------ */

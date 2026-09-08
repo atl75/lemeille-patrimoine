@@ -12,7 +12,7 @@ import { matchesSector, sectorSlugFor, SECTORS, norm, locatifDe, codePostalDe } 
 import cloudinaryLoader from "../lib/cloudinaryLoader.js";
 import { adresseInterdite, urlAutorisee } from "../lib/urlSortante.ts";
 import {
-  nombreFr, sourceDepuisUrl, prixDepuisTexte, surfaceDepuisTexte,
+  nombreFr, sourceDepuisUrl, prixDepuisTexte, surfaceDepuisTexte, fusionner,
   piecesDepuisTexte, villeDepuisTexte, extraireDepuisTexte, extraireDepuisHtml,
 } from "../lib/annonceConcurrente.ts";
 import { needsFollowUp, formatDate } from "../lib/typesLead.ts";
@@ -809,6 +809,32 @@ describe("annonceConcurrente — lire une annonce sans se faire piéger", () => 
     assert.equal(champs.source, "SeLoger");
     assert.equal(champs.lien, "https://www.seloger.com/annonces/1.htm");
     assert.equal(provenance.prix, "balisage schema.org");
+  });
+
+  test("titre d'impression SeLoger : le « 2 » de m² ne se colle pas au prix", () => {
+    // Cas réel. Après NFKC « m² » devient « m2 » ; sans regard en arrière,
+    // « 56.59 m2 735000 € » se lisait « 2 735000 € » — un prix multiplié par
+    // 3,7 dans un document remis au vendeur.
+    const titre = "Appartement à vendre T3-F3 56.59 m² 735000 € Montmartre Paris (75018)";
+    const { champs } = extraireDepuisTexte(titre);
+    assert.equal(champs.prix, 735000);
+    assert.equal(champs.surface, 56.59);
+    assert.equal(champs.pieces, 3);
+    assert.equal(champs.ville, "Paris");
+  });
+
+  test("impression PDF : le titre l'emporte sur les « biens similaires »", () => {
+    // Une impression d'annonce fait quinze pages et embarque des biens
+    // voisins, souvent plus grands. Le corps seul retenait leur surface.
+    const titre = "Appartement à vendre T3-F3 56.59 m² 735000 € Montmartre Paris (75018)";
+    const corps = `Appartement 3 pieces 56,59 m2 Montmartre
+      Prix 735 000 EUR honoraires inclus
+      Biens similaires
+      Appartement 4 pieces 88 m2 - 1 190 000 EUR`;
+    assert.equal(extraireDepuisTexte(corps).champs.surface, 88, "le corps seul se trompe");
+    const { champs } = fusionner(extraireDepuisTexte(titre), extraireDepuisTexte(corps));
+    assert.equal(champs.surface, 56.59, "le titre rétablit la bonne surface");
+    assert.equal(champs.prix, 735000);
   });
 
   test("HTML : le prix d'une PAGE DE RÉSULTATS n'est pas celui d'un bien", () => {

@@ -3,7 +3,7 @@ import { isAdmin } from '@/lib/adminGuard';
 import { rateLimit, getClientIp } from '@/lib/rateLimit';
 import { recupererPage } from '@/lib/urlSortante';
 import {
-  extraireDepuisHtml, extraireDepuisTexte, sourceDepuisUrl,
+  extraireDepuisHtml, extraireDepuisTexte, fusionner, sourceDepuisUrl,
 } from '@/lib/annonceConcurrente';
 
 /**
@@ -45,16 +45,23 @@ export async function POST(req: Request) {
 
   const texte = typeof corps?.texte === 'string' ? corps.texte.slice(0, 200_000) : '';
   const url = typeof corps?.url === 'string' ? corps.url.trim().slice(0, 2000) : '';
+  // `titre` vient d'une impression PDF : c'est le <title> normalisé du portail.
+  const titre = typeof corps?.titre === 'string' ? corps.titre.trim().slice(0, 300) : '';
 
   // Le texte collé prime : s'il est là, c'est lui la source de vérité.
-  if (texte.trim().length > 30) {
-    const { champs, provenance } = extraireDepuisTexte(texte);
+  if (texte.trim().length > 30 || titre) {
+    const parCorps = extraireDepuisTexte(texte);
+    // Le titre d'impression fait autorité sur le corps, qui mélange la fiche
+    // et les biens similaires.
+    const { champs, provenance } = titre
+      ? fusionner(extraireDepuisTexte(titre), parCorps)
+      : parCorps;
     if (url) {
       champs.lien = url;
       const src = sourceDepuisUrl(url);
       if (src) { champs.source = src; provenance.source = 'domaine du lien'; }
     }
-    return NextResponse.json({ champs, provenance, origine: 'texte' });
+    return NextResponse.json({ champs, provenance, origine: titre ? 'pdf' : 'texte' });
   }
 
   if (!url) {
