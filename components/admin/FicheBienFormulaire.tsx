@@ -824,6 +824,44 @@ export default function FicheBienFormulaire({
               </div>
             </div>
 
+        {/* Ce que le PUBLIC voit du bien. Remonté au-dessus du prix : ce sont
+            les trois réglages qu'on vérifie en premier avant de publier, et
+            ils vivaient tout en bas, après quatre tiroirs. */}
+        <div className="mb-3 p-2 bg-gray-50 rounded">
+          <div className="flex gap-4 flex-wrap">
+            <label className="flex items-center gap-1.5 text-xs">
+              <input
+                type="checkbox"
+                checked={editing.featured || false}
+                onChange={e => updateField('featured', e.target.checked)}
+                data-testid="checkbox-featured"
+                className="w-3.5 h-3.5"
+              />
+              <span>À la une</span>
+            </label>
+            <label className="flex items-center gap-1.5 text-xs">
+              <input
+                type="checkbox"
+                checked={editing.visible !== false}
+                onChange={e => updateField('visible', e.target.checked)}
+                data-testid="checkbox-visible"
+                className="w-3.5 h-3.5"
+              />
+              <span>Visible</span>
+            </label>
+            <label className="flex items-center gap-1.5 text-xs">
+              <input
+                type="checkbox"
+                checked={editing.entreeDeGamme || false}
+                onChange={e => updateField('entreeDeGamme', e.target.checked)}
+                data-testid="checkbox-entree-gamme"
+                className="w-3.5 h-3.5"
+              />
+              <span>Bien d&apos;investissement</span>
+            </label>
+          </div>
+        </div>
+
         {/* Prix, finances et mandat — voir components/admin/SectionFinances.
             En tiroir, comme les photos : le bloc déroule le mode de calcul, le
             net vendeur, la commission et la génération de mandat, alors qu'on
@@ -977,55 +1015,6 @@ export default function FicheBienFormulaire({
                 onChange={features => updateField('features', features)}
               />
             </CollapsibleSection>
-
-            {/* Statut + Options */}
-            <div className="mb-3 p-2 bg-gray-50 rounded">
-              <div className="flex gap-4 mb-2">
-                <label className="flex items-center gap-1.5 text-xs">
-                  <input
-                    type="checkbox"
-                    checked={editing.featured || false}
-                    onChange={e => updateField('featured', e.target.checked)}
-                    data-testid="checkbox-featured"
-                    className="w-3.5 h-3.5"
-                  />
-                  <span>À la une</span>
-                </label>
-                <label className="flex items-center gap-1.5 text-xs">
-                  <input
-                    type="checkbox"
-                    checked={editing.visible !== false}
-                    onChange={e => updateField('visible', e.target.checked)}
-                    data-testid="checkbox-visible"
-                    className="w-3.5 h-3.5"
-                  />
-                  <span>Visible</span>
-                </label>
-                <label className="flex items-center gap-1.5 text-xs">
-                  <input
-                    type="checkbox"
-                    checked={editing.entreeDeGamme || false}
-                    onChange={e => updateField('entreeDeGamme', e.target.checked)}
-                    data-testid="checkbox-entree-gamme"
-                    className="w-3.5 h-3.5"
-                  />
-                  <span>Bien d&apos;investissement</span>
-                </label>
-              </div>
-
-              {editing.status === 'SOLD' && (
-                <div className="max-w-xs">
-                  <label className="block text-xs mb-1">Date de vente</label>
-                  <input
-                    type="date"
-                    value={editing.soldDate || ''}
-                    onChange={e => updateField('soldDate', e.target.value)}
-                    className="w-full px-2 py-1 text-xs border rounded"
-                    data-testid="input-sold-date"
-                  />
-                </div>
-              )}
-            </div>
 
             {/* Photos, en tiroir : la grille de vignettes occupait toute la
                 hauteur de l'écran et repoussait le reste du formulaire, alors
