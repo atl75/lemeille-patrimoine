@@ -1,6 +1,13 @@
 "use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useToast } from "@/components/Toast";
+import { useConfirm } from "@/components/ConfirmDialog";
 import type { Bien } from "@/lib/typesBien";
+
+// Même visionneuse que le site public : chargée au clic, pas avant.
+const Lightbox = dynamic(() => import("@/components/Lightbox"), { ssr: false });
 
 /**
  * Aperçu en lecture seule d'un bien, côté admin.
@@ -22,6 +29,54 @@ export default function FicheBienApercu({
   onClose?: () => void;
 }) {
   const toast = useToast();
+  const { confirm, dialog } = useConfirm();
+
+  // Agrandissement des photos. La fiche en lecture les affichait en vignettes
+  // de 128 px sans aucun moyen de les voir en grand : pour juger une photo
+  // avant de publier, c'était trop peu.
+  const [zoom, setZoom] = useState<number | null>(null);
+  const photos = Array.isArray(bien.images) ? bien.images : [];
+
+  // État de la connexion Gmail, requise pour déposer le brouillon notaire.
+  const [gmail, setGmail] = useState<{ connected: boolean; email?: string } | null>(null);
+  useEffect(() => {
+    fetch("/api/google/status")
+      .then((r) => r.json())
+      .then(setGmail)
+      .catch(() => setGmail({ connected: false }));
+  }, []);
+
+  const [envoiNotaire, setEnvoiNotaire] = useState(false);
+
+  // Reprend à l'identique le comportement du bouton de la liste : un
+  // BROUILLON est déposé dans Gmail, jamais un envoi. Arthur relit et envoie
+  // lui-même — un dossier notaire ne part pas sans relecture.
+  const envoyerAuNotaire = async () => {
+    if (!gmail?.connected) {
+      if (await confirm("Gmail n'est pas connecté. Se connecter maintenant pour déposer le brouillon ?")) {
+        window.location.href = `/api/google/oauth/start?return=/admin/contenu/biens/${bien.id}`;
+      }
+      return;
+    }
+    setEnvoiNotaire(true);
+    try {
+      const res = await fetch(`/api/properties/${bien.id}/notaire-draft`, { method: "POST" });
+      const d = await res.json();
+      if (res.ok) {
+        toast(
+          `✅ Brouillon créé dans Gmail (${gmail.email})\n` +
+          `Destinataires : ${(d.recipients || []).join(", ")}\n` +
+          `Pièces jointes : ${d.attachments}\n\n` +
+          `Relisez-le dans vos Brouillons avant de l'envoyer.`
+        );
+      } else {
+        toast(d.error || "Erreur lors de la création du brouillon.");
+      }
+    } catch {
+      toast("Erreur réseau.");
+    }
+    setEnvoiNotaire(false);
+  };
 
 const openDocument = (url: string) => {
     if (url.startsWith('data:')) {
@@ -57,15 +112,36 @@ const openDocument = (url: string) => {
 
   return (
     <div className="card p-6 mb-6" data-testid="view-property">
-            <div className="flex items-center justify-between mb-6">
+      {dialog}
+            <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
               <h2 className="text-2xl font-semibold">Fiche complète - {bien.title}</h2>
-              <button
-                onClick={() => onClose?.()}
-                className="px-4 py-2 border rounded hover:bg-gray-50"
-                data-testid="button-close-view"
-              >
-                Fermer
-              </button>
+              <div className="flex gap-2 flex-wrap">
+                <Link
+                  href={`/admin/contenu/biens/${bien.id}/modifier`}
+                  className="px-4 py-2 border border-[#B89C6D] text-[#B89C6D] rounded hover:bg-[#B89C6D] hover:text-white transition-colors"
+                  data-testid="button-modifier-bien"
+                >
+                  Modifier
+                </Link>
+                <button
+                  onClick={envoyerAuNotaire}
+                  disabled={envoiNotaire}
+                  title="Dépose un BROUILLON dans Gmail, avec les documents du bien en pièces jointes. Rien n'est envoyé : vous relisez et vous envoyez."
+                  className="px-4 py-2 border border-[#1F3B2C] text-[#1F3B2C] rounded hover:bg-[#1F3B2C] hover:text-white disabled:opacity-50 transition-colors"
+                  data-testid="button-dossier-notaire"
+                >
+                  {envoiNotaire ? "Préparation…" : "Dossier au notaire"}
+                </button>
+                {onClose && (
+                  <button
+                    onClick={() => onClose()}
+                    className="px-4 py-2 border rounded hover:bg-gray-50"
+                    data-testid="button-close-view"
+                  >
+                    Fermer
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
@@ -208,15 +284,26 @@ const openDocument = (url: string) => {
                 {/* Images */}
                 {bien.images && bien.images.length > 0 && (
                   <div className="p-4 bg-gray-50 rounded-lg">
-                    <h3 className="font-semibold text-lg mb-3">Images ({bien.images.length})</h3>
+                    <h3 className="font-semibold text-lg mb-3">
+                      Images ({bien.images.length})
+                      <span className="ml-2 text-xs font-normal opacity-60">cliquez pour agrandir</span>
+                    </h3>
                     <div className="grid grid-cols-2 gap-3">
                       {bien.images.map((img, idx) => (
                         <div key={idx} className="relative group">
+                          <button
+                            type="button"
+                            onClick={() => setZoom(idx)}
+                            className="block w-full rounded-lg overflow-hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#B89C6D]"
+                            aria-label={`Agrandir l'image ${idx + 1} sur ${bien.images!.length}`}
+                            data-testid={`button-zoom-image-${idx}`}
+                          >
                           <img
                             src={img}
                             alt={`Image ${idx + 1}`}
-                            className="w-full h-32 object-cover rounded-lg border"
+                            className="w-full h-32 object-cover rounded-lg border cursor-zoom-in transition-opacity hover:opacity-85"
                           />
+                          </button>
                           {idx === 0 && (
                             <span className="absolute top-2 left-2 bg-[#B89C6D] text-white text-xs px-2 py-1 rounded">
                               Principale
@@ -304,6 +391,19 @@ const openDocument = (url: string) => {
                 </div>
               </div>
             </div>
+
+      {/* Visionneuse : la même que celle du site public, avec sa navigation au
+          clavier et son aperçu immédiat. Montée seulement au clic. */}
+      {zoom !== null && photos.length > 0 && (
+        <Lightbox
+          images={photos}
+          currentIndex={zoom}
+          title={bien.title}
+          onClose={() => setZoom(null)}
+          onNext={() => setZoom((i) => ((i ?? 0) + 1) % photos.length)}
+          onPrev={() => setZoom((i) => ((i ?? 0) - 1 + photos.length) % photos.length)}
+        />
+      )}
           </div>
   );
 }

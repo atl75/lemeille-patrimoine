@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { cldImg } from "@/lib/cldImg";
 import { largeurVisionneuse, LARGEUR_APERCU } from "@/lib/largeurVisionneuse";
@@ -53,6 +53,7 @@ export default function Lightbox({
   const apercuDe = useCallback((i: number) => cldImg(images[i], LARGEUR_APERCU), [images]);
 
   const [chargement, setChargement] = useState(true);
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
   // Précharge les voisines à la MÊME largeur que l'affichage. Deux de chaque
   // côté : on parcourt une galerie dans les deux sens.
@@ -68,9 +69,16 @@ export default function Lightbox({
     }
   }, [currentIndex, images, urlDe]);
 
-  // Une image déjà en cache s'affiche sans transition : on ne montre
-  // l'indicateur que si le chargement dure réellement.
-  useEffect(() => { setChargement(true); }, [currentIndex]);
+  useEffect(() => {
+    setChargement(true);
+    // Une image DÉJÀ EN CACHE est complète avant que React n'attache onLoad :
+    // l'événement ne tire jamais, et la pleine définition restait invisible
+    // sous l'aperçu flou — indéfiniment. Constaté le 8 septembre en admin, sur
+    // une photo rouverte. On interroge donc l'élément plutôt que d'attendre un
+    // événement qui ne viendra pas.
+    const el = imgRef.current;
+    if (el?.complete && el.naturalWidth > 0) setChargement(false);
+  }, [currentIndex]);
 
   return (
     <div
@@ -137,6 +145,7 @@ export default function Lightbox({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           key={`plein-${currentIndex}`}
+          ref={imgRef}
           src={urlDe(currentIndex)}
           alt={title ? `${title} - Image ${currentIndex + 1}` : `Image ${currentIndex + 1}`}
           decoding="async"
