@@ -123,6 +123,14 @@ const openDocument = (url: string) => {
                 >
                   Modifier
                 </Link>
+                <Link
+                  href={`/admin/contenu/biens/${bien.id}/ajustement`}
+                  title="Comparer le prix aux biens concurrents, pour l'entretien avec le vendeur"
+                  className="px-4 py-2 border border-[#B89C6D] text-[#B89C6D] rounded hover:bg-[#B89C6D] hover:text-white transition-colors"
+                  data-testid="button-ajustement-prix"
+                >
+                  Argumentaire de prix
+                </Link>
                 <button
                   onClick={envoyerAuNotaire}
                   disabled={envoiNotaire}

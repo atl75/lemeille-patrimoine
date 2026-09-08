@@ -19,6 +19,18 @@ import {
 } from "../lib/validationBien.ts";
 import { leadJoignable, tronqueLead } from "../lib/validationLead.ts";
 import {
+  prixM2,
+  m2Retenu,
+  mediane,
+  statistiques,
+  positionner,
+  fourchetteConseillee,
+  impactNetVendeur,
+  fiabilite,
+  comparablesDuPortefeuille,
+  type Comparable,
+} from "../lib/ajustementPrix.ts";
+import {
   PERIODES,
   periodeValide,
   etiquettePoint,
@@ -579,5 +591,92 @@ describe("periodesAnalytics — semaine, mois, année", () => {
     assert.equal(plageCouverte(pts), "04/09 → 08/09");
     assert.equal(plageCouverte([{ date: "20260904" }]), "04/09", "un seul point : pas de flèche");
     assert.equal(plageCouverte([]), null);
+  });
+});
+
+describe("ajustementPrix — situer un bien face à ses concurrents", () => {
+  const c = (id: string, prix: number, surface: number, extra: Partial<Comparable> = {}): Comparable =>
+    ({ id, titre: id, prix, surface, ...extra });
+
+  test("prix au m² : refuse ce qui n'a pas de sens", () => {
+    assert.equal(prixM2(300000, 100), 3000);
+    assert.equal(prixM2(300000, 0), null);
+    assert.equal(prixM2(0, 100), null);
+    assert.equal(prixM2(null, 100), null);
+    assert.equal(prixM2(300000, undefined), null);
+  });
+
+  test("le prix de VENTE prime sur le prix affiché", () => {
+    assert.equal(m2Retenu(c("a", 300000, 100)), 3000);
+    assert.equal(m2Retenu(c("b", 300000, 100, { prixVente: 270000 })), 2700);
+  });
+
+  test("médiane, y compris sur un effectif pair", () => {
+    assert.equal(mediane([3, 1, 2]), 2);
+    assert.equal(mediane([4, 1, 2, 3]), 2.5);
+    assert.equal(mediane([]), null);
+  });
+
+  test("l'écart au marché est chiffré en pourcentage ET en euros", () => {
+    const bien = { price: 400000, surface: 100 }; // 4 000 €/m²
+    const comps = [c("a", 300000, 100), c("b", 320000, 100), c("c", 340000, 100)]; // médiane 3 200
+    const p = positionner(bien, comps)!;
+    assert.equal(p.prixM2Bien, 4000);
+    assert.equal(p.stats.medianeM2, 3200);
+    assert.equal(Math.round(p.ecartPourcent), 25);
+    assert.equal(p.ecartEuros, 80000);
+    assert.equal(p.prixAligne, 320000);
+    assert.equal(p.moinsChers, 3, "les trois concurrents sont moins chers au m²");
+  });
+
+  test("sans comparable exploitable, on n'affiche rien plutôt qu'un chiffre creux", () => {
+    assert.equal(positionner({ price: 400000, surface: 100 }, []), null);
+    assert.equal(positionner({ price: 400000, surface: 0 }, [c("a", 300000, 100)]), null);
+    assert.equal(statistiques([c("a", 0, 0)]), null);
+  });
+
+  test("la fourchette va du premier quartile à la médiane", () => {
+    const comps = [c("a", 200000, 100), c("b", 300000, 100), c("c", 400000, 100), c("d", 500000, 100)];
+    const f = fourchetteConseillee({ surface: 100 }, comps)!;
+    assert.equal(f.haut, 350000, "médiane des 4 : 3 500 €/m²");
+    assert.equal(f.bas, 250000, "premier quartile : 2 500 €/m²");
+    assert.ok(f.bas < f.haut);
+  });
+
+  test("le net vendeur baisse du montant de la baisse, honoraires préservés", () => {
+    const i = impactNetVendeur({ price: 300000, netSellerAmount: 285000 }, 280000)!;
+    assert.equal(i.honoraires, 15000);
+    assert.equal(i.netActuel, 285000);
+    assert.equal(i.netNouveau, 265000);
+    assert.equal(i.perte, 20000, "20 000 € de baisse affichée = 20 000 € de net en moins");
+  });
+
+  test("sans net vendeur renseigné, le prix affiché en tient lieu", () => {
+    const i = impactNetVendeur({ price: 300000 }, 280000)!;
+    assert.equal(i.honoraires, 0);
+    assert.equal(i.netNouveau, 280000);
+  });
+
+  test("la fiabilité suit l'effectif", () => {
+    const stats = (n: number) => statistiques(Array.from({ length: n }, (_, i) => c(String(i), 300000, 100)));
+    assert.equal(fiabilite(stats(2)), "faible");
+    assert.equal(fiabilite(stats(4)), "moyenne");
+    assert.equal(fiabilite(stats(8)), "bonne");
+    assert.equal(fiabilite(null), null);
+  });
+
+  test("les comparables du portefeuille : même type, même ville, surface proche", () => {
+    const tous = [
+      { id: "moi", type: "APPARTEMENT", city: "Rouen", surface: 100, price: 400000 },
+      { id: "ok", type: "APPARTEMENT", city: "Rouen", surface: 90, price: 300000 },
+      { id: "autre-ville", type: "APPARTEMENT", city: "Paris", surface: 100, price: 900000 },
+      { id: "autre-type", type: "MAISON", city: "Rouen", surface: 100, price: 350000 },
+      { id: "trop-petit", type: "APPARTEMENT", city: "Rouen", surface: 40, price: 150000 },
+      { id: "vendu", type: "APPARTEMENT", city: "rouen", surface: 105, price: 320000, status: "SOLD" },
+    ];
+    const cs = comparablesDuPortefeuille(tous[0], tous);
+    assert.deepEqual(cs.map(x => x.id).sort(), ["ok", "vendu"]);
+    assert.equal(cs.find(x => x.id === "vendu")!.statut, "VENDU", "casse de la ville ignorée");
+    assert.equal(cs.find(x => x.id === "ok")!.statut, "EN_VENTE");
   });
 });

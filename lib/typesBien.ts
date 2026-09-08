@@ -98,6 +98,14 @@ export type Bien = {
   propertyRules?: string;
   agMinutes?: string[];
   chargesStatement?: string;
+  // Argumentaire de baisse de prix, préparé pour l'entretien vendeur
+  ajustementPrix?: {
+    comparables?: import('./ajustementPrix').Comparable[];
+    prixCible?: number;
+    dateMiseEnVente?: string;
+    commentaire?: string;
+    majAt?: string;
+  };
   // Plan et vidéo
   floorPlan?: string;
   floorPlans?: string[];
