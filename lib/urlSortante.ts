@@ -8,14 +8,19 @@
  * d'identité de service — et le service tourne sans connecteur VPC, donc cette
  * adresse est joignable depuis l'instance.
  *
- * CE QUE ÇA NE COUVRE PAS. La réécriture DNS (le nom résout public à la
- * vérification puis privé au moment du fetch) resterait possible : s'en
- * prémunir demanderait un client HTTP maison. Le risque est assumé, la route
- * étant réservée à l'administrateur authentifié.
+ * LA RÉÉCRITURE DNS EST FERMÉE, ELLE AUSSI. Le schéma naïf « je résous, je
+ * valide, puis je fetch » laisse une fenêtre : le client HTTP refait sa propre
+ * résolution, qu'un domaine hostile peut détourner avec un TTL nul. On ne
+ * colmate pas cette fenêtre, on la supprime — l'adresse validée est ÉPINGLÉE
+ * sur la socket via l'option `lookup` de node:https. Vérifié : en épinglant
+ * l'adresse d'un autre domaine, la connexion part bien vers elle et la
+ * poignée de main TLS échoue, preuve que l'option est honorée.
  */
 
 import { lookup } from 'dns/promises';
 import { isIP } from 'net';
+import { request as requeteHttp } from 'http';
+import { request as requeteHttps } from 'https';
 
 /** Plages IPv4 interdites, en notation CIDR. */
 const IPV4_INTERDIT: [string, number][] = [
@@ -116,7 +121,7 @@ export function adresseInterdite(ip: string): boolean {
   return true; // ni IPv4 ni IPv6 : on refuse par défaut
 }
 
-export type Verdict = { ok: true; url: URL } | { ok: false; raison: string };
+export type Verdict = { ok: true; url: URL; ip: string } | { ok: false; raison: string };
 
 /**
  * L'URL est-elle récupérable sans danger ? Vérifie le schéma, puis résout le
@@ -140,7 +145,7 @@ export async function urlAutorisee(brut: string): Promise<Verdict> {
   if (isIP(hote)) {
     return adresseInterdite(hote)
       ? { ok: false, raison: 'Cette adresse est interne au réseau.' }
-      : { ok: true, url };
+      : { ok: true, url, ip: hote };
   }
 
   let adresses: { address: string }[];
@@ -157,94 +162,133 @@ export async function urlAutorisee(brut: string): Promise<Verdict> {
     return { ok: false, raison: 'Ce domaine pointe vers une adresse interne.' };
   }
 
-  return { ok: true, url };
+  // On rend l'adresse retenue : c'est ELLE qu'on épinglera sur la socket.
+  return { ok: true, url, ip: adresses[0].address };
 }
 
 const TAILLE_MAX = 2 * 1024 * 1024; // 2 Mio : l'instance n'a qu'1 Gio
 const DELAI_MS = 8000;              // au-delà, l'utilisateur a déjà collé son texte
 
 /**
+ * Une requête vers une adresse ÉPINGLÉE.
+ *
+ * C'est le cœur de la protection contre la réécriture DNS. Le schéma naïf
+ * « je résous, je valide, puis je fetch(url) » laisse une fenêtre : le client
+ * HTTP refait sa propre résolution, et un domaine hostile peut alors répondre
+ * 127.0.0.1 avec un TTL nul. On ne colmate pas cette fenêtre en revalidant
+ * davantage — on la supprime, en imposant l'adresse déjà validée par l'option
+ * `lookup`. fetch() ne le permet pas ; node:http et node:https, si.
+ *
+ * Le nom d'hôte reste celui de l'URL : l'en-tête Host et le certificat TLS
+ * sont donc vérifiés normalement.
+ */
+function requeteEpinglee(url: URL, ip: string, delaiMs: number): Promise<{
+  status: number; emplacement: string | null; type: string; corps: string;
+}> {
+  return new Promise((resolve, reject) => {
+    const client = url.protocol === 'https:' ? requeteHttps : requeteHttp;
+    let fini = false;
+    const terminer = (v: any) => { if (!fini) { fini = true; resolve(v); } };
+
+    const req = client({
+      protocol: url.protocol,
+      hostname: url.hostname,
+      port: url.port || (url.protocol === 'https:' ? 443 : 80),
+      path: url.pathname + url.search,
+      method: 'GET',
+      timeout: delaiMs,
+      headers: {
+        // On s'annonce pour ce qu'on est : ni usurpation de navigateur, ni
+        // contournement d'une protection anti-robot.
+        'User-Agent': 'LemeillePatrimoine/1.0 (+https://lemeillepatrimoine.com)',
+        Accept: 'text/html,application/xhtml+xml',
+        'Accept-Language': 'fr-FR,fr;q=0.9',
+        'Accept-Encoding': 'identity',
+      },
+      // Depuis Node 18.18, autoSelectFamily impose le contrat `all` : un
+      // rappel qui rend une adresse nue casse la connexion.
+      lookup: (_hote: string, options: any, rappel: any) => {
+        const famille = isIP(ip) || 4;
+        if (options && options.all) rappel(null, [{ address: ip, family: famille }]);
+        else rappel(null, ip, famille);
+      },
+    } as any, (res: any) => {
+      const morceaux: Buffer[] = [];
+      let taille = 0;
+      res.on('data', (c: Buffer) => {
+        taille += c.length;
+        // Lecture bornée : une page de 500 Mo ne doit pas emporter l'instance.
+        if (taille > TAILLE_MAX) { res.destroy(); return; }
+        morceaux.push(c);
+      });
+      const rendre = () => terminer({
+        status: res.statusCode ?? 0,
+        emplacement: res.headers?.location ?? null,
+        type: String(res.headers?.['content-type'] ?? ''),
+        corps: Buffer.concat(morceaux).toString('utf-8'),
+      });
+      res.on('end', rendre);
+      res.on('close', rendre);
+    });
+
+    req.on('timeout', () => req.destroy(new Error('TIMEOUT')));
+    req.on('error', (e: any) => { if (!fini) { fini = true; reject(e); } });
+    req.end();
+  });
+}
+
+/**
  * Récupère une page en refusant les redirections vers l'intérieur.
  *
- * Les redirections sont suivies À LA MAIN : `redirect: 'follow'` laisserait une
- * URL publique renvoyer vers 169.254.169.254 sans que le contrôle initial n'y
- * puisse rien. Chaque saut est donc revalidé.
+ * Les redirections sont suivies À LA MAIN : le comportement par défaut de Node
+ * en suit jusqu'à vingt sans consulter personne, et une URL publique pourrait
+ * ainsi renvoyer vers 169.254.169.254. Chaque saut est donc revalidé, puis
+ * épinglé.
  */
 export async function recupererPage(
   depart: string,
   sautsMax = 4,
 ): Promise<{ ok: true; html: string; url: string } | { ok: false; raison: string }> {
   let courante = depart;
+  const echeance = Date.now() + DELAI_MS;
 
   for (let saut = 0; saut <= sautsMax; saut++) {
     const verdict = await urlAutorisee(courante);
     if (!verdict.ok) return { ok: false, raison: verdict.raison };
 
-    let r: Response;
+    const restant = echeance - Date.now();
+    if (restant <= 0) return { ok: false, raison: "Le site n'a pas répondu à temps." };
+
+    let r: { status: number; emplacement: string | null; type: string; corps: string };
     try {
-      r = await fetch(verdict.url, {
-        redirect: 'manual',
-        signal: AbortSignal.timeout(DELAI_MS),
-        headers: {
-          // On s'annonce pour ce qu'on est : ni usurpation de navigateur, ni
-          // contournement d'une protection anti-robot.
-          'User-Agent': 'LemeillePatrimoine/1.0 (+https://lemeillepatrimoine.com)',
-          Accept: 'text/html,application/xhtml+xml',
-          'Accept-Language': 'fr-FR,fr;q=0.9',
-        },
-      });
+      r = await requeteEpinglee(verdict.url, verdict.ip, restant);
     } catch (e: any) {
       return {
         ok: false,
-        raison: e?.name === 'TimeoutError'
+        raison: /TIMEOUT/.test(String(e?.message))
           ? "Le site n'a pas répondu à temps."
-          : "Impossible de joindre ce site.",
+          : 'Impossible de joindre ce site.',
       };
     }
 
     if (r.status >= 300 && r.status < 400) {
-      const suite = r.headers.get('location');
-      if (!suite) return { ok: false, raison: 'Redirection sans destination.' };
-      courante = new URL(suite, verdict.url).toString();
+      if (!r.emplacement) return { ok: false, raison: 'Redirection sans destination.' };
+      courante = new URL(r.emplacement, verdict.url).toString();
       continue;
     }
 
-    if (r.status === 403 || r.status === 401 || r.status === 429) {
+    if (r.status === 401 || r.status === 403 || r.status === 429) {
       return { ok: false, raison: 'BLOQUE' };
     }
-    if (!r.ok) return { ok: false, raison: `Le site a répondu ${r.status}.` };
-
-    const type = r.headers.get('content-type') ?? '';
-    if (!/text\/html|application\/xhtml/i.test(type)) {
-      return { ok: false, raison: "Ce lien ne pointe pas vers une page web." };
+    if (r.status < 200 || r.status >= 300) {
+      return { ok: false, raison: `Le site a répondu ${r.status}.` };
+    }
+    if (!/text\/html|application\/xhtml/i.test(r.type)) {
+      return { ok: false, raison: 'Ce lien ne pointe pas vers une page web.' };
     }
 
-    // Lecture bornée : une page de 500 Mo ne doit pas emporter l'instance.
-    const html = await lireBorne(r);
-    return { ok: true, html, url: verdict.url.toString() };
+    return { ok: true, html: r.corps, url: verdict.url.toString() };
   }
 
   return { ok: false, raison: 'Trop de redirections.' };
-}
-
-async function lireBorne(r: Response): Promise<string> {
-  const flux = r.body;
-  if (!flux) return '';
-  const lecteur = flux.getReader();
-  const morceaux: Uint8Array[] = [];
-  let total = 0;
-  while (total < TAILLE_MAX) {
-    const { done, value } = await lecteur.read();
-    if (done) break;
-    morceaux.push(value);
-    total += value.length;
-  }
-  await lecteur.cancel().catch(() => {});
-  return new TextDecoder('utf-8').decode(
-    morceaux.reduce((acc, m) => {
-      const sortie = new Uint8Array(acc.length + m.length);
-      sortie.set(acc); sortie.set(m, acc.length);
-      return sortie;
-    }, new Uint8Array()),
-  ).slice(0, TAILLE_MAX);
 }

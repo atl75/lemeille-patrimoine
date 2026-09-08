@@ -251,7 +251,12 @@ export function villeDepuisTexte(texte: string): string | null {
  * résidentielle). Le copier-coller, lui, réussit partout et ne dépend
  * d'aucune refonte de site.
  */
-export function extraireDepuisTexte(texte: string): Extraction {
+export function extraireDepuisTexte(brut: string): Extraction {
+  // NFKC d'abord : une seule ligne qui écrase U+00A0, U+202F, U+2009, U+2007,
+  // U+205F et U+3000 en espace simple, ET convertit « m² » comme « ㎡ » en
+  // « m2 ». Plus large qu'une liste de points de code écrite à la main, qui
+  // oublie toujours une variante.
+  const texte = brut.normalize('NFKC');
   const champs: ChampsAnnonce = {};
   const provenance: Provenance = {};
 
@@ -331,7 +336,19 @@ export function extraireDepuisHtml(html: string, url?: string): Extraction {
 
   const noeuds = noeudsJsonLd(html, $);
   const bien = noeuds.find(n => /RealEstateListing|Residence|Apartment|House|Accommodation/i.test(typeDe(n)));
-  const offre = noeuds.find(n => n?.offers || n?.price);
+  // Un « AggregateOffer » décrit une PAGE DE RÉSULTATS, pas un bien : mesuré
+  // chez ParuVendu et sur les listes SeLoger, il annonce lowPrice 900 et
+  // highPrice 75 000 000. Le prendre pour un prix déplacerait la médiane de
+  // l'argumentaire sans le moindre bruit. On l'écarte, ainsi que tout nœud
+  // qui compte plusieurs offres.
+  const offreValable = (n: any) => {
+    const o = n?.offers;
+    const cible = Array.isArray(o) ? o[0] : o;
+    if (cible && /AggregateOffer/i.test(typeDe(cible))) return false;
+    if (cible && (cible.offerCount != null || cible.lowPrice != null)) return false;
+    return (cible?.price ?? n?.price) != null;
+  };
+  const offre = noeuds.find(offreValable);
 
   // 1. JSON-LD
   const prixLd = offre?.offers?.price ?? offre?.offers?.[0]?.price ?? offre?.price;

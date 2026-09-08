@@ -811,6 +811,28 @@ describe("annonceConcurrente — lire une annonce sans se faire piéger", () => 
     assert.equal(provenance.prix, "balisage schema.org");
   });
 
+  test("HTML : le prix d'une PAGE DE RÉSULTATS n'est pas celui d'un bien", () => {
+    // Mesuré chez ParuVendu et sur les listes SeLoger : le JSON-LD d'une page
+    // de recherche déclare un AggregateOffer couvrant tout le catalogue. Le
+    // prendre pour un prix déplacerait la médiane sans le moindre bruit.
+    const html = `<html><head>
+      <script type="application/ld+json">
+      {"@type":"Product","offers":{"@type":"AggregateOffer","offerCount":32793,
+       "lowPrice":900,"highPrice":75000000,"priceCurrency":"EUR"}}
+      </script></head><body><h1>32 793 annonces</h1></body></html>`;
+    const { champs } = extraireDepuisHtml(html, "https://www.seloger.com/list.htm");
+    assert.equal(champs.prix, undefined);
+  });
+
+  test("les unités et espaces exotiques passent par NFKC", () => {
+    // ㎡ (U+33A1), fine insécable U+202F, espace idéographique U+3000.
+    const { champs } = extraireDepuisTexte(
+      "Appartement 76000 Rouen 72 \u33a1 Prix : 249\u202f900 \u20ac");
+    assert.equal(champs.surface, 72);
+    assert.equal(champs.prix, 249900);
+    assert.equal(champs.ville, "Rouen");
+  });
+
   test("HTML : une balise JSON-LD cassée ne fait pas tomber l'analyse", () => {
     const html = `<html><head>
       <script type="application/ld+json">{ ceci n'est pas du JSON }</script>
