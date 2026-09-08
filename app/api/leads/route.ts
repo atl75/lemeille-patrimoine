@@ -8,18 +8,29 @@ import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
 
 // Accusé de réception envoyé au prospect (s'il a laissé un email), avec la
 // signature officielle. Silencieux si pas d'email ou Resend non configuré.
+//
+// NE PAS APPELER SUR UNE SAISIE ADMIN. Cet accusé répond à quelqu'un qui vient
+// de remplir un formulaire du site. Il partait aussi quand un lead était créé à
+// la main dans le CRM : la personne recevait « votre demande a bien été reçue,
+// un conseiller vous recontactera sous 48 heures » alors qu'elle n'avait rien
+// demandé. Le CRM est un carnet de notes, pas un formulaire.
 async function sendClientAck(payload: any) {
   const to = (payload?.email || '').toString().trim();
   if (!/.+@.+\..+/.test(to) || !process.env.RESEND_API_KEY) return;
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
     const prenom = payload.firstName ? ` ${payload.firstName}` : '';
-    await resend.emails.send({
+    console.info('Accusé de réception client — envoi à', to);
+    // Resend RENVOIE l'erreur, il ne la lève pas : le catch ci-dessous ne
+    // voyait donc jamais un refus de l'API (clé invalide, domaine non vérifié,
+    // quota). Un accusé pouvait échouer sans laisser la moindre trace.
+    const { error } = await resend.emails.send({
       from: process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>',
       to,
       subject: 'Votre demande a bien été reçue — Lemeille Patrimoine',
       html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#222;font-size:14px;line-height:1.55"><p>Bonjour${prenom},</p><p>Merci pour votre message. Nous avons bien reçu votre demande et un conseiller vous recontactera <strong>sous 48 heures</strong>.</p><p>Pour toute urgence, vous pouvez nous joindre directement au +33 6 87 15 72 59.</p><p>À très bientôt,</p>${EMAIL_SIGNATURE_HTML}</div>`,
     });
+    if (error) console.error('Accusé de réception client refusé par Resend:', error);
   } catch (e) {
     console.error('Erreur accusé de réception client:', e);
   }
@@ -204,10 +215,15 @@ export async function POST(req: Request){
 
   let payload: any;
 
+  // Une saisie faite depuis le CRM n'est pas une demande entrante : personne
+  // n'attend d'accusé de réception à l'autre bout. Calculé une fois, il sert
+  // aussi bien à alléger la validation qu'à taire l'email — voir sendClientAck.
+  const saisieAdmin = isAdmin(req);
+
   if (contentType.includes('application/json')) {
     // JSON from simulator/estimation
     const brut = await req.json();
-    if (!isAdmin(req)) {
+    if (!saisieAdmin) {
       const souci = leadJoignable(brut);
       if (souci) return NextResponse.json({ error: souci }, { status: 400 });
     }
@@ -248,7 +264,7 @@ export async function POST(req: Request){
         // Continue même si l'email échoue
       }
     }
-    await sendClientAck(payload);
+    if (!saisieAdmin) await sendClientAck(payload);
     return NextResponse.json({ success: true, id: payload.id });
   } else {
     // FormData from contact form
@@ -259,7 +275,7 @@ export async function POST(req: Request){
       email: String(formData.get('email') || ''),
       phone: String(formData.get('phone') || ''),
     };
-    if (!isAdmin(req)) {
+    if (!saisieAdmin) {
       const souci = leadJoignable(contact);
       if (souci) return NextResponse.json({ error: souci }, { status: 400 });
     }
@@ -294,7 +310,7 @@ export async function POST(req: Request){
         // Continue même si l'email échoue
       }
     }
-    await sendClientAck(payload);
+    if (!saisieAdmin) await sendClientAck(payload);
     return NextResponse.redirect(new URL('/contact?ok=1', req.url));
   }
 }

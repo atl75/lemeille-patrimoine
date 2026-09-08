@@ -985,6 +985,11 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                 Annuler
               </button>
             </div>
+            {/* Le doute méritait d'être levé à l'endroit où il naissait : la
+                saisie manuelle envoyait un accusé de réception au contact. */}
+            <p className="text-xs opacity-60 mt-2">
+              🔒 Fiche interne — aucun email n&apos;est envoyé au contact.
+            </p>
           </form>
         )}
       </div>
