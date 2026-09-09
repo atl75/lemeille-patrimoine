@@ -219,7 +219,10 @@ export default function GraphiquePositionnement({
     { titre: 'Ventes signées', sous: `actes DGFiP · ${ventes.length}`, serie: 'var(--serie-1)',
       pts: essaim(ventes, BASE_V, false, BASE_V - HA + 2), yT: BASE_V - 4, yS: BASE_V + 10 },
     { titre: 'En vente', sous: `aujourd'hui · ${enVente.length}`, serie: 'var(--serie-2)',
-      pts: essaim(enVente, BASE_E, true, Math.max(H - BA - BASE_E - 14, 10)), yT: BASE_E + 14, yS: BASE_E + 28 },
+      // Le libellé se pose SUR la première rangée de points, comme celui des
+      // ventes signées. À +14 il flottait quatorze pixels sous ses propres
+      // points, et la ligne ne se lisait plus comme un tout.
+      pts: essaim(enVente, BASE_E, true, Math.max(H - BA - BASE_E - 14, 10)), yT: BASE_E + 4, yS: BASE_E + 18 },
   ];
 
   return (
@@ -397,21 +400,24 @@ export default function GraphiquePositionnement({
         {' '}La bande claire encadre la moitié des ventes signées :
         un quart se sont vendues moins cher, un quart plus cher.
         {reference && (
-          <>
-            {' '}
-            {/* Le crochet est redessiné en miniature : la légende doit pouvoir
-                se rattacher au trait sans qu'on ait à deviner lequel. */}
-            <svg width="22" height="9" viewBox="0 0 22 9" style={{ verticalAlign: 'middle' }} aria-hidden="true">
+          <span style={{ display: 'flex', alignItems: 'flex-start', gap: 5, marginTop: 3 }}>
+            {/* Le crochet est redessiné en miniature, DEVANT sa phrase : posé
+                dans le fil du texte, il se retrouvait seul en bout de ligne et
+                sa légende basculait à la ligne suivante, orpheline. */}
+            <svg width="22" height="9" viewBox="0 0 22 9" aria-hidden="true"
+              style={{ flex: 'none', marginTop: 4 }}>
               <line x1="1" y1="4.5" x2="21" y2="4.5" stroke="currentColor" strokeWidth="1.4" />
               <line x1="1" y1="1" x2="1" y2="8" stroke="currentColor" strokeWidth="1.4" />
               <line x1="21" y1="1" x2="21" y2="8" stroke="currentColor" strokeWidth="1.4" />
               <circle cx="11" cy="4.5" r="3" fill="currentColor" />
             </svg>
-            {' '}{reference.source ?? 'Avis de marché'} · {eur(reference.m2)} €/m²
-            {(reference.bas ?? reference.m2) !== (reference.haut ?? reference.m2)
-              ? ` (de ${eur(reference.bas as number)} à ${eur(reference.haut as number)})` : ''}
-            , entre les deux rangées.
-          </>
+            <span>
+              {reference.source ?? 'Avis de marché'} · {eur(reference.m2)} €/m²
+              {(reference.bas ?? reference.m2) !== (reference.haut ?? reference.m2)
+                ? ` (de ${eur(reference.bas as number)} à ${eur(reference.haut as number)})` : ''}
+              , entre les deux rangées.
+            </span>
+          </span>
         )}
         {cibleM2 != null && " Le trait discontinu marque le prix conseillé."}
         {horsEchelle > 0 && ` ${horsEchelle} vente${horsEchelle > 1 ? 's' : ''} hors échelle, `
