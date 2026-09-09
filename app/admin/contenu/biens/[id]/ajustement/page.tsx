@@ -6,6 +6,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import { useToast } from "@/components/Toast";
 import { propertyLabel } from "@/lib/propertyLabel";
 import DocumentPositionnement from "@/components/DocumentPositionnement";
+import DeposePdf from "@/components/DeposePdf";
 import type { VenteDvf, StatsDvf } from "@/lib/dvf";
 import type { ReferenceM2 } from "@/lib/annonceConcurrente";
 import type { Bien } from "@/lib/typesBien";
@@ -697,18 +698,18 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               onChange={e => setCollageRef(e.target.value)}
               placeholder="Collez le texte de la page de prix (Ctrl+A puis Ctrl+C)"
               data-testid="collage-reference" />
+            <div className="mt-2">
+              <DeposePdf
+                testid="pdf-reference"
+                occupe={chargeRef}
+                onFichier={lireReferencePdf}
+                libelle="Glissez ici l'impression PDF de la page de prix"
+                aide="ou cliquez pour la choisir sur votre ordinateur"
+              />
+            </div>
             <div className="flex items-center gap-3 mt-2 flex-wrap">
               <button onClick={lireReference} disabled={!collageRef.trim()}
                 className="btn text-xs disabled:opacity-50" data-testid="lire-reference">Lire le prix</button>
-              <label className="inline-flex items-center gap-2 text-xs cursor-pointer">
-                <span className="btn text-xs">{chargeRef ? "Lecture…" : "Déposer l'impression PDF"}</span>
-                <input type="file" accept="application/pdf,.pdf" className="sr-only" data-testid="pdf-reference"
-                  onChange={e => {
-                    const f = e.target.files?.[0];
-                    e.target.value = "";
-                    if (f) lireReferencePdf(f);
-                  }} />
-              </label>
               {reference && (
                 <p className="text-sm" data-testid="reference-lue">
                   <strong>{eurM2(reference.m2)}</strong>
@@ -768,23 +769,15 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               <p className="text-[11px] opacity-55 mt-1">
                 Les grands portails refusent d&apos;être lus par un serveur. Pour eux : collez le texte, ou déposez l&apos;impression PDF de l&apos;annonce.
               </p>
-              <label className="inline-flex items-center gap-2 mt-2 text-xs cursor-pointer">
-                <span className="btn text-xs">Déposer une impression PDF</span>
-                <input
-                  type="file"
-                  accept="application/pdf,.pdf"
-                  className="sr-only"
-                  data-testid="pdf-annonce"
-                  onChange={e => {
-                    const f = e.target.files?.[0];
-                    // On vide la sélection : redéposer le même fichier doit
-                    // relancer la lecture.
-                    e.target.value = "";
-                    if (f) analyserPdf(f);
-                  }}
+              <div className="mt-2">
+                <DeposePdf
+                  testid="pdf-annonce"
+                  occupe={analyse}
+                  onFichier={analyserPdf}
+                  libelle="Glissez ici l'impression PDF de l'annonce"
+                  aide="ou cliquez pour la choisir — imprimez la page de l'annonce en PDF depuis votre navigateur"
                 />
-                <span className="opacity-60">Imprimez la page de l&apos;annonce en PDF depuis votre navigateur.</span>
-              </label>
+              </div>
             </div>
 
             <div className="grid md:grid-cols-3 gap-3">
