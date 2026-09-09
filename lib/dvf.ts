@@ -53,6 +53,14 @@ export type OptionsDvf = {
   surfaceRef?: number | null;
   /** Ne garder que les ventes à partir de cette année. */
   depuis?: number | null;
+  /**
+   * Bornes de surface explicites. Quand l'agent en pose au moins une, elles
+   * REMPLACENT la tolérance automatique autour de la surface du bien : deux
+   * filtres qui se superposent donnent un résultat que personne ne sait
+   * expliquer devant un vendeur.
+   */
+  surfaceMin?: number | null;
+  surfaceMax?: number | null;
   /** Typologie : nombre exact de pièces principales. */
   pieces?: number | null;
 };
@@ -132,7 +140,11 @@ export function analyserCsvDvf(csv: string, o: OptionsDvf): VenteDvf[] {
     if (o.depuis && Number(date.slice(0, 4)) < o.depuis) continue;
     if (o.pieces && Number(r[iPieces]) !== o.pieces) continue;
 
-    if (o.surfaceRef && o.toleranceSurface) {
+    const bornesPosees = (o.surfaceMin ?? 0) > 0 || (o.surfaceMax ?? 0) > 0;
+    if (bornesPosees) {
+      if (o.surfaceMin && surface < o.surfaceMin) continue;
+      if (o.surfaceMax && surface > o.surfaceMax) continue;
+    } else if (o.surfaceRef && o.toleranceSurface) {
       const ecart = Math.abs(surface - o.surfaceRef) / o.surfaceRef;
       if (ecart > o.toleranceSurface) continue;
     }

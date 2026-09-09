@@ -59,6 +59,9 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [dvfDepuis, setDvfDepuis] = useState(0);
   /** Typologie : nombre de pièces, 0 = toutes. */
   const [dvfPieces, setDvfPieces] = useState(0);
+  /** Bornes de surface, en m². Vides = tolérance automatique autour du bien. */
+  const [dvfSurfaceMin, setDvfSurfaceMin] = useState("");
+  const [dvfSurfaceMax, setDvfSurfaceMax] = useState("");
   const [chargeDvf, setChargeDvf] = useState(false);
   /** Prix de référence du secteur, relevé par l'agent sur une page tierce. */
   const [reference, setReference] = useState<ReferenceM2 | null>(null);
@@ -88,6 +91,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         if (a.dvfRayon) setRayonDvf(a.dvfRayon);
         if (a.dvfDepuis) setDvfDepuis(a.dvfDepuis);
         if (a.dvfPieces) setDvfPieces(a.dvfPieces);
+        if (a.dvfSurfaceMin) setDvfSurfaceMin(String(a.dvfSurfaceMin));
+        if (a.dvfSurfaceMax) setDvfSurfaceMax(String(a.dvfSurfaceMax));
         setEtat("ok");
       })
       .catch(() => { if (!annule) setEtat("introuvable"); });
@@ -261,7 +266,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       const r = await fetch("/api/dvf", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ adresse, rayon, type: bien?.type === "Maison" ? "Maison" : "Appartement",
-                               surface: bien?.surface, depuis: dvfDepuis || undefined, pieces: dvfPieces || undefined }),
+                               surface: bien?.surface, depuis: dvfDepuis || undefined, pieces: dvfPieces || undefined,
+                               surfaceMin: Number(dvfSurfaceMin) || undefined, surfaceMax: Number(dvfSurfaceMax) || undefined }),
       });
       const d = await r.json();
       if (!r.ok) { toast(d?.error ?? "Recherche impossible."); return; }
@@ -414,7 +420,9 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ comparables, prixCible: cible, dateMiseEnVente, commentaire,
-          reference, dvfRayon: rayonDvf, dvfDepuis, dvfPieces }),
+          reference, dvfRayon: rayonDvf, dvfDepuis, dvfPieces,
+          dvfSurfaceMin: Number(dvfSurfaceMin) || undefined,
+          dvfSurfaceMax: Number(dvfSurfaceMax) || undefined }),
       });
       toast(r.ok ? "Argumentaire enregistré." : "Erreur lors de l'enregistrement.");
     } catch {
@@ -655,6 +663,18 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                   <option value={0}>toutes typologies</option>
                   {[1, 2, 3, 4, 5, 6].map(n => <option key={n} value={n}>{n === 1 ? "1 pièce" : `${n} pièces`}</option>)}
                 </select>
+                <span className="inline-flex items-center gap-1 text-xs">
+                  <input type="number" min="0" placeholder="surf. min" value={dvfSurfaceMin}
+                    onChange={e => setDvfSurfaceMin(e.target.value)}
+                    className="input text-xs py-1 w-[5.5rem]" data-testid="surface-min-dvf"
+                    title="Surface minimale, en m²" />
+                  <span className="opacity-50">–</span>
+                  <input type="number" min="0" placeholder="surf. max" value={dvfSurfaceMax}
+                    onChange={e => setDvfSurfaceMax(e.target.value)}
+                    className="input text-xs py-1 w-[5.5rem]" data-testid="surface-max-dvf"
+                    title="Surface maximale, en m²" />
+                  <span className="opacity-50">m²</span>
+                </span>
                 <button onClick={() => chercherDvf()} disabled={chargeDvf}
                   className="btn text-xs disabled:opacity-50" data-testid="chercher-dvf">
                   {chargeDvf ? "Recherche…" : "Chercher"}
@@ -664,6 +684,11 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             <p className="text-xs opacity-70">
               Les actes déclarés à la DGFiP (base DVF) : des prix réellement signés, pas des prix demandés.
               C&apos;est l&apos;argument le plus difficile à contester.
+              {Number(dvfSurfaceMin) || Number(dvfSurfaceMax)
+                ? " Les bornes de surface que vous posez remplacent la tolérance automatique."
+                : bien?.surface
+                  ? ` Sans borne de surface, la recherche retient les biens de ${Math.round(bien.surface * 0.5)} à ${Math.round(bien.surface * 1.5)} m².`
+                  : ""}
             </p>
             {dvf && dvf.stats && (
               <div className="mt-3 text-sm">

@@ -110,6 +110,8 @@ export type Bien = {
     dvfRayon?: number;
     dvfDepuis?: number;
     dvfPieces?: number;
+    dvfSurfaceMin?: number;
+    dvfSurfaceMax?: number;
     majAt?: string;
   };
   // Plan et vidéo

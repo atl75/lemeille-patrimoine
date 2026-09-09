@@ -1164,6 +1164,32 @@ describe("dvf — les ventes signées, sans se laisser abuser par les actes grou
     assert.equal(v[0].surface, 81);
   });
 
+  test("bornes de surface explicites", () => {
+    const csv = [ENTETES,
+      ligne({ ...base, id_mutation: "S30", valeur_fonciere: 150000, type_local: "Appartement", surface_reelle_bati: 30 }),
+      ligne({ ...base, id_mutation: "S60", valeur_fonciere: 260000, type_local: "Appartement", surface_reelle_bati: 60 }),
+      ligne({ ...base, id_mutation: "S95", valeur_fonciere: 380000, type_local: "Appartement", surface_reelle_bati: 95 }),
+    ].join("\n");
+    const entre = analyserCsvDvf(csv, { ...CENTRE, rayon: 300, surfaceMin: 50, surfaceMax: 80 });
+    assert.deepEqual(entre.map(v => v.surface), [60]);
+    assert.deepEqual(analyserCsvDvf(csv, { ...CENTRE, rayon: 300, surfaceMin: 50 }).map(v => v.surface).sort((a, b) => a - b), [60, 95]);
+    assert.deepEqual(analyserCsvDvf(csv, { ...CENTRE, rayon: 300, surfaceMax: 60 }).map(v => v.surface).sort((a, b) => a - b), [30, 60]);
+  });
+
+  test("une borne posée REMPLACE la tolérance automatique", () => {
+    // Sans cela, les deux filtres se superposaient et le résultat devenait
+    // inexplicable devant un vendeur : la tolérance ±50 % autour d'un bien de
+    // 60 m² aurait écarté le 95 m² que l'agent demande explicitement.
+    const csv = [ENTETES,
+      ligne({ ...base, id_mutation: "A", valeur_fonciere: 260000, type_local: "Appartement", surface_reelle_bati: 60 }),
+      ligne({ ...base, id_mutation: "B", valeur_fonciere: 380000, type_local: "Appartement", surface_reelle_bati: 95 }),
+    ].join("\n");
+    const tolerance = { surfaceRef: 60, toleranceSurface: 0.5 };
+    assert.deepEqual(analyserCsvDvf(csv, { ...CENTRE, rayon: 300, ...tolerance }).map(v => v.surface), [60]);
+    const avecBorne = analyserCsvDvf(csv, { ...CENTRE, rayon: 300, ...tolerance, surfaceMin: 90 });
+    assert.deepEqual(avecBorne.map(v => v.surface), [95]);
+  });
+
   test("statistiques : médiane et quartiles", () => {
     const faux = [1000, 2000, 3000, 4000, 5000].map((m, i) => ({
       id: `x${i}`, date: `2024-0${i + 1}-01`, type: "Appartement" as const,

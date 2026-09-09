@@ -69,6 +69,8 @@ export async function POST(req: Request) {
   // typologie. Une vente de 2021 ne pèse pas comme une de l'an dernier.
   const depuis = Number(corps?.depuis) > 1900 ? Number(corps.depuis) : null;
   const pieces = Number(corps?.pieces) > 0 ? Number(corps.pieces) : null;
+  const surfaceMin = Number(corps?.surfaceMin) > 0 ? Number(corps.surfaceMin) : null;
+  const surfaceMax = Number(corps?.surfaceMax) > 0 ? Number(corps.surfaceMax) : null;
 
   // 1. Situer l'adresse. Le score et le type disent au lecteur si l'on est au
   //    numéro près ou seulement dans la rue.
@@ -104,7 +106,7 @@ export async function POST(req: Request) {
     toutes.push(...analyserCsvDvf(csv, {
       lat: point.lat, lon: point.lon, rayon, type,
       surfaceRef, toleranceSurface: surfaceRef ? 0.5 : undefined,
-      depuis, pieces,
+      depuis, pieces, surfaceMin, surfaceMax,
     }));
   }
 
@@ -116,7 +118,7 @@ export async function POST(req: Request) {
     precision: point.precision,
     score: point.score,
     rayon,
-    depuis, pieces,
+    depuis, pieces, surfaceMin, surfaceMax,
     annees: anneesTrouvees,
     // Assez de points pour que le graphique montre le MÊME effectif que le
     // constat : un lecteur qui compte « 200 » sous un titre annonçant 568
