@@ -8,13 +8,14 @@ import { propertyLabel } from "@/lib/propertyLabel";
 import DocumentPositionnement from "@/components/DocumentPositionnement";
 import DeposePdf from "@/components/DeposePdf";
 import ChampNombre from "@/components/ChampNombre";
+import { surfaceFr } from "@/lib/formatFr";
 import CollapsibleSection from "@/components/CollapsibleSection";
 import type { VenteDvf, StatsDvf } from "@/lib/dvf";
 import type { ReferenceM2 } from "@/lib/annonceConcurrente";
 import type { Bien } from "@/lib/typesBien";
 import {
   positionner, fourchetteConseillee, impactNetVendeur, fiabilite,
-  comparablesDuPortefeuille, prixM2, m2Retenu, ancienneteAnnonce, surfaceFr, type Comparable,
+  comparablesDuPortefeuille, prixM2, m2Retenu, ancienneteAnnonce, type Comparable,
 } from "@/lib/ajustementPrix";
 
 /**

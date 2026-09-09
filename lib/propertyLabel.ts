@@ -1,3 +1,4 @@
+import { surfaceFr } from './formatFr';
 // Désignation normalisée d'un bien, utilisée partout sur le site :
 // « T2 · 45 m² · Cannes · 350 000 € ».
 // - typologie : T{pièces} (ou Maison/Appartement si le nombre de pièces manque)
@@ -18,7 +19,7 @@ export function propertyLabel(p: any, opts: { sep?: string; withPrice?: boolean 
   const sep = opts.sep ?? ' · ';
   const parts = [
     propertyTypology(p),
-    p?.surface ? `${p.surface} m²` : '',
+    p?.surface ? surfaceFr(p.surface) : '',
     p?.city || '',
     opts.withPrice === false ? '' : propertyPriceLabel(p),
   ].filter(Boolean);

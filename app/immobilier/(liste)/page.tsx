@@ -11,6 +11,7 @@ import { getPropertyCards } from "@/lib/propertiesData";
 import { propertyTypology } from "@/lib/propertyLabel";
 import type { Metadata } from 'next';
 import { OG_IMAGE } from '@/lib/ogImage';
+import { surfaceFr } from "@/lib/formatFr";
 
 export const metadata: Metadata = {
   title: 'Biens à vendre à Rouen | Lemeille Patrimoine',
@@ -241,7 +242,7 @@ export default async function Page({ searchParams }: {
             className="w-full h-64 object-cover rounded-t-2xl grayscale opacity-75"
           />
           <div className="p-6 opacity-70">
-            <h3 className="luxe text-2xl">{propertyTypology(p)}{p.surface ? ` · ${p.surface} m²` : ''} · {formatCityWithDistrict(p.city)}</h3>
+            <h3 className="luxe text-2xl">{propertyTypology(p)}{p.surface ? ` · ${surfaceFr(p.surface)}` : ''} · {formatCityWithDistrict(p.city)}</h3>
             <div className="mt-1 text-sm opacity-70">
               {p.title}
               {p.landSize && (p.type || 'APPARTEMENT') === 'MAISON' && <span> · Terrain : {p.landSize} m²</span>}

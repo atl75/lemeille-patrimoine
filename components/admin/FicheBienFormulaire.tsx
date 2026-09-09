@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import FeaturePicker from "@/components/FeaturePicker";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
+import { nombreDecimalFr } from "@/lib/formatFr";
 import ImageUploader from "@/components/ImageUploader";
 import CompanyAutocomplete from "@/components/CompanyAutocomplete";
 import CollapsibleSection from "@/components/CollapsibleSection";
@@ -419,8 +420,10 @@ export default function FicheBienFormulaire({
                     <label className="block text-xs font-medium mb-1">Surface (m²)</label>
                     <input
                       type="number"
+                      step="0.01"
+                      inputMode="decimal"
                       value={editing.surface ?? ''}
-                      onChange={e => updateField('surface', e.target.value === '' ? undefined : (parseInt(e.target.value) || 0))}
+                      onChange={e => updateField('surface', nombreDecimalFr(e.target.value))}
                       onFocus={e => e.target.select()}
                       className="w-full px-2 py-1.5 text-sm border rounded"
                       data-testid="input-surface"
@@ -456,8 +459,10 @@ export default function FicheBienFormulaire({
                     <label className="block text-xs font-medium mb-1">Surface HC (m²)</label>
                     <input
                       type="number"
+                      step="0.01"
+                      inputMode="decimal"
                       value={editing.annexSurface || ''}
-                      onChange={e => updateField('annexSurface', e.target.value ? parseInt(e.target.value) : undefined)}
+                      onChange={e => updateField('annexSurface', nombreDecimalFr(e.target.value))}
                       className="w-full px-2 py-1.5 text-sm border rounded"
                       data-testid="input-annex-surface"
                     />

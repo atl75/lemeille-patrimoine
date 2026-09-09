@@ -13,6 +13,7 @@ import cloudinaryLoader from "../lib/cloudinaryLoader.js";
 import { adresseInterdite, urlAutorisee } from "../lib/urlSortante.ts";
 import { analyserCsvDvf, statistiquesDvf, distanceM, urlDvf } from "../lib/dvf.ts";
 import { ancienneteAnnonce } from "../lib/ajustementPrix.ts";
+import { surfaceFr, nombreDecimalFr } from "../lib/formatFr.ts";
 import {
   nombreFr, sourceDepuisUrl, prixDepuisTexte, surfaceDepuisTexte, fusionner, extraireReferenceM2,
   dpeDepuisTexte, etageDepuisTexte,
@@ -1344,5 +1345,34 @@ describe("lienSur — un lien saisi à la main n'est pas un lien de confiance", 
                      "vbscript:msgbox", "pas une url", "", undefined]) {
       assert.equal(lienSur(v as any), null, `${v} ne doit pas devenir un lien`);
     }
+  });
+});
+
+describe("formatFr — une surface au centième, écrite en français", () => {
+  test("la virgule, jamais le point", () => {
+    assert.equal(surfaceFr(56.59), "56,59 m²");
+    assert.equal(surfaceFr(61), "61 m²");
+    // Le séparateur de milliers de fr-FR est une FINE INSÉCABLE (U+202F), pas
+    // une espace ordinaire : on l'écrit par son point de code plutôt que de
+    // glisser un caractère invisible dans le test.
+    assert.equal(surfaceFr(1200.5), "1\u202F200,5 m²");
+    assert.equal(surfaceFr(null), "—");
+    assert.equal(surfaceFr(undefined), "—");
+  });
+
+  test("la saisie accepte la virgule ET le point", () => {
+    // parseInt tronquait « 56,59 » à 56 : une surface Carrez se déclare au
+    // centième, et l'écart se propage à tous les prix au m² calculés dessus.
+    assert.equal(nombreDecimalFr("56,59"), 56.59);
+    assert.equal(nombreDecimalFr("56.59"), 56.59);
+    assert.equal(nombreDecimalFr("61"), 61);
+  });
+
+  test("bornée à deux décimales, et vide plutôt que zéro", () => {
+    assert.equal(nombreDecimalFr("56,594"), 56.59);
+    assert.equal(nombreDecimalFr("56,596"), 56.6);
+    assert.equal(nombreDecimalFr(""), undefined);
+    assert.equal(nombreDecimalFr("   "), undefined);
+    assert.equal(nombreDecimalFr("abc"), undefined);
   });
 });

@@ -4,6 +4,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
+import { surfaceFr } from "@/lib/formatFr";
 
 export const metadata: Metadata = {
   title: "Nos références & ventes | Lemeille Patrimoine",
@@ -124,13 +125,13 @@ export default async function Page() {
                       </span>
                     </div>
                     <div className="p-4">
-                      <h3 className="luxe text-lg">{propertyTypology(p)}{p.surface ? ` · ${p.surface} m²` : ""}{p.city ? ` · ${p.city}` : ""}</h3>
+                      <h3 className="luxe text-lg">{propertyTypology(p)}{p.surface ? ` · ${surfaceFr(p.surface)}` : ""}{p.city ? ` · ${p.city}` : ""}</h3>
                       <div className="text-sm opacity-70">
                         {p.title}{region ? ` · ${region}` : ""}
                       </div>
                       <div className="text-sm opacity-70 mt-1">
                         {p.type === "MAISON" ? "Maison" : "Appartement"}
-                        {p.surface ? ` · ${p.surface} m²` : ""}
+                        {p.surface ? ` · ${surfaceFr(p.surface)}` : ""}
                         {p.rooms ? ` · ${p.rooms} pièces` : ""}
                       </div>
                     </div>

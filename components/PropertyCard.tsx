@@ -5,6 +5,7 @@ import { propertyTypology } from "@/lib/propertyLabel";
 import { Eye } from "lucide-react";
 import Img from "@/components/Img";
 import PropertyQuickView from "@/components/PropertyQuickView";
+import { surfaceFr } from "@/lib/formatFr";
 
 type Property = {
   id: string;
@@ -96,7 +97,7 @@ export default function PropertyCard({
           )}
         </div>
         <div className="p-6">
-          <h3 className="luxe text-2xl">{propertyTypology(property)}{property.surface ? ` · ${property.surface} m²` : ""}{cityLabel ? ` · ${cityLabel}` : ""}</h3>
+          <h3 className="luxe text-2xl">{propertyTypology(property)}{property.surface ? ` · ${surfaceFr(property.surface)}` : ""}{cityLabel ? ` · ${cityLabel}` : ""}</h3>
           <div className="mt-1 text-sm opacity-70">
             {property.title}
             {property.landSize && property.type === "MAISON" && <span> · Terrain : {property.landSize} m²</span>}

@@ -16,7 +16,8 @@
  */
 
 import GraphiquePositionnement, { type PointGraphique } from './GraphiquePositionnement';
-import { m2Retenu, ancienneteAnnonce, surfaceFr, type Comparable, type Positionnement } from '@/lib/ajustementPrix';
+import { m2Retenu, ancienneteAnnonce, type Comparable, type Positionnement } from '@/lib/ajustementPrix';
+import { surfaceFr } from '@/lib/formatFr';
 import type { VenteDvf, StatsDvf } from '@/lib/dvf';
 import type { ReferenceM2 } from '@/lib/annonceConcurrente';
 

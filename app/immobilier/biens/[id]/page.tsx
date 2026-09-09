@@ -16,6 +16,7 @@ import type { Metadata } from 'next';
 import { isThinListing } from '@/lib/thinListing';
 import Link from "next/link";
 import { SECTORS, sectorSlugFor } from "@/lib/sectors";
+import { surfaceFr } from "@/lib/formatFr";
 
 async function getProperty(id: string){
   const base = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT||'3000'}`;
@@ -32,7 +33,7 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
 
   const region = p.region ? String(p.region).replaceAll('_', ' ') : '';
   // Ville avant surface : c'est elle qui porte la recherche locale.
-  const title = seoTitle([`${propertyTypology(p)}${p.city ? ` · ${p.city}` : ''}`, p.surface ? `${p.surface} m²` : null, region]);
+  const title = seoTitle([`${propertyTypology(p)}${p.city ? ` · ${p.city}` : ''}`, p.surface ? surfaceFr(p.surface) : null, region]);
   // Une description de remplissage (« . », quelques caractères) n'en est pas une :
   // on lui préfère un résumé construit à partir des caractéristiques du bien.
   const saisie = String(p.description || '').trim();
@@ -40,7 +41,7 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
     ? saisie.slice(0, 155)
     : [
         `${p.type === 'MAISON' ? 'Maison' : 'Appartement'}${p.rooms ? ` T${p.rooms}` : ''} à ${p.city}`,
-        p.surface ? `${p.surface} m²` : null,
+        p.surface ? surfaceFr(p.surface) : null,
         p.price && !p.priceOnRequest ? `${Number(p.price).toLocaleString('fr-FR')} €` : null,
       ].filter(Boolean).join(' · ') + '. Visite sur rendez-vous avec Lemeille Patrimoine.';
   const coverImage = Array.isArray(p.images) && p.images.length ? p.images[0] : undefined;
@@ -115,7 +116,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
     <main>
       <PropertySeoJsonLd property={p} />
       <Hero
-        title={`${propertyTypology(p)}${p.surface ? ` · ${p.surface} m²` : ''}${p.city ? ` · ${p.city}` : ''}`}
+        title={`${propertyTypology(p)}${p.surface ? ` · ${surfaceFr(p.surface)}` : ''}${p.city ? ` · ${p.city}` : ''}`}
         subtitle={<span>
           {p.status === 'OFFER_RECEIVED' && (
             <span className="mr-2 inline-block rounded-full bg-amber-500 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-white align-middle">Sous offre</span>
