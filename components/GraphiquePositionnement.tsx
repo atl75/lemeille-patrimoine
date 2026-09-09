@@ -24,13 +24,13 @@
 
 export type PointGraphique = { m2: number; libelle: string };
 
-const L = 700, H = 258;
-const G = 118, D = 24, HA = 44, BA = 46;
+const L = 700;
+const G = 118, D = 24, BA = 46;
 const R = 3.6;                 // rayon d'un point
 const COL = R * 2 + 1.4;       // largeur d'une colonne de l'essaim
 
 export default function GraphiquePositionnement({
-  bienM2, ventes, enVente, medianeM2, q1M2, q3M2,
+  bienM2, ventes, enVente, medianeM2, q1M2, q3M2, reference,
 }: {
   bienM2: number | null;
   ventes: PointGraphique[];
@@ -38,7 +38,21 @@ export default function GraphiquePositionnement({
   medianeM2?: number | null;
   q1M2?: number | null;
   q3M2?: number | null;
+  /** Prix de référence du secteur, relevé sur une page tierce. */
+  reference?: { m2: number; bas?: number; haut?: number; source?: string } | null;
 }) {
+  // La référence prend sa place EN HAUT, en dehors du nuage : c'est un avis de
+  // marché, pas une transaction. La mêler aux points laisserait croire qu'elle
+  // a le même statut de preuve que les actes.
+  // Bandes horizontales distinctes, de haut en bas : le crochet de référence,
+  // l'étiquette du bien, puis le tracé. Sans cette séparation l'essaim montait
+  // sous le crochet et les deux étiquettes se recouvraient.
+  const Y_REF_TEXTE = 20, Y_REF_TRAIT = 31;
+  const HA = reference ? 78 : 44;
+  // Assez de hauteur pour que les points RESPIRENT. Comprimés, les colonnes
+  // fusionnent en barres pleines et l'on perd ce qui fait l'intérêt de la
+  // forme : voir chaque vente, une par une.
+  const H = reference ? 352 : 318;
   const tous = [...ventes, ...enVente].map(p => p.m2).filter(Number.isFinite);
   if (!tous.length) return null;
 
@@ -63,21 +77,31 @@ export default function GraphiquePositionnement({
   const graduations: number[] = [];
   for (let v = Math.ceil(x0 / marche) * marche; v <= x1; v += marche) graduations.push(v);
 
-  const BASE_V = HA + 96;   // ventes signées : empilées vers le haut
-  const BASE_E = HA + 112;  // en vente : empilées vers le bas
+  const BASE_V = HA + 158;  // ventes signées : empilées vers le haut
+  const BASE_E = HA + 174;  // en vente : empilées vers le bas
 
-  /** Empile les points par colonne : la hauteur dit la densité. */
-  const essaim = (points: PointGraphique[], base: number, versLeBas: boolean) => {
+  /**
+   * Empile les points par colonne : la hauteur dit la densité.
+   *
+   * Le PAS SE RESSERRE si la colonne la plus haute ne tient pas dans la place
+   * disponible. Sans cela, 568 ventes formaient une colonne plus haute que le
+   * cadre : l'essaim débordait par le haut et venait recouvrir le crochet de
+   * référence. On préfère des points plus serrés à des points hors cadre.
+   */
+  const essaim = (points: PointGraphique[], base: number, versLeBas: boolean, place: number) => {
     const colonnes = new Map<number, PointGraphique[]>();
     for (const p of [...points].filter(p => p.m2 >= x0 && p.m2 <= x1).sort((a, b) => a.m2 - b.m2)) {
       const c = Math.round(X(p.m2) / COL);
       const g = colonnes.get(c);
       if (g) g.push(p); else colonnes.set(c, [p]);
     }
+    let plusHaute = 0;
+    for (const ps of colonnes.values()) plusHaute = Math.max(plusHaute, ps.length);
+    const pas = plusHaute > 1 ? Math.min(R * 2 + 1, place / (plusHaute - 1)) : R * 2 + 1;
     const sortie: { cx: number; cy: number; p: PointGraphique }[] = [];
     for (const [c, ps] of colonnes) {
       ps.forEach((p, n) => {
-        sortie.push({ cx: c * COL, cy: base + n * (R * 2 + 1) * (versLeBas ? 1 : -1), p });
+        sortie.push({ cx: c * COL, cy: base + n * pas * (versLeBas ? 1 : -1), p });
       });
     }
     return sortie;
@@ -85,9 +109,9 @@ export default function GraphiquePositionnement({
 
   const rangees = [
     { titre: 'Ventes signées', sous: `actes DGFiP · ${ventes.length}`, serie: 'var(--serie-1)',
-      pts: essaim(ventes, BASE_V, false), yT: BASE_V - 4, yS: BASE_V + 10 },
+      pts: essaim(ventes, BASE_V, false, BASE_V - HA + 2), yT: BASE_V - 4, yS: BASE_V + 10 },
     { titre: 'En vente', sous: `aujourd'hui · ${enVente.length}`, serie: 'var(--serie-2)',
-      pts: essaim(enVente, BASE_E, true), yT: BASE_E + 14, yS: BASE_E + 28 },
+      pts: essaim(enVente, BASE_E, true, Math.max(H - BA - BASE_E - 14, 10)), yT: BASE_E + 14, yS: BASE_E + 28 },
   ];
 
   return (
@@ -152,6 +176,29 @@ export default function GraphiquePositionnement({
           </g>
         ))}
 
+        {/* LA RÉFÉRENCE DU SECTEUR — un crochet, pas une règle verticale.
+            Trois traits verticaux se disputeraient la lecture ; et cette valeur
+            est un avis, non un acte : elle mérite une forme à part. */}
+        {reference && (() => {
+          const bas = reference.bas ?? reference.m2;
+          const haut = reference.haut ?? reference.m2;
+          const yC = Y_REF_TRAIT;
+          const xB = Math.max(X(bas), G), xH = Math.min(X(haut), L - D);
+          return (
+            <g>
+              <line x1={xB} y1={yC} x2={xH} y2={yC} stroke="var(--encre-2)" strokeWidth="1.5" />
+              <line x1={xB} y1={yC - 4} x2={xB} y2={yC + 4} stroke="var(--encre-2)" strokeWidth="1.5" />
+              <line x1={xH} y1={yC - 4} x2={xH} y2={yC + 4} stroke="var(--encre-2)" strokeWidth="1.5" />
+              <circle cx={X(reference.m2)} cy={yC} r="4" fill="var(--encre-2)" />
+              <text x={Math.min(Math.max(X(reference.m2), G + 60), L - D - 60)} y={Y_REF_TEXTE}
+                textAnchor="middle" fontSize="10" fill="var(--encre-2)">
+                {reference.source ?? 'Référence'} · {eur(reference.m2)} €/m²
+                {bas !== haut ? ` (${eur(bas)} – ${eur(haut)})` : ''}
+              </text>
+            </g>
+          );
+        })()}
+
         {/* LE BIEN — repère, à l'encre, étiqueté sans ambiguïté. */}
         {bienM2 != null && (
           <>
@@ -169,6 +216,7 @@ export default function GraphiquePositionnement({
         <span style={{ color: 'var(--serie-1)' }}>●</span> Ventes signées, source DVF (DGFiP).{' '}
         <span style={{ color: 'var(--serie-2)' }}>●</span> Biens en vente relevés sur les portails.
         {' '}La bande claire couvre la moitié centrale des ventes signées.
+        {reference && ` Le crochet du haut situe le prix de référence du secteur${reference.source ? ` (${reference.source})` : ''}.`}
         {horsEchelle > 0 && ` ${horsEchelle} vente${horsEchelle > 1 ? 's' : ''} hors échelle, `
           + `conservée${horsEchelle > 1 ? 's' : ''} dans la médiane.`}
       </figcaption>

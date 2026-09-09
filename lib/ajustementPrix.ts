@@ -231,3 +231,10 @@ export function ancienneteAnnonce(dateParution?: string, maintenant = new Date()
   if (mois < 24) return `${mois} mois`;
   return `${Math.floor(mois / 12)} ans`;
 }
+
+/** Une surface écrite à la française : « 56,59 m² », jamais « 56.59 m² ». */
+export function surfaceFr(m2?: number | null): string {
+  const v = Number(m2);
+  if (!Number.isFinite(v)) return '—';
+  return v.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' m²';
+}

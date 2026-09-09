@@ -16,7 +16,7 @@
  */
 
 import GraphiquePositionnement, { type PointGraphique } from './GraphiquePositionnement';
-import { m2Retenu, ancienneteAnnonce, type Comparable, type Positionnement } from '@/lib/ajustementPrix';
+import { m2Retenu, ancienneteAnnonce, surfaceFr, type Comparable, type Positionnement } from '@/lib/ajustementPrix';
 import type { VenteDvf, StatsDvf } from '@/lib/dvf';
 import type { ReferenceM2 } from '@/lib/annonceConcurrente';
 
@@ -51,12 +51,12 @@ export default function DocumentPositionnement({
 
   const pointsVentes: PointGraphique[] = dvf.map(v => ({
     m2: v.prixM2,
-    libelle: `${jour(v.date)} · ${v.type} ${v.surface} m² · ${eur(v.prix)} · ${Math.round(v.distance)} m`,
+    libelle: `${jour(v.date)} · ${v.type} ${surfaceFr(v.surface)} · ${eur(v.prix)} · ${Math.round(v.distance)} m`,
   }));
   const pointsEnVente: PointGraphique[] = comparables
     .map(c => ({ c, m: m2Retenu(c) }))
     .filter((x): x is { c: Comparable; m: number } => x.m !== null)
-    .map(({ c, m }) => ({ m2: m, libelle: `${c.titre} · ${c.surface} m² · ${eur(c.prix)}` }));
+    .map(({ c, m }) => ({ m2: m, libelle: `${c.titre} · ${surfaceFr(c.surface)} · ${eur(c.prix)}` }));
 
   return (
     <div className="doc-positionnement">
@@ -97,7 +97,7 @@ export default function DocumentPositionnement({
         <div style={{ fontSize: '10.5pt', color: 'var(--encre-2)' }}>
           {bien.title}
           {bien.address ? ` — ${bien.address}` : ''}{bien.city ? `, ${bien.city}` : ''}
-          {bien.surface ? ` · ${bien.surface} m²` : ''}
+          {bien.surface ? ` · ${surfaceFr(bien.surface)}` : ''}
           {bien.price ? ` · affiché ${eur(bien.price)}` : ''}
         </div>
       </div>
@@ -131,6 +131,7 @@ export default function DocumentPositionnement({
             medianeM2={statsDvf?.medianeM2 ?? null}
             q1M2={statsDvf?.q1M2 ?? null}
             q3M2={statsDvf?.q3M2 ?? null}
+            reference={reference}
           />
         </div>
       )}
@@ -157,7 +158,7 @@ export default function DocumentPositionnement({
                   <td>{jour(v.date)}</td>
                   <td>{v.adresse || '—'}</td>
                   <td>{v.type}{v.pieces ? ` ${v.pieces}p` : ''}</td>
-                  <td className="num">{v.surface} m²</td>
+                  <td className="num">{surfaceFr(v.surface)}</td>
                   <td className="num">{eur(v.prix)}</td>
                   <td className="num"><strong>{eurM2(v.prixM2)}</strong></td>
                   <td className="num">{Math.round(v.distance)} m</td>
@@ -226,7 +227,7 @@ export default function DocumentPositionnement({
                   <tr key={c.id}>
                     <td>{c.titre}</td>
                     <td>{c.ville || '—'}</td>
-                    <td className="num">{c.surface} m²</td>
+                    <td className="num">{surfaceFr(c.surface)}</td>
                     <td className="num">{eur(c.prixVente ?? c.prix)}</td>
                     <td className="num"><strong>{m ? eurM2(m) : '—'}</strong></td>
                     <td className="num">{ancienneteAnnonce(c.dateParution) ?? '—'}</td>

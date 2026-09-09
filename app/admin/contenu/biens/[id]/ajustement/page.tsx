@@ -7,12 +7,13 @@ import { useToast } from "@/components/Toast";
 import { propertyLabel } from "@/lib/propertyLabel";
 import DocumentPositionnement from "@/components/DocumentPositionnement";
 import DeposePdf from "@/components/DeposePdf";
+import ChampNombre from "@/components/ChampNombre";
 import type { VenteDvf, StatsDvf } from "@/lib/dvf";
 import type { ReferenceM2 } from "@/lib/annonceConcurrente";
 import type { Bien } from "@/lib/typesBien";
 import {
   positionner, fourchetteConseillee, impactNetVendeur, fiabilite,
-  comparablesDuPortefeuille, prixM2, m2Retenu, ancienneteAnnonce, type Comparable,
+  comparablesDuPortefeuille, prixM2, m2Retenu, ancienneteAnnonce, surfaceFr, type Comparable,
 } from "@/lib/ajustementPrix";
 
 /**
@@ -47,6 +48,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [dateMiseEnVente, setDateMiseEnVente] = useState<string>("");
   const [commentaire, setCommentaire] = useState<string>("");
   const [saisie, setSaisie] = useState({ ...COMPARABLE_VIERGE });
+  /** Identifiant du bien concurrent en cours de modification, le cas échéant. */
+  const [enEdition, setEnEdition] = useState<string | null>(null);
   const [collage, setCollage] = useState("");
   const [analyse, setAnalyse] = useState(false);
   /** Champs remplis par l'extraction et pas encore relus par un humain. */
@@ -318,7 +321,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       <td>${ech(v.adresse || "—")}</td>
       <td>${ech(v.type)}</td>
       <td class="n">${ech(v.pieces ?? "—")}</td>
-      <td class="n">${v.surface} m²</td>
+      <td class="n">${surfaceFr(v.surface)}</td>
       <td class="n">${Math.round(v.prix).toLocaleString("fr-FR")} €</td>
       <td class="n"><b>${Math.round(v.prixM2).toLocaleString("fr-FR")} €/m²</b></td>
       <td class="n">${Math.round(v.distance)} m</td></tr>`).join("");
@@ -424,23 +427,58 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     });
   };
 
+  /**
+   * Reprend un bien concurrent dans le formulaire de saisie.
+   *
+   * Plutôt qu'une édition ligne à ligne : le formulaire porte déjà les huit
+   * champs, y compris ceux que le tableau n'affiche pas — la source, le lien,
+   * la date de parution. Les éditer sur place aurait demandé de tous les
+   * reproduire dans une ligne de tableau déjà chargée.
+   */
+  const modifierComparable = (c: Comparable) => {
+    setSaisie({
+      titre: c.titre ?? "",
+      ville: c.ville ?? "",
+      prix: c.prix ? String(c.prix) : "",
+      surface: c.surface ? String(c.surface) : "",
+      prixVente: c.prixVente ? String(c.prixVente) : "",
+      dateParution: c.dateParution ?? "",
+      source: c.source ?? "",
+      lien: c.lien ?? "",
+    });
+    setProposes({});
+    setEnEdition(c.id);
+    document.querySelector('[data-testid="saisie-titre"]')?.scrollIntoView({ block: "center", behavior: "smooth" });
+  };
+
+  const annulerEdition = () => {
+    setEnEdition(null);
+    setSaisie({ ...COMPARABLE_VIERGE });
+    setProposes({});
+  };
+
   const ajouterSaisie = () => {
     const prix = Number(saisie.prix), surface = Number(saisie.surface);
     if (!saisie.titre.trim() || !(prix > 0) || !(surface > 0)) {
       toast("Il faut au moins un intitulé, un prix et une surface.");
       return;
     }
-    setComparables(cs => [...cs, {
-      id: `CMP-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    const valeurs = {
       titre: saisie.titre.trim(),
       ville: saisie.ville.trim() || undefined,
       prix, surface,
       prixVente: Number(saisie.prixVente) || undefined,
-      statut: Number(saisie.prixVente) > 0 ? "VENDU" : "EN_VENTE",
+      statut: (Number(saisie.prixVente) > 0 ? "VENDU" : "EN_VENTE") as "VENDU" | "EN_VENTE",
       dateParution: saisie.dateParution || undefined,
       source: saisie.source.trim() || undefined,
       lien: saisie.lien.trim() || undefined,
-    }]);
+    };
+    setComparables(cs => enEdition
+      // On modifie EN PLACE : l'ordre du tableau est celui du document remis
+      // au vendeur, une correction ne doit pas renvoyer la ligne en bas.
+      ? cs.map(c => (c.id === enEdition ? { ...c, ...valeurs } : c))
+      : [...cs, { id: `CMP-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, ...valeurs }]);
+    setEnEdition(null);
     setSaisie({ ...COMPARABLE_VIERGE });
     // La marque « proposé » ne survit pas à l'ajout : le doute se règle avant,
     // il n'a pas à voyager dans un tableau montré au vendeur.
@@ -595,8 +633,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             <div className="flex flex-wrap items-end gap-3">
               <label className="text-sm sans-impression">
                 <span className="block text-xs font-medium mb-1">Prix visé</span>
-                <input type="number" value={prixCible} onChange={e => setPrixCible(e.target.value)}
-                  className="input text-sm w-40" placeholder="Ex. 265000" data-testid="prix-cible" />
+                <ChampNombre value={prixCible} onChange={setPrixCible}
+                  className="input text-sm w-40" placeholder="Ex. 265 000" testid="prix-cible" />
               </label>
               {impact && cible && (
                 <div className="text-sm">
@@ -641,13 +679,13 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                     const m = m2Retenu(c);
                     const plusCher = m !== null && pos !== null && m > pos.prixM2Bien;
                     return (
-                      <tr key={c.id} className={i % 2 ? "bg-black/[0.02]" : ""} data-testid={`comparable-${c.id}`}>
+                      <tr key={c.id} className={enEdition === c.id ? "bg-amber-50 ring-1 ring-amber-300" : i % 2 ? "bg-black/[0.02]" : ""} data-testid={`comparable-${c.id}`}>
                         <td className="py-1.5 pr-2">
                           {c.lien ? <a href={c.lien} target="_blank" rel="noopener noreferrer" className="underline">{c.titre}</a> : c.titre}
                           {c.ville && <span className="opacity-70"> · {c.ville}</span>}
                           {c.source && <span className="text-xs opacity-60"> ({c.source})</span>}
                         </td>
-                        <td className="py-1.5 pr-2 text-right whitespace-nowrap">{c.surface} m²</td>
+                        <td className="py-1.5 pr-2 text-right whitespace-nowrap">{surfaceFr(c.surface)}</td>
                         <td className="py-1.5 pr-2 text-right whitespace-nowrap">
                           {c.prixVente ? <><span className="line-through opacity-50">{eur(c.prix)}</span> {eur(c.prixVente)}</> : eur(c.prix)}
                         </td>
@@ -667,6 +705,9 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                             <button onClick={() => deplacer(i, 1)} disabled={i === comparables.length - 1}
                               className="text-xs opacity-50 hover:opacity-100 disabled:opacity-20 px-1"
                               title="Descendre" data-testid={`descendre-${c.id}`}>↓</button>
+                            <button onClick={() => modifierComparable(c)}
+                              className="text-xs opacity-50 hover:opacity-100 px-1" title="Modifier"
+                              data-testid={`modifier-${c.id}`}>✎</button>
                             <button onClick={() => setComparables(cs => cs.filter(x => x.id !== c.id))}
                               className="text-xs opacity-50 hover:opacity-100 pl-2" title="Retirer" data-testid={`retirer-${c.id}`}>✕</button>
                           </td>
@@ -706,14 +747,12 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                   {[1, 2, 3, 4, 5, 6].map(n => <option key={n} value={n}>{n === 1 ? "1 pièce" : `${n} pièces`}</option>)}
                 </select>
                 <span className="inline-flex items-center gap-1 text-xs">
-                  <input type="number" min="0" placeholder="surf. min" value={dvfSurfaceMin}
-                    onChange={e => setDvfSurfaceMin(e.target.value)}
-                    className="input text-xs py-1 w-[5.5rem]" data-testid="surface-min-dvf"
+                  <ChampNombre placeholder="surf. min" value={dvfSurfaceMin} onChange={setDvfSurfaceMin}
+                    className="input text-xs py-1 w-[5.5rem]" testid="surface-min-dvf"
                     title="Surface minimale, en m²" />
                   <span className="opacity-50">–</span>
-                  <input type="number" min="0" placeholder="surf. max" value={dvfSurfaceMax}
-                    onChange={e => setDvfSurfaceMax(e.target.value)}
-                    className="input text-xs py-1 w-[5.5rem]" data-testid="surface-max-dvf"
+                  <ChampNombre placeholder="surf. max" value={dvfSurfaceMax} onChange={setDvfSurfaceMax}
+                    className="input text-xs py-1 w-[5.5rem]" testid="surface-max-dvf"
                     title="Surface maximale, en m²" />
                   <span className="opacity-50">m²</span>
                 </span>
@@ -816,7 +855,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           )}
 
           <div className="card p-5 mb-4 sans-impression">
-            <h2 className="font-semibold text-sm mb-1 text-[#1F3B2C]">Ajouter un bien vu ailleurs</h2>
+            <h2 className="font-semibold text-sm mb-1 text-[#1F3B2C]">{enEdition ? "Modifier ce bien concurrent" : "Ajouter un bien vu ailleurs"}</h2>
             <p className="text-xs opacity-70 mb-3">Une annonce SeLoger, LeBonCoin, une vitrine concurrente. Renseignez le prix de vente si le bien est déjà parti : c&apos;est l&apos;argument le plus solide.</p>
 
             <div className="mb-4">
@@ -858,9 +897,9 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             <div className="grid md:grid-cols-3 gap-3">
               <input className={`input text-sm md:col-span-2${propose("titre")}`} title={proposes.titre} placeholder="Intitulé (ex. T3 avec balcon, rue Jeanne d'Arc)" value={saisie.titre} onChange={e => maj("titre", e.target.value)} data-testid="saisie-titre" />
               <input className={`input text-sm${propose("ville")}`} title={proposes.ville} placeholder="Ville" value={saisie.ville} onChange={e => maj("ville", e.target.value)} data-testid="saisie-ville" />
-              <input className={`input text-sm${propose("prix")}`} title={proposes.prix} type="number" placeholder="Prix affiché (€)" value={saisie.prix} onChange={e => maj("prix", e.target.value)} data-testid="saisie-prix" />
-              <input className={`input text-sm${propose("surface")}`} title={proposes.surface} type="number" placeholder="Surface (m²)" value={saisie.surface} onChange={e => maj("surface", e.target.value)} data-testid="saisie-surface" />
-              <input className="input text-sm" type="number" placeholder="Prix de vente si vendu (€)" value={saisie.prixVente} onChange={e => maj("prixVente", e.target.value)} data-testid="saisie-prix-vente" />
+              <ChampNombre className={`input text-sm${propose("prix")}`} title={proposes.prix} placeholder="Prix affiché (€)" value={saisie.prix} onChange={v => maj("prix", v)} testid="saisie-prix" />
+              <ChampNombre className={`input text-sm${propose("surface")}`} title={proposes.surface} placeholder="Surface (m²)" value={saisie.surface} onChange={v => maj("surface", v)} testid="saisie-surface" decimales />
+              <ChampNombre className="input text-sm" placeholder="Prix de vente si vendu (€)" value={saisie.prixVente} onChange={v => maj("prixVente", v)} testid="saisie-prix-vente" />
               <label className="text-xs opacity-70 flex flex-col gap-1">
                 <span>En ligne depuis le</span>
                 <input className={`input text-sm${propose("dateParution")}`} type="date"
@@ -870,7 +909,16 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               <input className={`input text-sm${propose("source")}`} title={proposes.source} placeholder="Source" value={saisie.source} onChange={e => maj("source", e.target.value)} data-testid="saisie-source" />
               <input className={`input text-sm md:col-span-2${propose("lien")}`} title={proposes.lien} placeholder="Lien vers l'annonce (facultatif)" value={saisie.lien} onChange={e => maj("lien", e.target.value)} data-testid="saisie-lien" />
             </div>
-            <button onClick={ajouterSaisie} className="btn-luxe text-sm px-3 py-1 mt-3" data-testid="saisie-ajouter">Ajouter ce bien</button>
+            <div className="flex items-center gap-3 mt-3">
+              <button onClick={ajouterSaisie} className="btn-luxe text-sm px-3 py-1" data-testid="saisie-ajouter">
+                {enEdition ? "Enregistrer la modification" : "Ajouter ce bien"}
+              </button>
+              {enEdition && (
+                <button onClick={annulerEdition} className="text-xs underline opacity-70" data-testid="annuler-edition">
+                  annuler
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="card p-5 mb-4 sans-impression">
