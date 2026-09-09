@@ -12,6 +12,7 @@ import { matchesSector, sectorSlugFor, SECTORS, norm, locatifDe, codePostalDe } 
 import cloudinaryLoader from "../lib/cloudinaryLoader.js";
 import { adresseInterdite, urlAutorisee } from "../lib/urlSortante.ts";
 import { analyserCsvDvf, statistiquesDvf, distanceM, urlDvf } from "../lib/dvf.ts";
+import { ancienneteAnnonce } from "../lib/ajustementPrix.ts";
 import {
   nombreFr, sourceDepuisUrl, prixDepuisTexte, surfaceDepuisTexte, fusionner, extraireReferenceM2,
   piecesDepuisTexte, villeDepuisTexte, extraireDepuisTexte, extraireDepuisHtml,
@@ -1264,5 +1265,34 @@ describe("dvf — les ventes signées, sans se laisser abuser par les actes grou
     assert.equal(urlDvf("75118", 2023),
       "https://files.data.gouv.fr/geo-dvf/latest/csv/2023/communes/75/75118.csv");
     assert.ok(urlDvf("97411", 2024).includes("/communes/974/97411.csv"));
+  });
+});
+
+describe("ancienneteAnnonce — dire depuis quand, pas seulement quand", () => {
+  const REF = new Date("2026-09-09T12:00:00Z");
+  const ilYA = (jours: number) =>
+    new Date(REF.getTime() - jours * 86400000).toISOString().slice(0, 10);
+
+  test("les premiers jours se comptent en jours", () => {
+    assert.equal(ancienneteAnnonce(ilYA(0), REF), "0 j");
+    assert.equal(ancienneteAnnonce(ilYA(9), REF), "9 j");
+  });
+
+  test("puis en semaines, puis en mois", () => {
+    assert.equal(ancienneteAnnonce(ilYA(21), REF), "3 sem.");
+    assert.equal(ancienneteAnnonce(ilYA(90), REF), "3 mois");
+    assert.equal(ancienneteAnnonce(ilYA(182), REF), "6 mois");
+  });
+
+  test("au-delà de deux ans, on passe aux années", () => {
+    assert.equal(ancienneteAnnonce(ilYA(800), REF), "2 ans");
+  });
+
+  test("rien plutôt qu'une absurdité", () => {
+    assert.equal(ancienneteAnnonce(undefined, REF), null);
+    assert.equal(ancienneteAnnonce("", REF), null);
+    assert.equal(ancienneteAnnonce("pas une date", REF), null);
+    // Une date future est une saisie fautive : on n'affiche rien.
+    assert.equal(ancienneteAnnonce("2027-01-01", REF), null);
   });
 });

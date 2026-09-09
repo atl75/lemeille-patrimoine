@@ -12,7 +12,7 @@ import type { ReferenceM2 } from "@/lib/annonceConcurrente";
 import type { Bien } from "@/lib/typesBien";
 import {
   positionner, fourchetteConseillee, impactNetVendeur, fiabilite,
-  comparablesDuPortefeuille, prixM2, m2Retenu, type Comparable,
+  comparablesDuPortefeuille, prixM2, m2Retenu, ancienneteAnnonce, type Comparable,
 } from "@/lib/ajustementPrix";
 
 /**
@@ -32,7 +32,7 @@ const eur = (n: number) => Math.round(n).toLocaleString("fr-FR") + " €";
 const eurM2 = (n: number) => Math.round(n).toLocaleString("fr-FR") + " €/m²";
 const pct = (n: number) => (n > 0 ? "+" : "") + n.toFixed(1).replace(".", ",") + " %";
 
-const COMPARABLE_VIERGE = { titre: "", ville: "", prix: "", surface: "", prixVente: "", source: "SeLoger", lien: "" };
+const COMPARABLE_VIERGE = { titre: "", ville: "", prix: "", surface: "", prixVente: "", dateParution: "", source: "SeLoger", lien: "" };
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -253,6 +253,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         poser("ville", c.ville);
         poser("prix", c.prix);
         poser("surface", c.surface);
+        poser("dateParution", c.dateParution);
         poser("source", c.source);
         poser("lien", c.lien);
         // prixVente n'est jamais proposé : il déclenche le statut VENDU et
@@ -436,6 +437,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       prix, surface,
       prixVente: Number(saisie.prixVente) || undefined,
       statut: Number(saisie.prixVente) > 0 ? "VENDU" : "EN_VENTE",
+      dateParution: saisie.dateParution || undefined,
       source: saisie.source.trim() || undefined,
       lien: saisie.lien.trim() || undefined,
     }]);
@@ -624,6 +626,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                     <th className="py-1.5 pr-2 text-right">Surface</th>
                     <th className="py-1.5 pr-2 text-right">Prix</th>
                     <th className="py-1.5 pr-2 text-right">€/m²</th>
+                    <th className="py-1.5 pr-2 whitespace-nowrap">En ligne</th>
                     <th className="py-1.5 pr-2">État</th>
                     {!presentation && <th className="py-1.5 sans-impression"></th>}
                   </tr>
@@ -649,6 +652,9 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                           {c.prixVente ? <><span className="line-through opacity-50">{eur(c.prix)}</span> {eur(c.prixVente)}</> : eur(c.prix)}
                         </td>
                         <td className={`py-1.5 pr-2 text-right whitespace-nowrap font-medium ${plusCher ? "" : "text-red-700"}`}>{m !== null ? eurM2(m) : "—"}</td>
+                        <td className="py-1.5 pr-2 whitespace-nowrap text-xs" title={c.dateParution ? `Paru le ${new Date(c.dateParution).toLocaleDateString("fr-FR")}` : undefined}>
+                          {ancienneteAnnonce(c.dateParution) ?? "—"}
+                        </td>
                         <td className="py-1.5 pr-2 whitespace-nowrap text-xs">{c.statut === "VENDU" ? "✅ Vendu" : "En vente"}</td>
                         {!presentation && (
                           <td className="py-1.5 text-right sans-impression whitespace-nowrap">
@@ -855,6 +861,12 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               <input className={`input text-sm${propose("prix")}`} title={proposes.prix} type="number" placeholder="Prix affiché (€)" value={saisie.prix} onChange={e => maj("prix", e.target.value)} data-testid="saisie-prix" />
               <input className={`input text-sm${propose("surface")}`} title={proposes.surface} type="number" placeholder="Surface (m²)" value={saisie.surface} onChange={e => maj("surface", e.target.value)} data-testid="saisie-surface" />
               <input className="input text-sm" type="number" placeholder="Prix de vente si vendu (€)" value={saisie.prixVente} onChange={e => maj("prixVente", e.target.value)} data-testid="saisie-prix-vente" />
+              <label className="text-xs opacity-70 flex flex-col gap-1">
+                <span>En ligne depuis le</span>
+                <input className={`input text-sm${propose("dateParution")}`} type="date"
+                  value={saisie.dateParution} onChange={e => maj("dateParution", e.target.value)}
+                  data-testid="saisie-date-parution" />
+              </label>
               <input className={`input text-sm${propose("source")}`} title={proposes.source} placeholder="Source" value={saisie.source} onChange={e => maj("source", e.target.value)} data-testid="saisie-source" />
               <input className={`input text-sm md:col-span-2${propose("lien")}`} title={proposes.lien} placeholder="Lien vers l'annonce (facultatif)" value={saisie.lien} onChange={e => maj("lien", e.target.value)} data-testid="saisie-lien" />
             </div>

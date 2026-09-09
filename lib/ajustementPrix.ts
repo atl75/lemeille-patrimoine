@@ -29,6 +29,15 @@ export type Comparable = {
   /** Prix réellement signé, quand il est connu — c'est l'argument le plus fort. */
   prixVente?: number;
   statut?: StatutComparable;
+  /**
+   * Date de parution de l'annonce.
+   *
+   * Ce n'est pas un détail d'archivage : un bien affiché depuis six mois au
+   * même prix est, à lui seul, la démonstration que ce prix ne trouve pas
+   * preneur. C'est souvent l'argument qui porte le plus auprès d'un vendeur
+   * qui compare son bien aux annonces voisines sans regarder leur ancienneté.
+   */
+  dateParution?: string;
   source?: string;
   lien?: string;
   note?: string;
@@ -202,4 +211,23 @@ export function comparablesDuPortefeuille(
       source: 'Portefeuille',
     }))
     .filter((c) => c.prix > 0 && c.surface > 0);
+}
+
+/**
+ * Depuis combien de temps une annonce est-elle en ligne ? Rendu en clair.
+ *
+ * On dit « depuis 5 mois » plutôt que « 12/04/2026 » : une date brute oblige
+ * le lecteur à compter, et c'est précisément ce comptage qui porte l'argument.
+ */
+export function ancienneteAnnonce(dateParution?: string, maintenant = new Date()): string | null {
+  if (!dateParution) return null;
+  const d = new Date(dateParution);
+  if (Number.isNaN(d.getTime())) return null;
+  const jours = Math.floor((maintenant.getTime() - d.getTime()) / 86400000);
+  if (jours < 0) return null;
+  if (jours < 14) return `${jours} j`;
+  if (jours < 60) return `${Math.round(jours / 7)} sem.`;
+  const mois = Math.round(jours / 30.44);
+  if (mois < 24) return `${mois} mois`;
+  return `${Math.floor(mois / 12)} ans`;
 }

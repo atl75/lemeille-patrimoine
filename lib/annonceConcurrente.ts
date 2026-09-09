@@ -28,6 +28,8 @@ export type ChampsAnnonce = {
   prix?: number;
   surface?: number;
   pieces?: number;
+  /** Date de parution, quand le site la publie (schema.org datePosted). */
+  dateParution?: string;
   source?: string;
   lien?: string;
 };
@@ -529,6 +531,14 @@ export function extraireDepuisHtml(html: string, url?: string): Extraction {
   if (Number(bien?.numberOfRooms) > 0) {
     champs.pieces = Number(bien.numberOfRooms); provenance.pieces = 'balisage schema.org';
   }
+  // datePosted dit depuis quand l'annonce est en ligne : sur SeLoger et
+  // Logic-Immo, c'est publié dans le balisage.
+  const dateLd = bien?.datePosted ?? offre?.datePosted;
+  if (typeof dateLd === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateLd)) {
+    champs.dateParution = dateLd.slice(0, 10);
+    provenance.dateParution = 'balisage schema.org';
+  }
+
   const villeLd = bien?.address?.addressLocality;
   if (typeof villeLd === 'string' && villeLd.trim()) {
     champs.ville = villeLd.trim(); provenance.ville = 'balisage schema.org';

@@ -16,7 +16,7 @@
  */
 
 import GraphiquePositionnement, { type PointGraphique } from './GraphiquePositionnement';
-import { m2Retenu, type Comparable, type Positionnement } from '@/lib/ajustementPrix';
+import { m2Retenu, ancienneteAnnonce, type Comparable, type Positionnement } from '@/lib/ajustementPrix';
 import type { VenteDvf, StatsDvf } from '@/lib/dvf';
 import type { ReferenceM2 } from '@/lib/annonceConcurrente';
 
@@ -197,12 +197,26 @@ export default function DocumentPositionnement({
           <p className="doc-source" style={{ margin: '0 0 6px' }}>
             {comparables.length} biens relevés sur les portails. Ce sont des prix DEMANDÉS : ils
             disent ce que les vendeurs espèrent, pas ce que les acquéreurs signent.
+            {/* L'ancienneté N'EST PAS UN DÉTAIL D'ARCHIVAGE. Un bien affiché depuis
+                des mois au même prix démontre à lui seul que ce prix ne trouve
+                pas preneur — souvent l'argument qui porte le plus. */}
+            {(() => {
+              const anciens = comparables.filter(c => {
+                if (!c.dateParution || c.statut === 'VENDU') return false;
+                const j = (Date.now() - new Date(c.dateParution).getTime()) / 86400000;
+                return j >= 90;
+              }).length;
+              return anciens > 0
+                ? ` ${anciens} d'entre eux ${anciens > 1 ? 'sont affichés' : 'est affiché'} depuis plus de trois mois sans trouver preneur.`
+                : '';
+            })()}
           </p>
           <table className="doc-tableau">
             <thead>
               <tr>
                 <th>Bien</th><th>Ville</th><th className="num">Surface</th>
-                <th className="num">Prix</th><th className="num">€/m²</th><th>Statut</th>
+                <th className="num">Prix</th><th className="num">€/m²</th>
+                <th className="num">En ligne</th><th>Statut</th>
               </tr>
             </thead>
             <tbody>
@@ -215,6 +229,7 @@ export default function DocumentPositionnement({
                     <td className="num">{c.surface} m²</td>
                     <td className="num">{eur(c.prixVente ?? c.prix)}</td>
                     <td className="num"><strong>{m ? eurM2(m) : '—'}</strong></td>
+                    <td className="num">{ancienneteAnnonce(c.dateParution) ?? '—'}</td>
                     <td>{c.statut === 'VENDU' ? 'vendu' : 'en vente'}</td>
                   </tr>
                 );
