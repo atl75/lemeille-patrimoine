@@ -65,6 +65,11 @@ export default function DocumentPositionnement({
   agence?: string;
 }) {
   const bienM2 = position?.prixM2Bien ?? null;
+  // Moyenne des biens EN VENTE : calculée sur les comparables retenus, pas sur
+  // les statistiques du portefeuille — c'est ce tableau-là que le vendeur voit.
+  const m2EnVente = comparables.map(m2Retenu).filter((x): x is number => x !== null);
+  const moyenneEnVente = m2EnVente.length
+    ? m2EnVente.reduce((a, b) => a + b, 0) / m2EnVente.length : null;
 
   const pointsVentes: PointGraphique[] = dvf.map(v => ({
     m2: v.prixM2,
@@ -151,6 +156,8 @@ export default function DocumentPositionnement({
             q1M2={statsDvf?.q1M2 ?? null}
             q3M2={statsDvf?.q3M2 ?? null}
             reference={reference}
+            moyenneVentes={statsDvf?.moyenneM2 ?? null}
+            moyenneEnVente={moyenneEnVente}
           />
         </div>
       )}

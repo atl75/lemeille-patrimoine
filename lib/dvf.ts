@@ -28,6 +28,9 @@ export type VenteDvf = {
   adresse: string;
   /** Distance au bien, en mètres. */
   distance: number;
+  /** Coordonnées, pour situer la vente sur une carte. */
+  lat: number;
+  lon: number;
 };
 
 /**
@@ -157,7 +160,7 @@ export function analyserCsvDvf(csv: string, o: OptionsDvf): VenteDvf[] {
       id, date: r[iDate], type, prix, surface, prixM2: m2,
       pieces: Number.isFinite(pieces) && pieces > 0 ? pieces : null,
       adresse: [r[iNum], r[iVoie]].filter(Boolean).join(' ').trim(),
-      distance,
+      distance, lat, lon,
     });
   }
 
@@ -167,6 +170,9 @@ export function analyserCsvDvf(csv: string, o: OptionsDvf): VenteDvf[] {
 export type StatsDvf = {
   nombre: number;
   medianeM2: number;
+  /** Moyenne : demandée à l'affichage, mais la médiane reste la référence —
+   *  une vente hors norme la déplace, pas la médiane. */
+  moyenneM2: number;
   q1M2: number;
   q3M2: number;
   minM2: number;
@@ -187,6 +193,7 @@ export function statistiquesDvf(ventes: VenteDvf[]): StatsDvf | null {
   return {
     nombre: ventes.length,
     medianeM2: quantile(m2, 0.5),
+    moyenneM2: m2.reduce((a, b) => a + b, 0) / m2.length,
     q1M2: quantile(m2, 0.25),
     q3M2: quantile(m2, 0.75),
     minM2: m2[0],

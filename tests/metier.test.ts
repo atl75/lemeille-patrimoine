@@ -1271,6 +1271,7 @@ describe("dvf — les ventes signées, sans se laisser abuser par les actes grou
     const faux = [1000, 2000, 3000, 4000, 5000].map((m, i) => ({
       id: `x${i}`, date: `2024-0${i + 1}-01`, type: "Appartement" as const,
       prix: m * 50, surface: 50, prixM2: m, pieces: null, adresse: "", distance: 10,
+      lat: 49.4417, lon: 1.0945,
     }));
     const s = statistiquesDvf(faux)!;
     assert.equal(s.nombre, 5);

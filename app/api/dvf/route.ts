@@ -115,6 +115,9 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     adresse: point.label,
+    // Le centre sert à cadrer la carte des ventes.
+    lat: point.lat,
+    lon: point.lon,
     precision: point.precision,
     score: point.score,
     rayon,

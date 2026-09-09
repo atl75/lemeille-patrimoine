@@ -35,6 +35,7 @@ const COL = R * 2 + 1.4;       // largeur d'une colonne de l'essaim
 
 export default function GraphiquePositionnement({
   bienM2, cibleM2, ventes, enVente, medianeM2, q1M2, q3M2, reference,
+  moyenneVentes, moyenneEnVente,
 }: {
   bienM2: number | null;
   /** Prix conseillé, au mètre carré. C'est la destination, pas le constat. */
@@ -46,6 +47,9 @@ export default function GraphiquePositionnement({
   q3M2?: number | null;
   /** Prix de référence du secteur, relevé sur une page tierce. */
   reference?: { m2: number; bas?: number; haut?: number; source?: string } | null;
+  /** Moyennes, affichées à la demande — la médiane reste le repère par défaut. */
+  moyenneVentes?: number | null;
+  moyenneEnVente?: number | null;
 }) {
   // La référence prend sa place EN HAUT, en dehors du nuage : c'est un avis de
   // marché, pas une transaction. La mêler aux points laisserait croire qu'elle
@@ -55,6 +59,11 @@ export default function GraphiquePositionnement({
   // change d'un rendu à l'autre et React refuse de compiler.
   const svgRef = useRef<SVGSVGElement>(null);
   const [survol, setSurvol] = useState<number | null>(null);
+  /* Les moyennes sont MASQUÉES par défaut. Le graphique porte déjà trois
+     repères ; en ajouter deux d'office les noierait. On les appelle quand la
+     discussion les demande. */
+  const [voirMoyVentes, setVoirMoyVentes] = useState(false);
+  const [voirMoyEnVente, setVoirMoyEnVente] = useState(false);
 
   const tous = [...ventes, ...enVente].map(p => p.m2).filter(Number.isFinite);
   if (!tous.length) return null;
@@ -203,7 +212,38 @@ export default function GraphiquePositionnement({
            au crochet miniature de la légende, qui s'affichait en géant. */
         .graphique-positionnement > svg { width: 100%; height: auto; }
         .gp-point { stroke: var(--surface); stroke-width: 1.2; }
+        .gp-boutons { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+        .gp-boutons button {
+          display: inline-flex; align-items: center; gap: 6px;
+          border: 1px solid rgba(0,0,0,0.12); border-radius: 999px;
+          padding: 3px 10px; font-size: 11px; background: #fff; cursor: pointer;
+          color: var(--encre-2); transition: background-color .15s, border-color .15s;
+        }
+        .gp-boutons button:hover { background: rgba(0,0,0,0.03); }
+        .gp-boutons button.actif { border-color: var(--encre); color: var(--encre); font-weight: 600; }
+        .gp-boutons .pastille { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
       `}</style>
+
+      {(moyenneVentes != null || moyenneEnVente != null) && (
+        <div className="gp-boutons sans-impression">
+          {moyenneVentes != null && (
+            <button type="button" onClick={() => setVoirMoyVentes(v => !v)}
+              aria-pressed={voirMoyVentes} data-testid="moyenne-ventes"
+              className={voirMoyVentes ? 'actif' : ''}>
+              <span className="pastille" style={{ background: 'var(--serie-1)' }} />
+              Moyenne des ventes signées
+            </button>
+          )}
+          {moyenneEnVente != null && (
+            <button type="button" onClick={() => setVoirMoyEnVente(v => !v)}
+              aria-pressed={voirMoyEnVente} data-testid="moyenne-en-vente"
+              className={voirMoyEnVente ? 'actif' : ''}>
+              <span className="pastille" style={{ background: 'var(--serie-2)' }} />
+              Moyenne des biens en vente
+            </button>
+          )}
+        </div>
+      )}
 
       <svg ref={svgRef} viewBox={`0 0 ${L} ${H}`} role="img"
         onMouseMove={surviser} onMouseLeave={() => setSurvol(null)}
@@ -275,6 +315,24 @@ export default function GraphiquePositionnement({
             </g>
           );
         })()}
+
+        {/* LES MOYENNES, à la demande. Couleur de leur série : ce ne sont pas
+            de nouvelles catégories, mais le résumé de rangées déjà présentes.
+            Étiquettes décalées en hauteur pour ne pas se croiser. */}
+        {[
+          { on: voirMoyVentes, v: moyenneVentes, couleur: 'var(--serie-1)', texte: 'moyenne ventes', dy: 0 },
+          { on: voirMoyEnVente, v: moyenneEnVente, couleur: 'var(--serie-2)', texte: 'moyenne en vente', dy: 12 },
+        ].filter(m => m.on && m.v != null && (m.v as number) >= x0 && (m.v as number) <= x1)
+         .map(m => (
+          <g key={m.texte}>
+            <line x1={X(m.v as number)} y1={HA - 6} x2={X(m.v as number)} y2={H - BA}
+              stroke={m.couleur} strokeWidth="1.5" strokeDasharray="1 3" />
+            <text x={Math.min(Math.max(X(m.v as number), G + 46), L - D - 46)}
+              y={H - BA + 11 + m.dy} textAnchor="middle" fontSize="9" fontWeight="600" fill={m.couleur}>
+              {m.texte} {eur(m.v as number)}
+            </text>
+          </g>
+        ))}
 
         {/* LE SURVOL — dessiné en dernier, il passe au-dessus de tout.
             Ni impression ni trace : c'est un outil de lecture, pas une donnée

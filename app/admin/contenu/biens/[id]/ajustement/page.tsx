@@ -58,7 +58,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [proposes, setProposes] = useState<Record<string, string>>({});
   const [motExtraction, setMotExtraction] = useState<string | null>(null);
   /** Ventes signées autour du bien, tirées de DVF. */
-  const [dvf, setDvf] = useState<{ ventes: VenteDvf[]; stats: StatsDvf | null; adresse: string; precision: string } | null>(null);
+  const [dvf, setDvf] = useState<{ ventes: VenteDvf[]; stats: StatsDvf | null; adresse: string; precision: string; lat?: number; lon?: number } | null>(null);
   const [rayonDvf, setRayonDvf] = useState(300);
   /** Ne garder que les ventes à partir de cette année. */
   const [dvfDepuis, setDvfDepuis] = useState(0);
@@ -300,7 +300,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       });
       const d = await r.json();
       if (!r.ok) { toast(d?.error ?? "Recherche impossible."); return; }
-      setDvf({ ventes: d.ventes ?? [], stats: d.stats ?? null, adresse: d.adresse, precision: d.precision });
+      setDvf({ ventes: d.ventes ?? [], stats: d.stats ?? null, adresse: d.adresse, precision: d.precision, lat: d.lat, lon: d.lon });
       if (!d.ventes?.length) toast("Aucune vente comparable trouvée dans ce rayon.");
     } catch {
       toast("Recherche impossible.");
@@ -354,6 +354,88 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         <th>Date</th><th>Adresse</th><th>Type</th><th class="n">Pièces</th>
         <th class="n">Surface</th><th class="n">Prix</th><th class="n">€/m²</th><th class="n">Distance</th>
       </tr></thead><tbody>${lignes}</tbody></table>`;
+  };
+
+  /**
+   * Une CARTE des ventes signées, un point par adresse.
+   *
+   * Leaflet et les tuiles OpenStreetMap : ni clé, ni facturation. La clé Google
+   * Maps du projet n'existe qu'en local, elle est absente de l'environnement de
+   * production — s'appuyer dessus aurait donné une carte blanche en ligne.
+   *
+   * Le document est autonome : tout ce qu'il montre voyage avec lui, rien n'est
+   * rechargé depuis le site.
+   */
+  const documentDeLaCarte = (): string => {
+    if (!dvf?.ventes.length || dvf.lat == null || dvf.lon == null) return "";
+    const ech = (v: unknown) => String(v ?? "").replace(/[&<>"']/g, c =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
+    const points = dvf.ventes.map(v => ({
+      lat: v.lat, lon: v.lon, m2: Math.round(v.prixM2),
+      t: `${new Date(v.date).toLocaleDateString("fr-FR")} · ${ech(v.adresse || "adresse inconnue")}`
+        + `<br>${v.type} ${v.surface} m²${v.pieces ? ` · ${v.pieces} pièces` : ""}`
+        + `<br><b>${Math.round(v.prix).toLocaleString("fr-FR")} €</b> — ${Math.round(v.prixM2).toLocaleString("fr-FR")} €/m²`
+        + `<br>à ${Math.round(v.distance)} m du bien`,
+    }));
+    const med = dvf.stats?.medianeM2 ?? 0;
+    return `<!doctype html><meta charset="utf-8">
+      <title>Ventes signées autour de ${ech(dvf.adresse)}</title>
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+      <style>
+        body{margin:0;font:13px/1.5 -apple-system,system-ui,sans-serif;color:#111}
+        header{padding:12px 18px;border-bottom:1px solid #d9d7d0}
+        h1{font-size:16px;color:#1F3B2C;margin:0 0 3px}
+        p{margin:0;font-size:12px;color:#52514e}
+        #carte{position:absolute;top:74px;bottom:0;left:0;right:0}
+        .leaflet-popup-content{font-size:12px;line-height:1.45}
+        .lg{position:absolute;z-index:1000;right:12px;bottom:24px;background:#fff;
+            border:1px solid #d9d7d0;border-radius:4px;padding:8px 10px;font-size:11px}
+        .pastille{display:inline-block;width:10px;height:10px;border-radius:50%;
+                  margin-right:6px;vertical-align:-1px}
+      </style>
+      <header>
+        <h1>${dvf.ventes.length} ventes signées autour du bien</h1>
+        <p>${ech(dvf.adresse)} — rayon ${rayonDvf} m. Source : demandes de valeurs foncières (DGFiP),
+licence ouverte. Fond de carte OpenStreetMap.</p>
+      </header>
+      <div id="carte"></div>
+      <div class="lg">
+        <div><span class="pastille" style="background:#1F3B2C"></span>Le bien</div>
+        <div><span class="pastille" style="background:#2a78d6"></span>Sous la médiane (${Math.round(med).toLocaleString("fr-FR")} €/m²)</div>
+        <div><span class="pastille" style="background:#eb6834"></span>Au-dessus</div>
+      </div>
+      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+      <script>
+        const centre = [${dvf.lat}, ${dvf.lon}];
+        const carte = L.map('carte').setView(centre, 16);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19, attribution: '© OpenStreetMap'
+        }).addTo(carte);
+        L.circle(centre, { radius: ${rayonDvf}, color: '#1F3B2C', weight: 1,
+          fillOpacity: 0.04 }).addTo(carte);
+        const pts = ${JSON.stringify(points)};
+        const groupe = [];
+        for (const p of pts) {
+          const m = L.circleMarker([p.lat, p.lon], {
+            radius: 5, weight: 1.5, color: '#fff',
+            fillColor: p.m2 >= ${Math.round(med)} ? '#eb6834' : '#2a78d6', fillOpacity: 0.9,
+          }).bindPopup(p.t);
+          m.addTo(carte); groupe.push(m);
+        }
+        L.circleMarker(centre, { radius: 8, weight: 2, color: '#fff',
+          fillColor: '#1F3B2C', fillOpacity: 1 }).bindPopup('Le bien').addTo(carte);
+        if (groupe.length) carte.fitBounds(L.featureGroup(groupe).getBounds().pad(0.12));
+      </script>`;
+  };
+
+  /** Ouvre la carte dans un onglet, ou dans un panneau si le navigateur refuse. */
+  const voirLaCarte = () => {
+    const html = documentDeLaCarte();
+    if (!html) return;
+    const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+    const f = window.open(url, "_blank");
+    if (f) { setTimeout(() => URL.revokeObjectURL(url), 120000); return; }
+    setApercuVentes(url);
   };
 
   /**
@@ -550,7 +632,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         <Breadcrumb items={[{ label: "Administration", href: "/admin" }, { label: "Biens", href: "/admin/contenu/biens" }, { label: propertyLabel(bien), href: `/admin/contenu/biens/${id}` }, { label: "Ajustement de prix" }]} />
       </div>
 
-      <div className="flex flex-wrap items-start justify-between gap-3 mb-5 sans-impression">
+      <div className="flex flex-wrap items-center gap-3 mb-5 sans-impression rounded-2xl border border-black/10 bg-white px-4 py-3 shadow-sm">
         <div className={presentation ? "hidden" : ""}>
           <h1 className="luxe text-2xl mb-1">Positionnement du prix</h1>
           {/* propertyLabel porte déjà typologie, surface, ville et prix : le
@@ -561,18 +643,25 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             {m2Bien ? <strong> · {eurM2(m2Bien)}</strong> : null}
           </p>
         </div>
-        <div className="flex gap-2 sans-impression">
-          <div className="inline-flex rounded-lg border overflow-hidden">
+        {/* Le bandeau : la bascule à gauche, les actions poussées à DROITE, et
+            « Enregistrer » en dernier — c'est le geste qui clôt le travail. */}
+        <div className="flex items-center gap-2 ml-auto sans-impression">
+          <div className="inline-flex rounded-full border border-black/10 overflow-hidden bg-white">
             {(["preparer", "presenter"] as const).map(m => (
               <button key={m} onClick={() => setMode(m)} aria-pressed={mode === m}
-                className={`px-3 py-1.5 text-sm ${mode === m ? "bg-[#1F3B2C] text-white" : "hover:bg-black/[0.04]"}`}
+                className={`px-4 py-1.5 text-sm rounded-full transition-colors ${
+                  mode === m ? "bg-[#1F3B2C] text-white" : "hover:bg-black/[0.04]"}`}
                 data-testid={`mode-${m}`}>
                 {m === "preparer" ? "Préparer" : "Présenter"}
               </button>
             ))}
           </div>
-          <button onClick={() => window.print()} className="btn text-sm" data-testid="imprimer">Imprimer</button>
-          <button onClick={enregistrer} disabled={enregistrement} className="btn-luxe text-sm disabled:opacity-50" data-testid="enregistrer">
+          <button onClick={() => window.print()}
+            className="rounded-full border border-black/10 bg-white px-4 py-1.5 text-sm hover:bg-black/[0.04] transition-colors"
+            data-testid="imprimer">Imprimer</button>
+          <button onClick={enregistrer} disabled={enregistrement}
+            className="rounded-full bg-[#1F3B2C] text-white px-4 py-1.5 text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
+            data-testid="enregistrer">
             {enregistrement ? "Enregistrement…" : "Enregistrer"}
           </button>
         </div>
@@ -816,9 +905,14 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                   {dvf.precision !== "housenumber" && " — au niveau de la rue seulement, pas du numéro"}.
                   Dernière vente le {new Date(dvf.stats.derniereVente).toLocaleDateString("fr-FR")}.
                 </p>
-                <button onClick={voirLesVentes} className="btn text-xs mt-2" data-testid="voir-ventes">
-                  Voir les {dvf.ventes.length} ventes en détail
-                </button>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <button onClick={voirLesVentes} className="btn text-xs" data-testid="voir-ventes">
+                    Voir les {dvf.ventes.length} ventes en détail
+                  </button>
+                  <button onClick={voirLaCarte} className="btn text-xs" data-testid="voir-carte">
+                    Voir sur une carte
+                  </button>
+                </div>
               </div>
             )}
             {dvf && !dvf.stats && (
@@ -996,7 +1090,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           <div className="absolute inset-4 bg-white rounded shadow-xl flex flex-col"
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-2 border-b">
-              <span className="text-sm font-semibold text-[#1F3B2C]">Détail des ventes signées</span>
+              <span className="text-sm font-semibold text-[#1F3B2C]">Ventes signées autour du bien</span>
               <button onClick={() => { URL.revokeObjectURL(apercuVentes); setApercuVentes(null); }}
                 className="btn text-xs" data-testid="fermer-apercu">Fermer</button>
             </div>
