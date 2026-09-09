@@ -59,11 +59,13 @@ export default function GraphiquePositionnement({
   // change d'un rendu à l'autre et React refuse de compiler.
   const svgRef = useRef<SVGSVGElement>(null);
   const [survol, setSurvol] = useState<number | null>(null);
-  /* Les moyennes sont MASQUÉES par défaut. Le graphique porte déjà trois
-     repères ; en ajouter deux d'office les noierait. On les appelle quand la
-     discussion les demande. */
-  const [voirMoyVentes, setVoirMoyVentes] = useState(false);
-  const [voirMoyEnVente, setVoirMoyEnVente] = useState(false);
+  /* CHAQUE REPÈRE S'ALLUME ET S'ÉTEINT. Les trois qui portent la démonstration
+     sont allumés d'emblée ; les deux moyennes attendent qu'on les demande — le
+     graphique en porterait cinq d'office, et aucun ne se lirait. */
+  const [visibles, setVisibles] = useState<Record<string, boolean>>({
+    bien: true, cible: true, mediane: true, moyVentes: false, moyEnVente: false,
+  });
+  const bascule = (cle: string) => setVisibles(v => ({ ...v, [cle]: !v[cle] }));
 
   const tous = [...ventes, ...enVente].map(p => p.m2).filter(Number.isFinite);
   if (!tous.length) return null;
@@ -108,7 +110,8 @@ export default function GraphiquePositionnement({
    * couple qui doit se lire en premier. L'avis extérieur vient l'appuyer.
    */
   const CHIP_W = 172, CHIP_H = 19, Y0 = 12;
-  const aBien = bienM2 != null, aCible = cibleM2 != null && cibleM2 !== bienM2;
+  const aBien = bienM2 != null && visibles.bien;
+  const aCible = cibleM2 != null && cibleM2 !== bienM2 && visibles.cible;
   // Deux étiquettes voisines se recouvrent : on les empile alors.
   const chevauche = aBien && aCible && Math.abs(X(bienM2!) - X(cibleM2!)) < CHIP_W + 10;
   const yBien = Y0;
@@ -224,26 +227,27 @@ export default function GraphiquePositionnement({
         .gp-boutons .pastille { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
       `}</style>
 
-      {(moyenneVentes != null || moyenneEnVente != null) && (
-        <div className="gp-boutons sans-impression">
-          {moyenneVentes != null && (
-            <button type="button" onClick={() => setVoirMoyVentes(v => !v)}
-              aria-pressed={voirMoyVentes} data-testid="moyenne-ventes"
-              className={voirMoyVentes ? 'actif' : ''}>
-              <span className="pastille" style={{ background: 'var(--serie-1)' }} />
-              Moyenne des ventes signées
-            </button>
-          )}
-          {moyenneEnVente != null && (
-            <button type="button" onClick={() => setVoirMoyEnVente(v => !v)}
-              aria-pressed={voirMoyEnVente} data-testid="moyenne-en-vente"
-              className={voirMoyEnVente ? 'actif' : ''}>
-              <span className="pastille" style={{ background: 'var(--serie-2)' }} />
-              Moyenne des biens en vente
-            </button>
-          )}
-        </div>
-      )}
+      {/* Chaque repère a son bouton. La pastille reprend sa couleur sur le
+          tracé, pour qu'on lie l'un à l'autre sans légende. */}
+      <div className="gp-boutons sans-impression">
+        {([
+          { cle: 'bien', dispo: bienM2 != null, libelle: 'Votre bien', couleur: 'var(--encre)' },
+          { cle: 'cible', dispo: cibleM2 != null && cibleM2 !== bienM2, libelle: 'Prix conseillé', couleur: 'var(--encre)', creuse: true },
+          { cle: 'mediane', dispo: medianeM2 != null, libelle: 'Médiane des ventes', couleur: 'var(--serie-1)' },
+          { cle: 'moyVentes', dispo: moyenneVentes != null, libelle: 'Moyenne des ventes signées', couleur: 'var(--serie-1)' },
+          { cle: 'moyEnVente', dispo: moyenneEnVente != null, libelle: 'Moyenne des biens en vente', couleur: 'var(--serie-2)' },
+        ] as const).filter(b => b.dispo).map(b => (
+          <button key={b.cle} type="button" onClick={() => bascule(b.cle)}
+            aria-pressed={!!visibles[b.cle]} data-testid={`repere-${b.cle}`}
+            className={visibles[b.cle] ? 'actif' : ''}>
+            <span className="pastille" style={{
+              background: (b as any).creuse ? 'transparent' : b.couleur,
+              border: (b as any).creuse ? `2px solid ${b.couleur}` : undefined,
+            }} />
+            {b.libelle}
+          </button>
+        ))}
+      </div>
 
       <svg ref={svgRef} viewBox={`0 0 ${L} ${H}`} role="img"
         onMouseMove={surviser} onMouseLeave={() => setSurvol(null)}
@@ -266,7 +270,7 @@ export default function GraphiquePositionnement({
           prix au mètre carré (€)
         </text>
 
-        {medianeM2 != null && (
+        {medianeM2 != null && visibles.mediane && (
           <>
             <line x1={X(medianeM2)} y1={HA - 6} x2={X(medianeM2)} y2={H - BA}
               stroke="var(--serie-1)" strokeWidth="1.5" strokeDasharray="4 3" />
@@ -288,10 +292,6 @@ export default function GraphiquePositionnement({
             ))}
           </g>
         ))}
-
-        {/* LES DEUX PRIX, en tête : celui qui EST, celui qu'on PROPOSE. */}
-        {aBien && etiquette(bienM2!, yBien, `Votre bien · ${eur(bienM2!)} €/m²`, true)}
-        {aCible && etiquette(cibleM2!, yCible, `Prix conseillé · ${eur(cibleM2!)} €/m²`, false)}
 
         {/* LES DEUX PRIX, en tête : celui qui EST, celui qu'on PROPOSE. */}
         {aBien && etiquette(bienM2!, yBien, `Votre bien · ${eur(bienM2!)} €/m²`, true)}
@@ -320,8 +320,8 @@ export default function GraphiquePositionnement({
             de nouvelles catégories, mais le résumé de rangées déjà présentes.
             Étiquettes décalées en hauteur pour ne pas se croiser. */}
         {[
-          { on: voirMoyVentes, v: moyenneVentes, couleur: 'var(--serie-1)', texte: 'moyenne ventes', dy: 0 },
-          { on: voirMoyEnVente, v: moyenneEnVente, couleur: 'var(--serie-2)', texte: 'moyenne en vente', dy: 12 },
+          { on: visibles.moyVentes, v: moyenneVentes, couleur: 'var(--serie-1)', texte: 'moyenne ventes', dy: 0 },
+          { on: visibles.moyEnVente, v: moyenneEnVente, couleur: 'var(--serie-2)', texte: 'moyenne en vente', dy: 12 },
         ].filter(m => m.on && m.v != null && (m.v as number) >= x0 && (m.v as number) <= x1)
          .map(m => (
           <g key={m.texte}>

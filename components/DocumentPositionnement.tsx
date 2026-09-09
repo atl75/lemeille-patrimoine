@@ -93,8 +93,29 @@ export default function DocumentPositionnement({
           html, body { background: #fff !important; }
           /* Aucun habillage du site sur un document remis à un client. */
           header, nav, footer, .bg-luxe, .sans-impression { display: none !important; }
-          .doc-positionnement { padding: 14mm 14mm 10mm !important; }
-          .doc-bloc { break-inside: avoid; }
+
+          /* LA RÉSERVE EST PORTÉE PAR LES BLOCS, PAS PAR LE CONTENEUR.
+             Avec une marge de page nulle — seul moyen de supprimer les en-têtes
+             du navigateur — une réserve posée sur le conteneur ne vaut que pour
+             la PREMIÈRE page : le contenu de la seconde touchait le bord. Portée
+             par chaque bloc, elle s'applique où que le bloc commence. */
+          /* La réserve du haut de PAGE 1 vient du conteneur ; celle des pages
+             suivantes, du bloc qui les ouvre. 6 + 8 = 14 mm en tête du
+             document, 8 mm en tête des pages suivantes. */
+          .doc-positionnement { padding: 6mm 14mm 12mm !important; }
+          .doc-bloc { padding-top: 8mm; break-inside: avoid; }
+
+          /* LE TABLEAU DES VENTES A LE DROIT DE SE COUPER. Mesuré : il va de
+             200 à 313 mm, il chevauche donc la coupure à 297. Le garder d'un
+             seul tenant le renvoyait entier page 2 et laissait 97 mm de blanc
+             au bas de la première. Il se coupe, et son en-tête se répète. */
+          .doc-bloc-long { break-inside: auto; }
+          .doc-tableau thead { display: table-header-group; }
+          .doc-tableau tr { break-inside: avoid; }
+          .doc-positionnement h2 { break-after: avoid; }
+
+          /* Les aplats et les couleurs du constat doivent sortir à l'encre. */
+          .doc-positionnement { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .doc-tableau { font-size: 9.5pt; }
         }
         .doc-positionnement { --encre: #1F3B2C; --encre-2: #52514e; --trait: #d9d7d0; color: #111; }
@@ -164,7 +185,7 @@ export default function DocumentPositionnement({
 
       {/* ————— 1. Les ventes signées ————— */}
       {statsDvf && dvf.length > 0 && (
-        <div className="doc-bloc" style={{ marginBottom: 18 }}>
+        <div className="doc-bloc doc-bloc-long" style={{ marginBottom: 18 }}>
           <h2>Ce qui s&apos;est réellement vendu autour</h2>
           <p className="doc-source" style={{ margin: '0 0 6px' }}>
             {statsDvf.nombre} ventes dans un rayon de {rayonDvf} m, dernière le {jour(statsDvf.derniereVente)}.
