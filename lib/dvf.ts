@@ -244,6 +244,41 @@ export function statistiquesDvf(ventes: VenteDvf[]): StatsDvf | null {
   };
 }
 
+export type AnneeDvf = {
+  annee: number;
+  nombre: number;
+  medianeM2: number;
+};
+
+/**
+ * Les ventes signées, année par année.
+ *
+ * Ce que le tableau montre et qu'une médiane globale cache : la TENDANCE. Un
+ * secteur dont le prix au m² recule depuis trois ans ne se négocie pas comme
+ * un secteur stable, et c'est souvent la seule page d'un avis de valeur qu'un
+ * vendeur relit. On retient la médiane et non la moyenne : sur une trentaine
+ * de ventes annuelles, un hôtel particulier déplacerait la moyenne à lui seul.
+ *
+ * Les années sans vente ne figurent pas. Une ligne « 0 vente — 0 €/m² » se
+ * lirait comme un effondrement des prix alors qu'elle ne dit rien du tout.
+ */
+export function parAnnee(ventes: VenteDvf[]): AnneeDvf[] {
+  const groupes = new Map<number, number[]>();
+  for (const v of ventes) {
+    const annee = Number(String(v.date).slice(0, 4));
+    if (!Number.isFinite(annee) || annee < 1900) continue;
+    const liste = groupes.get(annee);
+    if (liste) liste.push(v.prixM2);
+    else groupes.set(annee, [v.prixM2]);
+  }
+  return [...groupes.entries()]
+    .map(([annee, m2]) => {
+      const tries = m2.slice().sort((a, b) => a - b);
+      return { annee, nombre: tries.length, medianeM2: quantile(tries, 0.5) };
+    })
+    .sort((a, b) => b.annee - a.annee);
+}
+
 /** URL du fichier officiel pour une commune et une année. */
 export function urlDvf(codeInsee: string, annee: number): string {
   // Le département tient sur les deux premiers caractères, sauf outre-mer

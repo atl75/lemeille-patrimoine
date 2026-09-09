@@ -5,7 +5,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import { useConfirm } from "@/components/ConfirmDialog";
 import CompanyAutocomplete from "@/components/CompanyAutocomplete";
 import { useEffect, useState } from "react";
-import { Plus, X, Calendar, CheckCircle2, Circle, Edit2, Trash2, Paperclip, Download, Eye, FileText, Search, Mail, MessageSquare } from "lucide-react";
+import { Plus, X, Calendar, CheckCircle2, Circle, Edit2, Trash2, Paperclip, Download, Eye, FileText, Search, Mail, MessageSquare, Calculator } from "lucide-react";
 import MoneyInput from "@/components/MoneyInput";
 import { needsFollowUp, formatDate, PRIORITY_META, PRIORITY_CYCLE } from "@/lib/typesLead";
 import type { Lead, Action, Attachment } from "@/lib/typesLead";
@@ -14,6 +14,40 @@ import { parOrdreAntichronologique } from "@/lib/commentairesLead";
 
 export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
   const roleLabel = role === 'VENDEUR' ? 'Vendeurs' : 'Acheteurs';
+  /**
+   * Ouvre l'estimation d'un vendeur : la sienne si elle existe, sinon une
+   * nouvelle, préremplie avec ce que le lead nous a déjà dit.
+   *
+   * On ne crée jamais de doublon en silence — un vendeur rappelé trois mois
+   * plus tard doit retrouver l'estimation qu'on lui a présentée, pas une page
+   * vide qui donnerait un autre chiffre.
+   */
+  const [estimationEnCours, setEstimationEnCours] = useState<string | null>(null);
+  async function ouvrirEstimation(lead: Lead) {
+    setEstimationEnCours(lead.id);
+    try {
+      const liste = await fetch('/api/estimations').then(r => r.ok ? r.json() : []);
+      const sienne = (Array.isArray(liste) ? liste : []).find((e: any) => e?.leadId === lead.id);
+      if (sienne) { window.location.href = `/admin/estimations/${sienne.id}`; return; }
+
+      const nom = [lead.firstName, lead.lastName].filter(Boolean).join(' ').trim();
+      const r = await fetch('/api/estimations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId: lead.id,
+          titre: nom ? `Estimation — ${nom}` : 'Estimation',
+          adresse: lead.address || '',
+        }),
+      });
+      if (!r.ok) throw new Error();
+      const creee = await r.json();
+      window.location.href = `/admin/estimations/${creee.id}`;
+    } catch {
+      toast("❌ L'estimation n'a pas pu être ouverte.");
+      setEstimationEnCours(null);
+    }
+  }
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const toast = useToast();
@@ -1084,6 +1118,18 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                         >
                           <FileText className="w-3 h-3" />
                           Mandat & bien
+                        </button>
+                      )}
+                      {(lead.category || 'immobilier') === 'immobilier' && (lead.role || 'ACHETEUR') === 'VENDEUR' && (
+                        <button
+                          onClick={() => ouvrirEstimation(lead)}
+                          disabled={estimationEnCours === lead.id}
+                          className="btn text-xs flex items-center gap-1 px-2 py-1 hover:bg-emerald-50 text-emerald-700 disabled:opacity-50"
+                          data-testid={`button-estimation-${lead.id}`}
+                          title="Estimer le bien de ce vendeur"
+                        >
+                          <Calculator className="w-3 h-3" />
+                          {estimationEnCours === lead.id ? 'Ouverture…' : 'Estimer'}
                         </button>
                       )}
                       <button
