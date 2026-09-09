@@ -86,7 +86,9 @@ export default function GraphiquePositionnement({
   // Assez de hauteur pour que les points RESPIRENT. Comprimés, les colonnes
   // fusionnent en barres pleines et l'on perd ce qui fait l'intérêt de la
   // forme : voir chaque vente, une par une.
-  const H = HA + (reference ? 300 : 274);
+  // Le crochet seul ne demande plus la ligne qu'occupait son libellé : la
+  // hauteur totale la rend, au lieu de la laisser en marge morte.
+  const H = HA + (reference ? 284 : 274);
 
   /** Une étiquette de prix : pleine pour ce qui EST, cernée pour ce qu'on propose. */
   const etiquette = (v: number, y: number, texte: string, pleine: boolean) => {
@@ -116,9 +118,11 @@ export default function GraphiquePositionnement({
      il s'intercale entre ce qui s'est signé et ce qui se demande, et le lecteur
      voit d'un coup de quel côté il penche. En tête, il concurrençait les deux
      prix qui portent la discussion. */
-  const Y_REF_TEXTE = reference ? BASE_V + 16 : 0;
-  const Y_REF_TRAIT = reference ? BASE_V + 27 : 0;
-  const BASE_E = reference ? BASE_V + 46 : HA + 174;  // en vente : empilées vers le bas
+  // Le crochet SEUL : ses valeurs sont passées en légende. Écrites ici, elles
+  // occupaient une ligne entière entre les deux rangées et repoussaient les
+  // biens en vente vers le bas pour un chiffre qu'on lit une fois.
+  const Y_REF_TRAIT = reference ? BASE_V + 18 : 0;
+  const BASE_E = reference ? BASE_V + 32 : HA + 174;  // en vente : empilées vers le bas
 
   /**
    * Empile les points par colonne : la hauteur dit la densité.
@@ -169,7 +173,9 @@ export default function GraphiquePositionnement({
           print-color-adjust: exact;
           break-inside: avoid;
         }
-        .graphique-positionnement svg { width: 100%; height: auto; }
+        /* ENFANT DIRECT seulement : sans le « > », la règle s'appliquait aussi
+           au crochet miniature de la légende, qui s'affichait en géant. */
+        .graphique-positionnement > svg { width: 100%; height: auto; }
         .gp-point { stroke: var(--surface); stroke-width: 1.2; }
       `}</style>
 
@@ -239,13 +245,6 @@ export default function GraphiquePositionnement({
               <line x1={xB} y1={yC - 4} x2={xB} y2={yC + 4} stroke="var(--encre-2)" strokeWidth="1.5" />
               <line x1={xH} y1={yC - 4} x2={xH} y2={yC + 4} stroke="var(--encre-2)" strokeWidth="1.5" />
               <circle cx={X(reference.m2)} cy={yC} r="4" fill="var(--encre-2)" />
-              <rect x={Math.min(Math.max(X(reference.m2), G + 70), L - D - 70) - 96} y={Y_REF_TEXTE - 9}
-                width="192" height="13" fill="var(--surface)" opacity="0.92" />
-              <text x={Math.min(Math.max(X(reference.m2), G + 70), L - D - 70)} y={Y_REF_TEXTE}
-                textAnchor="middle" fontSize="10" fill="var(--encre-2)">
-                {reference.source ?? 'Référence'} · {eur(reference.m2)} €/m²
-                {bas !== haut ? ` (${eur(bas)} – ${eur(haut)})` : ''}
-              </text>
             </g>
           );
         })()}
@@ -256,7 +255,23 @@ export default function GraphiquePositionnement({
         <span style={{ color: 'var(--serie-1)' }}>●</span> Ventes signées, source DVF (DGFiP).{' '}
         <span style={{ color: 'var(--serie-2)' }}>●</span> Biens en vente relevés sur les portails.
         {' '}La bande claire couvre la moitié centrale des ventes signées.
-        {reference && ` Le crochet, entre les deux rangées, situe l'avis de marché${reference.source ? ` (${reference.source})` : ''}.`}
+        {reference && (
+          <>
+            {' '}
+            {/* Le crochet est redessiné en miniature : la légende doit pouvoir
+                se rattacher au trait sans qu'on ait à deviner lequel. */}
+            <svg width="22" height="9" viewBox="0 0 22 9" style={{ verticalAlign: 'middle' }} aria-hidden="true">
+              <line x1="1" y1="4.5" x2="21" y2="4.5" stroke="currentColor" strokeWidth="1.4" />
+              <line x1="1" y1="1" x2="1" y2="8" stroke="currentColor" strokeWidth="1.4" />
+              <line x1="21" y1="1" x2="21" y2="8" stroke="currentColor" strokeWidth="1.4" />
+              <circle cx="11" cy="4.5" r="3" fill="currentColor" />
+            </svg>
+            {' '}{reference.source ?? 'Avis de marché'} · {eur(reference.m2)} €/m²
+            {(reference.bas ?? reference.m2) !== (reference.haut ?? reference.m2)
+              ? ` (de ${eur(reference.bas as number)} à ${eur(reference.haut as number)})` : ''}
+            , entre les deux rangées.
+          </>
+        )}
         {cibleM2 != null && " Le trait discontinu marque le prix conseillé."}
         {horsEchelle > 0 && ` ${horsEchelle} vente${horsEchelle > 1 ? 's' : ''} hors échelle, `
           + `conservée${horsEchelle > 1 ? 's' : ''} dans la médiane.`}
