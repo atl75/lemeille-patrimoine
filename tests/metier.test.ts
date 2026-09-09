@@ -11,8 +11,9 @@ import { isThinListing } from "../lib/thinListing.ts";
 import { matchesSector, sectorSlugFor, SECTORS, norm, locatifDe, codePostalDe } from "../lib/sectors.ts";
 import cloudinaryLoader from "../lib/cloudinaryLoader.js";
 import { adresseInterdite, urlAutorisee } from "../lib/urlSortante.ts";
+import { analyserCsvDvf, statistiquesDvf, distanceM, urlDvf } from "../lib/dvf.ts";
 import {
-  nombreFr, sourceDepuisUrl, prixDepuisTexte, surfaceDepuisTexte, fusionner,
+  nombreFr, sourceDepuisUrl, prixDepuisTexte, surfaceDepuisTexte, fusionner, extraireReferenceM2,
   piecesDepuisTexte, villeDepuisTexte, extraireDepuisTexte, extraireDepuisHtml,
 } from "../lib/annonceConcurrente.ts";
 import { needsFollowUp, formatDate } from "../lib/typesLead.ts";
@@ -837,6 +838,25 @@ describe("annonceConcurrente — lire une annonce sans se faire piéger", () => 
     assert.equal(champs.prix, 735000);
   });
 
+  test("prix de référence au m² : le quartier, pas les honoraires", () => {
+    const page = `Prix immobilier Rouen Centre
+      Prix m² moyen appartement : 3 245 €/m²
+      Fourchette : de 2 890 €/m² à 3 780 €/m²
+      Évolution sur un an : +2,1 %
+      Honoraires de l'agence : 4 % du prix de vente
+      Un bien en vitrine : 249 000 €`;
+    const r = extraireReferenceM2(page)!;
+    assert.equal(r.m2, 3245);
+    assert.equal(r.bas, 2890);
+    assert.equal(r.haut, 3780);
+  });
+
+  test("prix de référence : rien plutôt qu'un chiffre au hasard", () => {
+    assert.equal(extraireReferenceM2("Page sans le moindre prix au mètre carré."), null);
+    // 12 €/m² de charges annuelles n'est pas un prix de marché.
+    assert.equal(extraireReferenceM2("Charges : 12 €/m² par an"), null);
+  });
+
   test("HTML : le prix d'une PAGE DE RÉSULTATS n'est pas celui d'un bien", () => {
     // Mesuré chez ParuVendu et sur les listes SeLoger : le JSON-LD d'une page
     // de recherche déclare un AggregateOffer couvrant tout le catalogue. Le
@@ -972,5 +992,138 @@ describe("urlSortante — ne pas devenir un proxy vers l'intérieur", () => {
   test("une URL malformée est refusée proprement", async () => {
     const v = await urlAutorisee("pas du tout une url");
     assert.equal(v.ok, false);
+  });
+});
+
+describe("dvf — les ventes signées, sans se laisser abuser par les actes groupés", () => {
+  const ENTETES = "id_mutation,date_mutation,numero_disposition,nature_mutation,valeur_fonciere," +
+    "adresse_numero,adresse_suffixe,adresse_nom_voie,adresse_code_voie,code_postal,code_commune," +
+    "nom_commune,code_departement,ancien_code_commune,ancien_nom_commune,id_parcelle," +
+    "ancien_id_parcelle,numero_volume,lot1_numero,lot1_surface_carrez,lot2_numero,lot2_surface_carrez," +
+    "lot3_numero,lot3_surface_carrez,lot4_numero,lot4_surface_carrez,lot5_numero,lot5_surface_carrez," +
+    "nombre_lots,code_type_local,type_local,surface_reelle_bati,nombre_pieces_principales," +
+    "code_nature_culture,nature_culture,code_nature_culture_speciale,nature_culture_speciale," +
+    "surface_terrain,longitude,latitude";
+
+  // Fabrique une ligne au bon gabarit : 40 colonnes.
+  const ligne = (o: Record<string, string | number>) => {
+    const cols = ENTETES.split(",");
+    const v = new Array(cols.length).fill("");
+    for (const [k, val] of Object.entries(o)) v[cols.indexOf(k)] = String(val);
+    return v.join(",");
+  };
+  const CENTRE = { lat: 49.4417, lon: 1.0945 };
+  const base = { nature_mutation: "Vente", longitude: 1.0945, latitude: 49.4417 };
+
+  test("une vente simple est retenue, avec son prix au m²", () => {
+    const csv = [ENTETES, ligne({ ...base, id_mutation: "M1", date_mutation: "2024-03-01",
+      valeur_fonciere: 270000, type_local: "Appartement", surface_reelle_bati: 81,
+      nombre_pieces_principales: 3, adresse_numero: 32, adresse_nom_voie: "RUE DES CARMES" })].join("\n");
+    const v = analyserCsvDvf(csv, { ...CENTRE, rayon: 300 });
+    assert.equal(v.length, 1);
+    assert.equal(v[0].prix, 270000);
+    assert.equal(v[0].surface, 81);
+    assert.equal(Math.round(v[0].prixM2), 3333);
+    assert.equal(v[0].adresse, "32 RUE DES CARMES");
+  });
+
+  test("les dépendances du même acte ne comptent pas comme des biens", () => {
+    // Cas mesuré à Rouen : 315 000 € pour un appartement PLUS deux dépendances.
+    // Le prix les inclut, la division par la surface du logement reste juste.
+    const csv = [ENTETES,
+      ligne({ ...base, id_mutation: "M2", valeur_fonciere: 315000, type_local: "Appartement",
+              surface_reelle_bati: 72, date_mutation: "2024-05-02" }),
+      ligne({ ...base, id_mutation: "M2", valeur_fonciere: 315000, type_local: "Dépendance" }),
+      ligne({ ...base, id_mutation: "M2", valeur_fonciere: 315000, type_local: "Dépendance" }),
+    ].join("\n");
+    const v = analyserCsvDvf(csv, { ...CENTRE, rayon: 300 });
+    assert.equal(v.length, 1, "un seul bien, pas trois");
+    assert.equal(Math.round(v[0].prixM2), 4375);
+  });
+
+  test("UN ACTE À PLUSIEURS LOGEMENTS EST ÉCARTÉ — le piège le plus coûteux", () => {
+    // valeur_fonciere est le prix de TOUTE la mutation, répété sur chaque
+    // ligne. Un immeuble vendu d'un bloc donnerait ici 900 000 € / 40 m²,
+    // soit 22 500 €/m² à Rouen : un chiffre absurde qui ruinerait
+    // l'argumentaire remis au vendeur.
+    const csv = [ENTETES,
+      ligne({ ...base, id_mutation: "M3", valeur_fonciere: 900000, type_local: "Appartement", surface_reelle_bati: 40 }),
+      ligne({ ...base, id_mutation: "M3", valeur_fonciere: 900000, type_local: "Appartement", surface_reelle_bati: 45 }),
+      ligne({ ...base, id_mutation: "M3", valeur_fonciere: 900000, type_local: "Appartement", surface_reelle_bati: 38 }),
+    ].join("\n");
+    assert.deepEqual(analyserCsvDvf(csv, { ...CENTRE, rayon: 300 }), []);
+  });
+
+  test("un local commercial dans le même acte rend le prix mixte : écarté", () => {
+    const csv = [ENTETES,
+      ligne({ ...base, id_mutation: "M4", valeur_fonciere: 600000, type_local: "Appartement", surface_reelle_bati: 90 }),
+      ligne({ ...base, id_mutation: "M4", valeur_fonciere: 600000, type_local: "Local industriel. commercial ou assimilé", surface_reelle_bati: 120 }),
+    ].join("\n");
+    assert.deepEqual(analyserCsvDvf(csv, { ...CENTRE, rayon: 300 }), []);
+  });
+
+  test("ce qui n'est pas une vente est écarté", () => {
+    const csv = [ENTETES, ligne({ ...base, nature_mutation: "Echange", id_mutation: "M5",
+      valeur_fonciere: 200000, type_local: "Appartement", surface_reelle_bati: 60 })].join("\n");
+    assert.deepEqual(analyserCsvDvf(csv, { ...CENTRE, rayon: 300 }), []);
+  });
+
+  test("les valeurs aberrantes sont écartées", () => {
+    const csv = [ENTETES,
+      ligne({ ...base, id_mutation: "A", valeur_fonciere: 1, type_local: "Appartement", surface_reelle_bati: 60 }),
+      ligne({ ...base, id_mutation: "B", valeur_fonciere: 5000000, type_local: "Appartement", surface_reelle_bati: 12 }),
+      ligne({ ...base, id_mutation: "C", valeur_fonciere: 200000, type_local: "Appartement", surface_reelle_bati: 2 }),
+    ].join("\n");
+    assert.deepEqual(analyserCsvDvf(csv, { ...CENTRE, rayon: 300 }), []);
+  });
+
+  test("le rayon et le type filtrent réellement", () => {
+    const csv = [ENTETES,
+      ligne({ ...base, id_mutation: "P", valeur_fonciere: 270000, type_local: "Appartement", surface_reelle_bati: 81 }),
+      ligne({ ...base, id_mutation: "L", valeur_fonciere: 300000, type_local: "Appartement",
+              surface_reelle_bati: 81, latitude: 49.4600, longitude: 1.0945 }),   // ~2 km
+      ligne({ ...base, id_mutation: "MA", valeur_fonciere: 400000, type_local: "Maison", surface_reelle_bati: 120 }),
+    ].join("\n");
+    assert.equal(analyserCsvDvf(csv, { ...CENTRE, rayon: 300 }).length, 2, "le lointain sort");
+    assert.equal(analyserCsvDvf(csv, { ...CENTRE, rayon: 300, type: "Appartement" }).length, 1);
+    assert.equal(analyserCsvDvf(csv, { ...CENTRE, rayon: 5000 }).length, 3);
+  });
+
+  test("la tolérance de surface écarte ce qui n'est pas comparable", () => {
+    const csv = [ENTETES,
+      ligne({ ...base, id_mutation: "S1", valeur_fonciere: 270000, type_local: "Appartement", surface_reelle_bati: 81 }),
+      ligne({ ...base, id_mutation: "S2", valeur_fonciere: 600000, type_local: "Appartement", surface_reelle_bati: 200 }),
+    ].join("\n");
+    const v = analyserCsvDvf(csv, { ...CENTRE, rayon: 300, surfaceRef: 80, toleranceSurface: 0.4 });
+    assert.equal(v.length, 1);
+    assert.equal(v[0].surface, 81);
+  });
+
+  test("statistiques : médiane et quartiles", () => {
+    const faux = [1000, 2000, 3000, 4000, 5000].map((m, i) => ({
+      id: `x${i}`, date: `2024-0${i + 1}-01`, type: "Appartement" as const,
+      prix: m * 50, surface: 50, prixM2: m, pieces: null, adresse: "", distance: 10,
+    }));
+    const s = statistiquesDvf(faux)!;
+    assert.equal(s.nombre, 5);
+    assert.equal(s.medianeM2, 3000);
+    assert.equal(s.q1M2, 2000);
+    assert.equal(s.q3M2, 4000);
+    assert.equal(s.derniereVente, "2024-05-01");
+    assert.equal(statistiquesDvf([]), null);
+  });
+
+  test("distance : un ordre de grandeur juste", () => {
+    // Un centième de degré de latitude vaut environ 1,11 km.
+    assert.ok(Math.abs(distanceM(49.44, 1.09, 49.45, 1.09) - 1113) < 20);
+    assert.equal(Math.round(distanceM(49.44, 1.09, 49.44, 1.09)), 0);
+  });
+
+  test("URL officielle, département sur deux chiffres — trois en outre-mer", () => {
+    assert.equal(urlDvf("76540", 2024),
+      "https://files.data.gouv.fr/geo-dvf/latest/csv/2024/communes/76/76540.csv");
+    assert.equal(urlDvf("75118", 2023),
+      "https://files.data.gouv.fr/geo-dvf/latest/csv/2023/communes/75/75118.csv");
+    assert.ok(urlDvf("97411", 2024).includes("/communes/974/97411.csv"));
   });
 });

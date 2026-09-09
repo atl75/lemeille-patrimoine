@@ -5,6 +5,9 @@ import AdminShell from "@/components/AdminShell";
 import Breadcrumb from "@/components/Breadcrumb";
 import { useToast } from "@/components/Toast";
 import { propertyLabel } from "@/lib/propertyLabel";
+import DocumentPositionnement from "@/components/DocumentPositionnement";
+import type { VenteDvf, StatsDvf } from "@/lib/dvf";
+import type { ReferenceM2 } from "@/lib/annonceConcurrente";
 import type { Bien } from "@/lib/typesBien";
 import {
   positionner, fourchetteConseillee, impactNetVendeur, fiabilite,
@@ -48,6 +51,13 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   /** Champs remplis par l'extraction et pas encore relus par un humain. */
   const [proposes, setProposes] = useState<Record<string, string>>({});
   const [motExtraction, setMotExtraction] = useState<string | null>(null);
+  /** Ventes signées autour du bien, tirées de DVF. */
+  const [dvf, setDvf] = useState<{ ventes: VenteDvf[]; stats: StatsDvf | null; adresse: string; precision: string } | null>(null);
+  const [rayonDvf, setRayonDvf] = useState(300);
+  const [chargeDvf, setChargeDvf] = useState(false);
+  /** Prix de référence du secteur, relevé par l'agent sur une page tierce. */
+  const [reference, setReference] = useState<ReferenceM2 | null>(null);
+  const [collageRef, setCollageRef] = useState("");
   const [enregistrement, setEnregistrement] = useState(false);
 
   useEffect(() => {
@@ -81,6 +91,29 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
   const pos = useMemo(() => bien ? positionner(bien, comparables) : null, [bien, comparables]);
   const fourchette = useMemo(() => bien ? fourchetteConseillee(bien, comparables) : null, [bien, comparables]);
+
+  /**
+   * La fourchette recommandée s'appuie sur la MEILLEURE preuve disponible.
+   *
+   * Sans cela le document se contredisait : il présentait les ventes signées
+   * comme l'argument le plus fort, puis recommandait un prix calculé sur les
+   * prix DEMANDÉS des concurrents — plus élevés par nature. Un vendeur attentif
+   * relève la contradiction, et tout l'argumentaire tombe avec elle.
+   */
+  const fourchetteRetenue = useMemo(() => {
+    const surface = Number(bien?.surface);
+    if (dvf?.stats && surface > 0) {
+      return { bas: dvf.stats.q1M2 * surface, haut: dvf.stats.medianeM2 * surface };
+    }
+    return fourchette;
+  }, [dvf, bien, fourchette]);
+
+  /** Le prix qui alignerait le bien sur le marché réellement constaté. */
+  const prixAligneRetenu = useMemo(() => {
+    const surface = Number(bien?.surface);
+    if (dvf?.stats && surface > 0) return dvf.stats.medianeM2 * surface;
+    return pos?.prixAligne ?? null;
+  }, [dvf, bien, pos]);
   const cible = Number(prixCible) || null;
   const impact = useMemo(() => (bien && cible ? impactNetVendeur(bien, cible) : null), [bien, cible]);
   const confiance = fiabilite(pos?.stats ?? null);
@@ -200,6 +233,45 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       );
   };
 
+  /**
+   * Va chercher les ventes RÉELLEMENT SIGNÉES autour du bien.
+   *
+   * Source : les fichiers DVF de la DGFiP, via data.gouv.fr. C'est l'argument
+   * le plus difficile à contester face à un vendeur : ni notre estimation, ni
+   * celle d'un concurrent, mais des actes.
+   */
+  const chercherDvf = async (rayon = rayonDvf) => {
+    // L'adresse exacte du bien vit dans map.query ; la ville sert de repli.
+    const adresse = (bien?.map?.query || "").trim() || [bien?.city, bien?.region].filter(Boolean).join(" ");
+    if (!adresse.trim()) { toast("Renseignez l'adresse du bien pour chercher les ventes autour."); return; }
+    setChargeDvf(true);
+    try {
+      const r = await fetch("/api/dvf", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adresse, rayon, type: bien?.type === "Maison" ? "Maison" : "Appartement", surface: bien?.surface }),
+      });
+      const d = await r.json();
+      if (!r.ok) { toast(d?.error ?? "Recherche impossible."); return; }
+      setDvf({ ventes: d.ventes ?? [], stats: d.stats ?? null, adresse: d.adresse, precision: d.precision });
+      if (!d.ventes?.length) toast("Aucune vente comparable trouvée dans ce rayon.");
+    } catch {
+      toast("Recherche impossible.");
+    } finally {
+      setChargeDvf(false);
+    }
+  };
+
+  /** Lit un prix de référence au m² dans une page collée (MeilleursAgents…). */
+  const lireReference = async () => {
+    const v = collageRef.trim();
+    if (!v) return;
+    const { extraireReferenceM2 } = await import("@/lib/annonceConcurrente");
+    const r = extraireReferenceM2(v);
+    if (!r) { toast("Aucun prix au m² trouvé dans ce texte."); return; }
+    setReference({ ...r, source: /meilleursagents/i.test(v) ? "MeilleursAgents" : undefined });
+    setCollageRef("");
+  };
+
   const ajouterSaisie = () => {
     const prix = Number(saisie.prix), surface = Number(saisie.surface);
     if (!saisie.titre.trim() || !(prix > 0) || !(surface > 0)) {
@@ -254,8 +326,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         <Breadcrumb items={[{ label: "Administration", href: "/admin" }, { label: "Biens", href: "/admin/contenu/biens" }, { label: propertyLabel(bien), href: `/admin/contenu/biens/${id}` }, { label: "Ajustement de prix" }]} />
       </div>
 
-      <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-5 sans-impression">
+        <div className={presentation ? "hidden" : ""}>
           <h1 className="luxe text-2xl mb-1">Positionnement du prix</h1>
           {/* propertyLabel porte déjà typologie, surface, ville et prix : le
               répéter ici donnait « 100 m² · 400 000 € » deux fois de suite. */}
@@ -282,138 +354,224 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         </div>
       </div>
 
-      {/* ————— Le constat ————— */}
-      {pos ? (
-        <div className="card p-5 mb-4">
-          <div className="grid md:grid-cols-4 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-semibold text-[#1F3B2C]">{eurM2(pos.prixM2Bien)}</div>
-              <div className="text-xs opacity-70 mt-1">Votre bien</div>
-            </div>
-            <div>
-              <div className="text-2xl font-semibold">{eurM2(pos.stats.medianeM2)}</div>
-              <div className="text-xs opacity-70 mt-1">Médiane des {pos.stats.nombre} biens comparables</div>
-            </div>
-            <div>
-              <div className={`text-2xl font-semibold ${pos.ecartPourcent > 0 ? "text-red-700" : "text-green-700"}`}>{pct(pos.ecartPourcent)}</div>
-              <div className="text-xs opacity-70 mt-1">Écart au marché comparable</div>
-            </div>
-            <div>
-              <div className={`text-2xl font-semibold ${pos.ecartEuros > 0 ? "text-red-700" : "text-green-700"}`}>{eur(Math.abs(pos.ecartEuros))}</div>
-              <div className="text-xs opacity-70 mt-1">{pos.ecartEuros > 0 ? "Au-dessus" : "En dessous"} du prix aligné</div>
-            </div>
-          </div>
-
-          <p className="text-sm mt-4 leading-relaxed">
-            {pos.moinsChers > 0 ? (
-              <>Sur les {pos.stats.nombre} biens retenus, <strong>{pos.moinsChers}</strong> {pos.moinsChers > 1 ? "sont" : "est"} moins {pos.moinsChers > 1 ? "chers" : "cher"} au mètre carré.
-              Un acquéreur qui compare les voit avant celui-ci.</>
-            ) : (
-              <>Aucun des {pos.stats.nombre} biens retenus n&apos;est moins cher au mètre carré : le prix est déjà bien placé.</>
-            )}
-            {" "}Aligné sur la médiane, le bien serait affiché à <strong>{eur(pos.prixAligne)}</strong>.
-          </p>
-
-          {confiance === "faible" && (
-            <p className="text-xs mt-3 p-2 rounded bg-amber-50 border border-amber-200">
-              ⚠️ Base étroite : {pos.stats.nombre} comparable{pos.stats.nombre > 1 ? "s" : ""}. À présenter comme un éclairage, pas comme une mesure du marché.
-            </p>
-          )}
-          {pos.stats.nombreVendus > 0 && (
-            <p className="text-xs mt-2 opacity-75">
-              Dont {pos.stats.nombreVendus} bien{pos.stats.nombreVendus > 1 ? "s" : ""} déjà vendu{pos.stats.nombreVendus > 1 ? "s" : ""} : ce sont des prix réellement acceptés, pas des prix espérés.
-            </p>
-          )}
-        </div>
-      ) : (
-        <div className="card p-5 mb-4 text-sm opacity-75">
-          Ajoutez au moins un bien concurrent, avec son prix et sa surface, pour obtenir le positionnement.
-        </div>
+      {/* ————— Le document remis au vendeur ————— */}
+      {presentation && (
+        <DocumentPositionnement
+          bien={{ title: bien.title, address: bien.map?.query, city: bien.city,
+                  surface: bien.surface, price: bien.price, type: bien.type }}
+          position={pos}
+          comparables={comparables}
+          dvf={dvf?.ventes ?? []}
+          statsDvf={dvf?.stats ?? null}
+          reference={reference}
+          rayonDvf={rayonDvf}
+          fourchette={fourchetteRetenue}
+          impact={prixAligneRetenu != null ? impactNetVendeur(bien, prixAligneRetenu) : null}
+          fiabilite={confiance}
+          commentaire={commentaire}
+        />
       )}
 
-      {/* ————— Fourchette et prix visé ————— */}
-      {(fourchette || cible) && (
-        <div className="card p-5 mb-4">
-          <h2 className="font-semibold text-sm mb-3 text-[#1F3B2C]">Prix de mise en marché conseillé</h2>
-          {fourchette && (
-            <p className="text-sm mb-3">
-              Entre <strong>{eur(fourchette.bas)}</strong> et <strong>{eur(fourchette.haut)}</strong>.
-              <span className="opacity-75"> La borne haute aligne le bien sur la médiane ; la borne basse le place devant la moitié de ses concurrents.</span>
-            </p>
-          )}
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="text-sm sans-impression">
-              <span className="block text-xs font-medium mb-1">Prix visé</span>
-              <input type="number" value={prixCible} onChange={e => setPrixCible(e.target.value)}
-                className="input text-sm w-40" placeholder="Ex. 265000" data-testid="prix-cible" />
-            </label>
-            {impact && cible && (
-              <div className="text-sm">
-                <div>Affiché : <strong>{eur(cible)}</strong>{m2Bien && bien.surface ? <span className="opacity-75"> · {eurM2(cible / Number(bien.surface))}</span> : null}</div>
-                <div className="mt-1">
-                  Net vendeur : <strong>{eur(impact.netNouveau)}</strong>
-                  <span className="opacity-75"> au lieu de {eur(impact.netActuel)}, soit {eur(impact.perte)} de moins</span>
-                  {impact.honoraires > 0 && <span className="opacity-75"> — honoraires inchangés à {eur(impact.honoraires)}</span>}
-                </div>
+      {/* ————— Écran de travail : masqué dès qu'on présente ————— */}
+      {!presentation && (
+        <>
+        {/* ————— Le constat ————— */}
+        {pos ? (
+          <div className="card p-5 mb-4">
+            <div className="grid md:grid-cols-4 gap-4 text-center">
+              <div>
+                <div className="text-2xl font-semibold text-[#1F3B2C]">{eurM2(pos.prixM2Bien)}</div>
+                <div className="text-xs opacity-70 mt-1">Votre bien</div>
               </div>
+              <div>
+                <div className="text-2xl font-semibold">{eurM2(pos.stats.medianeM2)}</div>
+                <div className="text-xs opacity-70 mt-1">Médiane des {pos.stats.nombre} biens comparables</div>
+              </div>
+              <div>
+                <div className={`text-2xl font-semibold ${pos.ecartPourcent > 0 ? "text-red-700" : "text-green-700"}`}>{pct(pos.ecartPourcent)}</div>
+                <div className="text-xs opacity-70 mt-1">Écart au marché comparable</div>
+              </div>
+              <div>
+                <div className={`text-2xl font-semibold ${pos.ecartEuros > 0 ? "text-red-700" : "text-green-700"}`}>{eur(Math.abs(pos.ecartEuros))}</div>
+                <div className="text-xs opacity-70 mt-1">{pos.ecartEuros > 0 ? "Au-dessus" : "En dessous"} du prix aligné</div>
+              </div>
+            </div>
+
+            <p className="text-sm mt-4 leading-relaxed">
+              {pos.moinsChers > 0 ? (
+                <>Sur les {pos.stats.nombre} biens retenus, <strong>{pos.moinsChers}</strong> {pos.moinsChers > 1 ? "sont" : "est"} moins {pos.moinsChers > 1 ? "chers" : "cher"} au mètre carré.
+                Un acquéreur qui compare les voit avant celui-ci.</>
+              ) : (
+                <>Aucun des {pos.stats.nombre} biens retenus n&apos;est moins cher au mètre carré : le prix est déjà bien placé.</>
+              )}
+              {" "}Aligné sur la médiane, le bien serait affiché à <strong>{eur(pos.prixAligne)}</strong>.
+            </p>
+
+            {confiance === "faible" && (
+              <p className="text-xs mt-3 p-2 rounded bg-amber-50 border border-amber-200">
+                ⚠️ Base étroite : {pos.stats.nombre} comparable{pos.stats.nombre > 1 ? "s" : ""}. À présenter comme un éclairage, pas comme une mesure du marché.
+              </p>
+            )}
+            {pos.stats.nombreVendus > 0 && (
+              <p className="text-xs mt-2 opacity-75">
+                Dont {pos.stats.nombreVendus} bien{pos.stats.nombreVendus > 1 ? "s" : ""} déjà vendu{pos.stats.nombreVendus > 1 ? "s" : ""} : ce sont des prix réellement acceptés, pas des prix espérés.
+              </p>
             )}
           </div>
-        </div>
-      )}
-
-      {/* ————— Les concurrents ————— */}
-      <div className="card p-5 mb-4">
-        <h2 className="font-semibold text-sm mb-3 text-[#1F3B2C]">
-          Biens concurrents retenus {comparables.length > 0 && <span className="font-normal opacity-75">({comparables.length})</span>}
-        </h2>
-        {comparables.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left border-b">
-                  <th className="py-1.5 pr-2">Bien</th>
-                  <th className="py-1.5 pr-2 text-right">Surface</th>
-                  <th className="py-1.5 pr-2 text-right">Prix</th>
-                  <th className="py-1.5 pr-2 text-right">€/m²</th>
-                  <th className="py-1.5 pr-2">État</th>
-                  {!presentation && <th className="py-1.5 sans-impression"></th>}
-                </tr>
-              </thead>
-              <tbody>
-                {[...comparables].sort((a, b) => (m2Retenu(a) ?? 0) - (m2Retenu(b) ?? 0)).map((c, i) => {
-                  const m = m2Retenu(c);
-                  const plusCher = m !== null && pos !== null && m > pos.prixM2Bien;
-                  return (
-                    <tr key={c.id} className={i % 2 ? "bg-black/[0.02]" : ""} data-testid={`comparable-${c.id}`}>
-                      <td className="py-1.5 pr-2">
-                        {c.lien ? <a href={c.lien} target="_blank" rel="noopener noreferrer" className="underline">{c.titre}</a> : c.titre}
-                        {c.ville && <span className="opacity-70"> · {c.ville}</span>}
-                        {c.source && <span className="text-xs opacity-60"> ({c.source})</span>}
-                      </td>
-                      <td className="py-1.5 pr-2 text-right whitespace-nowrap">{c.surface} m²</td>
-                      <td className="py-1.5 pr-2 text-right whitespace-nowrap">
-                        {c.prixVente ? <><span className="line-through opacity-50">{eur(c.prix)}</span> {eur(c.prixVente)}</> : eur(c.prix)}
-                      </td>
-                      <td className={`py-1.5 pr-2 text-right whitespace-nowrap font-medium ${plusCher ? "" : "text-red-700"}`}>{m !== null ? eurM2(m) : "—"}</td>
-                      <td className="py-1.5 pr-2 whitespace-nowrap text-xs">{c.statut === "VENDU" ? "✅ Vendu" : "En vente"}</td>
-                      {!presentation && (
-                        <td className="py-1.5 text-right sans-impression">
-                          <button onClick={() => setComparables(cs => cs.filter(x => x.id !== c.id))}
-                            className="text-xs opacity-50 hover:opacity-100" title="Retirer" data-testid={`retirer-${c.id}`}>✕</button>
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        ) : (
+          <div className="card p-5 mb-4 text-sm opacity-75">
+            Ajoutez au moins un bien concurrent, avec son prix et sa surface, pour obtenir le positionnement.
           </div>
-        ) : <p className="text-sm opacity-75 italic">Aucun bien concurrent pour l&apos;instant.</p>}
-      </div>
+        )}
+
+        {/* ————— Fourchette et prix visé ————— */}
+        {(fourchette || cible) && (
+          <div className="card p-5 mb-4">
+            <h2 className="font-semibold text-sm mb-3 text-[#1F3B2C]">Prix de mise en marché conseillé</h2>
+            {fourchette && (
+              <p className="text-sm mb-3">
+                Entre <strong>{eur(fourchette.bas)}</strong> et <strong>{eur(fourchette.haut)}</strong>.
+                <span className="opacity-75"> La borne haute aligne le bien sur la médiane ; la borne basse le place devant la moitié de ses concurrents.</span>
+              </p>
+            )}
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="text-sm sans-impression">
+                <span className="block text-xs font-medium mb-1">Prix visé</span>
+                <input type="number" value={prixCible} onChange={e => setPrixCible(e.target.value)}
+                  className="input text-sm w-40" placeholder="Ex. 265000" data-testid="prix-cible" />
+              </label>
+              {impact && cible && (
+                <div className="text-sm">
+                  <div>Affiché : <strong>{eur(cible)}</strong>{m2Bien && bien.surface ? <span className="opacity-75"> · {eurM2(cible / Number(bien.surface))}</span> : null}</div>
+                  <div className="mt-1">
+                    Net vendeur : <strong>{eur(impact.netNouveau)}</strong>
+                    <span className="opacity-75"> au lieu de {eur(impact.netActuel)}, soit {eur(impact.perte)} de moins</span>
+                    {impact.honoraires > 0 && <span className="opacity-75"> — honoraires inchangés à {eur(impact.honoraires)}</span>}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ————— Les concurrents ————— */}
+        <div className="card p-5 mb-4">
+          <h2 className="font-semibold text-sm mb-3 text-[#1F3B2C]">
+            Biens concurrents retenus {comparables.length > 0 && <span className="font-normal opacity-75">({comparables.length})</span>}
+          </h2>
+          {comparables.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left border-b">
+                    <th className="py-1.5 pr-2">Bien</th>
+                    <th className="py-1.5 pr-2 text-right">Surface</th>
+                    <th className="py-1.5 pr-2 text-right">Prix</th>
+                    <th className="py-1.5 pr-2 text-right">€/m²</th>
+                    <th className="py-1.5 pr-2">État</th>
+                    {!presentation && <th className="py-1.5 sans-impression"></th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...comparables].sort((a, b) => (m2Retenu(a) ?? 0) - (m2Retenu(b) ?? 0)).map((c, i) => {
+                    const m = m2Retenu(c);
+                    const plusCher = m !== null && pos !== null && m > pos.prixM2Bien;
+                    return (
+                      <tr key={c.id} className={i % 2 ? "bg-black/[0.02]" : ""} data-testid={`comparable-${c.id}`}>
+                        <td className="py-1.5 pr-2">
+                          {c.lien ? <a href={c.lien} target="_blank" rel="noopener noreferrer" className="underline">{c.titre}</a> : c.titre}
+                          {c.ville && <span className="opacity-70"> · {c.ville}</span>}
+                          {c.source && <span className="text-xs opacity-60"> ({c.source})</span>}
+                        </td>
+                        <td className="py-1.5 pr-2 text-right whitespace-nowrap">{c.surface} m²</td>
+                        <td className="py-1.5 pr-2 text-right whitespace-nowrap">
+                          {c.prixVente ? <><span className="line-through opacity-50">{eur(c.prix)}</span> {eur(c.prixVente)}</> : eur(c.prix)}
+                        </td>
+                        <td className={`py-1.5 pr-2 text-right whitespace-nowrap font-medium ${plusCher ? "" : "text-red-700"}`}>{m !== null ? eurM2(m) : "—"}</td>
+                        <td className="py-1.5 pr-2 whitespace-nowrap text-xs">{c.statut === "VENDU" ? "✅ Vendu" : "En vente"}</td>
+                        {!presentation && (
+                          <td className="py-1.5 text-right sans-impression">
+                            <button onClick={() => setComparables(cs => cs.filter(x => x.id !== c.id))}
+                              className="text-xs opacity-50 hover:opacity-100" title="Retirer" data-testid={`retirer-${c.id}`}>✕</button>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : <p className="text-sm opacity-75 italic">Aucun bien concurrent pour l&apos;instant.</p>}
+        </div>
+        </>
+      )}
 
       {/* ————— Outils de préparation ————— */}
       {!presentation && (
         <>
+          {/* ————— Les ventes réellement signées autour ————— */}
+          <div className="card p-5 mb-4 sans-impression">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
+              <h2 className="font-semibold text-sm text-[#1F3B2C]">Ventes signées autour du bien</h2>
+              <div className="flex items-center gap-2">
+                <select value={rayonDvf} onChange={e => setRayonDvf(Number(e.target.value))}
+                  className="input text-xs py-1" data-testid="rayon-dvf">
+                  {[150, 300, 500, 1000].map(r => <option key={r} value={r}>{r} m</option>)}
+                </select>
+                <button onClick={() => chercherDvf()} disabled={chargeDvf}
+                  className="btn text-xs disabled:opacity-50" data-testid="chercher-dvf">
+                  {chargeDvf ? "Recherche…" : "Chercher"}
+                </button>
+              </div>
+            </div>
+            <p className="text-xs opacity-70">
+              Les actes déclarés à la DGFiP (base DVF) : des prix réellement signés, pas des prix demandés.
+              C&apos;est l&apos;argument le plus difficile à contester.
+            </p>
+            {dvf && dvf.stats && (
+              <div className="mt-3 text-sm">
+                <p>
+                  <strong>{dvf.stats.nombre} ventes</strong> à moins de {rayonDvf} m —
+                  médiane <strong>{eurM2(dvf.stats.medianeM2)}</strong>,
+                  moitié centrale de {eurM2(dvf.stats.q1M2)} à {eurM2(dvf.stats.q3M2)}.
+                </p>
+                <p className="text-xs opacity-70 mt-1">
+                  Adresse retenue : {dvf.adresse}
+                  {dvf.precision !== "housenumber" && " — au niveau de la rue seulement, pas du numéro"}.
+                  Dernière vente le {new Date(dvf.stats.derniereVente).toLocaleDateString("fr-FR")}.
+                </p>
+              </div>
+            )}
+            {dvf && !dvf.stats && (
+              <p className="mt-3 text-sm opacity-75 italic">Aucune vente comparable dans ce rayon — essayez plus large.</p>
+            )}
+          </div>
+
+          {/* ————— Le prix de référence du secteur ————— */}
+          <div className="card p-5 mb-4 sans-impression">
+            <h2 className="font-semibold text-sm mb-1 text-[#1F3B2C]">Prix de référence du secteur</h2>
+            <p className="text-xs opacity-70 mb-2">
+              MeilleursAgents refuse d&apos;être lu par un serveur. Ouvrez la page à l&apos;adresse du bien
+              dans votre navigateur, puis collez-en le texte ici.
+            </p>
+            <textarea className="input text-sm w-full" rows={2} value={collageRef}
+              onChange={e => setCollageRef(e.target.value)}
+              placeholder="Collez le texte de la page de prix (Ctrl+A puis Ctrl+C)"
+              data-testid="collage-reference" />
+            <div className="flex items-center gap-3 mt-2">
+              <button onClick={lireReference} disabled={!collageRef.trim()}
+                className="btn text-xs disabled:opacity-50" data-testid="lire-reference">Lire le prix</button>
+              {reference && (
+                <p className="text-sm" data-testid="reference-lue">
+                  <strong>{eurM2(reference.m2)}</strong>
+                  {reference.bas && reference.haut && reference.bas !== reference.haut
+                    ? <span className="opacity-70"> — de {eurM2(reference.bas)} à {eurM2(reference.haut)}</span> : null}
+                  <button onClick={() => setReference(null)} className="ml-2 text-xs underline opacity-60">retirer</button>
+                </p>
+              )}
+            </div>
+          </div>
+
           {suggestions.length > 0 && (
             <div className="card p-5 mb-4 sans-impression">
               <h2 className="font-semibold text-sm mb-1 text-[#1F3B2C]">Depuis votre portefeuille</h2>

@@ -326,6 +326,68 @@ export function fusionner(prioritaire: Extraction, secours: Extraction): Extract
 }
 
 /* ------------------------------------------------------------------ */
+/* Prix de référence au m² — MeilleursAgents et consorts               */
+/* ------------------------------------------------------------------ */
+
+export type ReferenceM2 = {
+  m2: number;
+  bas?: number;
+  haut?: number;
+  source?: string;
+  extrait: string;
+};
+
+/**
+ * Lit un prix de référence au mètre carré dans une page collée ou imprimée.
+ *
+ * POURQUOI PAS AUTOMATIQUE. MeilleursAgents répond 403 avec un en-tête
+ * « x-datadome: protected », y compris depuis une adresse résidentielle —
+ * mesuré. Comme pour SeLoger, on ne contourne pas : l'agent ouvre la page dans
+ * son navigateur, où il est légitimement connecté, et colle ou imprime. La
+ * donnée vient donc de lui, pas d'un robot.
+ *
+ * La difficulté est de distinguer le prix au m² du QUARTIER des dizaines
+ * d'autres montants d'une telle page : honoraires, évolution en pourcentage,
+ * prix de biens en vitrine.
+ */
+export function extraireReferenceM2(brut: string): ReferenceM2 | null {
+  const t = brut.normalize('NFKC').replace(/\s+/g, ' ');
+
+  // Un prix de référence s'écrit toujours « N €/m² » — l'unité est l'ancre.
+  const motif = /(?<![A-Za-zÀ-ÿ\d.,])(\d[\d .,]{1,9}\d)\s*(?:€|EUR)\s*\/\s*(?:m²|m2)/gi;
+  const trouves: { valeur: number; score: number; extrait: string; index: number }[] = [];
+
+  for (const m of t.matchAll(motif)) {
+    const valeur = nombreFr(m[1]);
+    // Bornes de vraisemblance : sous 300 €/m² ou au-delà de 40 000, ce n'est
+    // pas un prix de marché français.
+    if (!Number.isFinite(valeur) || valeur < 300 || valeur > 40000) continue;
+    const avant = sansAccent(t.slice(Math.max(0, m.index - 60), m.index));
+    // Ce qui désigne franchement le prix du secteur.
+    const score = /(prix|moyen|median|m2 moyen|estimation|quartier|secteur|appartement|maison)/.test(avant) ? 1 : 0;
+    trouves.push({ valeur, score, extrait: m[0].trim(), index: m.index });
+  }
+  if (!trouves.length) return null;
+
+  trouves.sort((a, b) => b.score - a.score || a.index - b.index);
+  const principal = trouves[0];
+
+  // Une fourchette, si la page en donne une : deux montants encadrant le
+  // principal, à moins de 40 % d'écart — au-delà ce sont d'autres chiffres.
+  const proches = trouves
+    .map(x => x.valeur)
+    .filter(v => v !== principal.valeur && Math.abs(v - principal.valeur) / principal.valeur < 0.4)
+    .sort((a, b) => a - b);
+
+  return {
+    m2: principal.valeur,
+    bas: proches.length ? Math.min(proches[0], principal.valeur) : undefined,
+    haut: proches.length ? Math.max(proches[proches.length - 1], principal.valeur) : undefined,
+    extrait: principal.extrait,
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /* HTML — l'accélérateur, quand le site se laisse lire                 */
 /* ------------------------------------------------------------------ */
 
