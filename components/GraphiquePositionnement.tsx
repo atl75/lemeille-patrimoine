@@ -30,9 +30,11 @@ const R = 3.6;                 // rayon d'un point
 const COL = R * 2 + 1.4;       // largeur d'une colonne de l'essaim
 
 export default function GraphiquePositionnement({
-  bienM2, ventes, enVente, medianeM2, q1M2, q3M2, reference,
+  bienM2, cibleM2, ventes, enVente, medianeM2, q1M2, q3M2, reference,
 }: {
   bienM2: number | null;
+  /** Prix conseillé, au mètre carré. C'est la destination, pas le constat. */
+  cibleM2?: number | null;
   ventes: PointGraphique[];
   enVente: PointGraphique[];
   medianeM2?: number | null;
@@ -44,15 +46,7 @@ export default function GraphiquePositionnement({
   // La référence prend sa place EN HAUT, en dehors du nuage : c'est un avis de
   // marché, pas une transaction. La mêler aux points laisserait croire qu'elle
   // a le même statut de preuve que les actes.
-  // Bandes horizontales distinctes, de haut en bas : le crochet de référence,
-  // l'étiquette du bien, puis le tracé. Sans cette séparation l'essaim montait
-  // sous le crochet et les deux étiquettes se recouvraient.
-  const Y_REF_TEXTE = 20, Y_REF_TRAIT = 31;
-  const HA = reference ? 78 : 44;
-  // Assez de hauteur pour que les points RESPIRENT. Comprimés, les colonnes
-  // fusionnent en barres pleines et l'on perd ce qui fait l'intérêt de la
-  // forme : voir chaque vente, une par une.
-  const H = reference ? 352 : 318;
+  // (mise en page des repères calculée plus bas : elle dépend de X)
   const tous = [...ventes, ...enVente].map(p => p.m2).filter(Number.isFinite);
   if (!tous.length) return null;
 
@@ -63,6 +57,7 @@ export default function GraphiquePositionnement({
   const centile = (p: number) => tries[Math.min(tries.length - 1, Math.max(0, Math.round((tries.length - 1) * p)))];
   const dedans = [centile(0.02), centile(0.98), ...enVente.map(p => p.m2)];
   if (bienM2 != null) dedans.push(bienM2);
+  if (cibleM2 != null) dedans.push(cibleM2);
   const b0 = Math.min(...dedans), b1 = Math.max(...dedans);
   const marge = Math.max((b1 - b0) * 0.06, 100);
   const x0 = Math.max(0, b0 - marge), x1 = b1 + marge;
@@ -70,6 +65,47 @@ export default function GraphiquePositionnement({
   const largeur = L - G - D;
   const X = (v: number) => G + ((v - x0) / (x1 - x0)) * largeur;
   const eur = (n: number) => (Math.round(n) === 0 ? 0 : Math.round(n)).toLocaleString('fr-FR');
+
+  /* ————— Mise en page des repères —————
+   * Trois bandes, de haut en bas : les deux PRIX (le bien, puis celui qu'on
+   * conseille), ensuite l'avis de marché. Cet ordre n'est pas cosmétique : le
+   * document sert à conduire un vendeur d'un prix à un autre, et c'est ce
+   * couple qui doit se lire en premier. L'avis extérieur vient l'appuyer.
+   */
+  const CHIP_W = 172, CHIP_H = 19, Y0 = 12;
+  const aBien = bienM2 != null, aCible = cibleM2 != null && cibleM2 !== bienM2;
+  // Deux étiquettes voisines se recouvrent : on les empile alors.
+  const chevauche = aBien && aCible && Math.abs(X(bienM2!) - X(cibleM2!)) < CHIP_W + 10;
+  const yBien = Y0;
+  const yCible = chevauche ? Y0 + CHIP_H + 5 : Y0;
+  const basBandeau = (aBien || aCible)
+    ? Math.max(aBien ? yBien : 0, aCible ? yCible : 0) + CHIP_H
+    : Y0;
+  // Assez d'air : l'étiquette de l'avis venait toucher le bas du bandeau.
+  const Y_REF_TEXTE = basBandeau + 22;
+  const Y_REF_TRAIT = basBandeau + 33;
+  const HA = reference ? Y_REF_TRAIT + 16 : basBandeau + 14;
+  // Assez de hauteur pour que les points RESPIRENT. Comprimés, les colonnes
+  // fusionnent en barres pleines et l'on perd ce qui fait l'intérêt de la
+  // forme : voir chaque vente, une par une.
+  const H = HA + 274;
+
+  /** Une étiquette de prix : pleine pour ce qui EST, cernée pour ce qu'on propose. */
+  const etiquette = (v: number, y: number, texte: string, pleine: boolean) => {
+    const cx = Math.min(Math.max(X(v), CHIP_W / 2 + 2), L - CHIP_W / 2 - 2);
+    return (
+      <g>
+        <line x1={X(v)} y1={y + CHIP_H} x2={X(v)} y2={H - BA}
+          stroke="var(--encre)" strokeWidth={pleine ? 2.5 : 2}
+          strokeDasharray={pleine ? undefined : '5 3'} />
+        <rect x={cx - CHIP_W / 2} y={y} width={CHIP_W} height={CHIP_H} rx="3"
+          fill={pleine ? 'var(--encre)' : '#fff'}
+          stroke="var(--encre)" strokeWidth={pleine ? 0 : 1.2} />
+        <text x={cx} y={y + 14} textAnchor="middle" fontSize="11" fontWeight="700"
+          fill={pleine ? '#fff' : 'var(--encre)'}>{texte}</text>
+      </g>
+    );
+  };
 
   // Graduations rondes : un axe se lit, il ne se déchiffre pas.
   const pas = Math.pow(10, Math.floor(Math.log10((x1 - x0) / 4)));
@@ -176,9 +212,14 @@ export default function GraphiquePositionnement({
           </g>
         ))}
 
-        {/* LA RÉFÉRENCE DU SECTEUR — un crochet, pas une règle verticale.
+        {/* LES DEUX PRIX, en tête : celui qui EST, celui qu'on PROPOSE. */}
+        {aBien && etiquette(bienM2!, yBien, `Votre bien · ${eur(bienM2!)} €/m²`, true)}
+        {aCible && etiquette(cibleM2!, yCible, `Prix conseillé · ${eur(cibleM2!)} €/m²`, false)}
+
+        {/* L'AVIS DE MARCHÉ, en dessous — un crochet, pas une règle verticale.
             Trois traits verticaux se disputeraient la lecture ; et cette valeur
-            est un avis, non un acte : elle mérite une forme à part. */}
+            est un avis, non un acte : elle mérite une forme à part, et une
+            place après les deux prix qui portent la discussion. */}
         {reference && (() => {
           const bas = reference.bas ?? reference.m2;
           const haut = reference.haut ?? reference.m2;
@@ -190,7 +231,7 @@ export default function GraphiquePositionnement({
               <line x1={xB} y1={yC - 4} x2={xB} y2={yC + 4} stroke="var(--encre-2)" strokeWidth="1.5" />
               <line x1={xH} y1={yC - 4} x2={xH} y2={yC + 4} stroke="var(--encre-2)" strokeWidth="1.5" />
               <circle cx={X(reference.m2)} cy={yC} r="4" fill="var(--encre-2)" />
-              <text x={Math.min(Math.max(X(reference.m2), G + 60), L - D - 60)} y={Y_REF_TEXTE}
+              <text x={Math.min(Math.max(X(reference.m2), G + 70), L - D - 70)} y={Y_REF_TEXTE}
                 textAnchor="middle" fontSize="10" fill="var(--encre-2)">
                 {reference.source ?? 'Référence'} · {eur(reference.m2)} €/m²
                 {bas !== haut ? ` (${eur(bas)} – ${eur(haut)})` : ''}
@@ -199,24 +240,14 @@ export default function GraphiquePositionnement({
           );
         })()}
 
-        {/* LE BIEN — repère, à l'encre, étiqueté sans ambiguïté. */}
-        {bienM2 != null && (
-          <>
-            <line x1={X(bienM2)} y1={HA - 10} x2={X(bienM2)} y2={H - BA}
-              stroke="var(--encre)" strokeWidth="2.5" />
-            <rect x={Math.min(Math.max(X(bienM2) - 84, 2), L - 170)} y={HA - 32}
-              width="168" height="19" rx="3" fill="var(--encre)" />
-            <text x={Math.min(Math.max(X(bienM2), 86), L - 86)} y={HA - 18} textAnchor="middle"
-              fontSize="11" fontWeight="700" fill="#fff">Votre bien · {eur(bienM2)} €/m²</text>
-          </>
-        )}
       </svg>
 
       <figcaption className="text-[11px] mt-1" style={{ color: 'var(--encre-2)' }}>
         <span style={{ color: 'var(--serie-1)' }}>●</span> Ventes signées, source DVF (DGFiP).{' '}
         <span style={{ color: 'var(--serie-2)' }}>●</span> Biens en vente relevés sur les portails.
         {' '}La bande claire couvre la moitié centrale des ventes signées.
-        {reference && ` Le crochet du haut situe le prix de référence du secteur${reference.source ? ` (${reference.source})` : ''}.`}
+        {reference && ` Le crochet situe l'avis de marché${reference.source ? ` (${reference.source})` : ''}.`}
+        {cibleM2 != null && " Le trait discontinu marque le prix conseillé."}
         {horsEchelle > 0 && ` ${horsEchelle} vente${horsEchelle > 1 ? 's' : ''} hors échelle, `
           + `conservée${horsEchelle > 1 ? 's' : ''} dans la médiane.`}
       </figcaption>

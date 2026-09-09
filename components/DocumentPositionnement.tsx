@@ -32,7 +32,8 @@ export default function DocumentPositionnement({
   bien, position, comparables, dvf, statsDvf, reference, rayonDvf,
   fourchette, impact, fiabilite, commentaire, prixCible, agence = 'Lemeille Patrimoine',
 }: {
-  bien: { title?: string; address?: string; city?: string; surface?: number | null; price?: number | null; type?: string };
+  bien: { title?: string; address?: string; city?: string; surface?: number | null;
+          price?: number | null; type?: string; dpe?: { classEnergy?: string } | null };
   position: Positionnement | null;
   comparables: Comparable[];
   dvf: VenteDvf[];
@@ -98,6 +99,7 @@ export default function DocumentPositionnement({
           {bien.title}
           {bien.address ? ` — ${bien.address}` : ''}{bien.city ? `, ${bien.city}` : ''}
           {bien.surface ? ` · ${surfaceFr(bien.surface)}` : ''}
+          {bien.dpe?.classEnergy ? ` · DPE ${bien.dpe.classEnergy}` : ''}
           {bien.price ? ` · affiché ${eur(bien.price)}` : ''}
         </div>
       </div>
@@ -126,6 +128,7 @@ export default function DocumentPositionnement({
           <h2>Où se situe votre bien</h2>
           <GraphiquePositionnement
             bienM2={bienM2}
+            cibleM2={prixCible && Number(bien.surface) > 0 ? prixCible / Number(bien.surface) : null}
             ventes={pointsVentes}
             enVente={pointsEnVente}
             medianeM2={statsDvf?.medianeM2 ?? null}
@@ -262,7 +265,17 @@ export default function DocumentPositionnement({
               </p>
               {fourchette && (
                 <p style={{ margin: '2px 0', fontSize: '10pt', color: 'var(--encre-2)' }}>
-                  Le marché constaté situe ce bien entre {eur(fourchette.bas)} et {eur(fourchette.haut)}.
+                  Le marché constaté situe ce bien entre {eur(fourchette.bas)} et {eur(fourchette.haut)}
+                  {/* ON SITUE LE PRIX CONSEILLÉ DANS CETTE FOURCHETTE. Sans cela le
+                      document affichait « conseillé 629 000 € » juste après
+                      « le marché situe entre 525 620 et 610 323 € » : deux nombres
+                      qui se contredisent sans un mot. Un vendeur attentif le relève,
+                      et c'est tout l'argumentaire qui perd son crédit. */}
+                  {prixCible > fourchette.haut
+                    ? ` — le prix conseillé se situe ${Math.round(((prixCible - fourchette.haut) / fourchette.haut) * 100)} % au-dessus de ce haut de fourchette.`
+                    : prixCible < fourchette.bas
+                      ? ` — le prix conseillé se situe ${Math.round(((fourchette.bas - prixCible) / fourchette.bas) * 100)} % sous ce bas de fourchette.`
+                      : ', et le prix conseillé s\'y inscrit.'}
                 </p>
               )}
             </>

@@ -581,7 +581,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       {presentation && (
         <DocumentPositionnement
           bien={{ title: bien.title, address: bien.map?.query, city: bien.city,
-                  surface: bien.surface, price: bien.price, type: bien.type }}
+                  surface: bien.surface, price: bien.price, type: bien.type, dpe: bien.dpe }}
           position={pos}
           comparables={comparables}
           dvf={dvf?.ventes ?? []}
