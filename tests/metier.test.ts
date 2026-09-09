@@ -851,6 +851,43 @@ describe("annonceConcurrente — lire une annonce sans se faire piéger", () => 
     assert.equal(r.haut, 3780);
   });
 
+  test("fourchette écrite « entre X et Y »", () => {
+    const r = extraireReferenceM2("Prix moyen : 10 350 €/m². Entre 8 900 et 12 400 €/m² selon l'étage.")!;
+    assert.equal(r.m2, 10350);
+    assert.equal(r.bas, 8900);
+    assert.equal(r.haut, 12400);
+  });
+
+  test("bornes nommées séparément : basse et haute", () => {
+    const page = `Estimation à cette adresse
+      Prix au m² : 10 350 €/m²
+      Fourchette basse : 8 900 €/m²
+      Fourchette haute : 12 400 €/m²`;
+    const r = extraireReferenceM2(page)!;
+    assert.equal(r.m2, 10350);
+    assert.equal(r.bas, 8900);
+    assert.equal(r.haut, 12400);
+  });
+
+  test("une borne de la fourchette n'est jamais prise pour le prix central", () => {
+    // Sans cette précaution, « de 8 900 à 12 400 » livrait 8 900 comme prix.
+    const r = extraireReferenceM2("De 8 900 €/m² à 12 400 €/m². Prix moyen constaté 10 100 €/m².")!;
+    assert.equal(r.m2, 10100);
+    assert.equal(r.bas, 8900);
+    assert.equal(r.haut, 12400);
+  });
+
+  test("une page qui n'annonce QUE sa fourchette : le centre s'en déduit", () => {
+    const r = extraireReferenceM2("Estimation : de 9 000 €/m² à 11 000 €/m²")!;
+    assert.equal(r.bas, 9000);
+    assert.equal(r.haut, 11000);
+    assert.equal(r.m2, 10000);
+  });
+
+  test("les charges et les travaux au m² ne sont pas un prix de référence", () => {
+    assert.equal(extraireReferenceM2("Charges : 32 €/m² par an. Travaux estimés 1 200 €/m²."), null);
+  });
+
   test("prix de référence : rien plutôt qu'un chiffre au hasard", () => {
     assert.equal(extraireReferenceM2("Page sans le moindre prix au mètre carré."), null);
     // 12 €/m² de charges annuelles n'est pas un prix de marché.
@@ -1087,6 +1124,34 @@ describe("dvf — les ventes signées, sans se laisser abuser par les actes grou
     assert.equal(analyserCsvDvf(csv, { ...CENTRE, rayon: 300 }).length, 2, "le lointain sort");
     assert.equal(analyserCsvDvf(csv, { ...CENTRE, rayon: 300, type: "Appartement" }).length, 1);
     assert.equal(analyserCsvDvf(csv, { ...CENTRE, rayon: 5000 }).length, 3);
+  });
+
+  test("filtre de date : une vente trop ancienne ne pèse pas comme une récente", () => {
+    const csv = [ENTETES,
+      ligne({ ...base, id_mutation: "V21", date_mutation: "2021-06-01", valeur_fonciere: 200000,
+              type_local: "Appartement", surface_reelle_bati: 60 }),
+      ligne({ ...base, id_mutation: "V25", date_mutation: "2025-06-01", valeur_fonciere: 270000,
+              type_local: "Appartement", surface_reelle_bati: 60 }),
+    ].join("\n");
+    assert.equal(analyserCsvDvf(csv, { ...CENTRE, rayon: 300 }).length, 2);
+    const recentes = analyserCsvDvf(csv, { ...CENTRE, rayon: 300, depuis: 2024 });
+    assert.equal(recentes.length, 1);
+    assert.equal(recentes[0].date, "2025-06-01");
+  });
+
+  test("filtre de typologie : le nombre de pièces", () => {
+    const csv = [ENTETES,
+      ligne({ ...base, id_mutation: "T2", valeur_fonciere: 200000, type_local: "Appartement",
+              surface_reelle_bati: 45, nombre_pieces_principales: 2 }),
+      ligne({ ...base, id_mutation: "T3", valeur_fonciere: 270000, type_local: "Appartement",
+              surface_reelle_bati: 65, nombre_pieces_principales: 3 }),
+      ligne({ ...base, id_mutation: "T4", valeur_fonciere: 340000, type_local: "Appartement",
+              surface_reelle_bati: 85, nombre_pieces_principales: 4 }),
+    ].join("\n");
+    const t3 = analyserCsvDvf(csv, { ...CENTRE, rayon: 300, pieces: 3 });
+    assert.equal(t3.length, 1);
+    assert.equal(t3[0].pieces, 3);
+    assert.equal(analyserCsvDvf(csv, { ...CENTRE, rayon: 300 }).length, 3);
   });
 
   test("la tolérance de surface écarte ce qui n'est pas comparable", () => {

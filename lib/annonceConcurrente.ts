@@ -330,7 +330,9 @@ export function fusionner(prioritaire: Extraction, secours: Extraction): Extract
 /* ------------------------------------------------------------------ */
 
 export type ReferenceM2 = {
+  /** Prix au m² retenu. */
   m2: number;
+  /** Bas et haut de fourchette, quand la page en donne une. */
   bas?: number;
   haut?: number;
   source?: string;
@@ -343,48 +345,95 @@ export type ReferenceM2 = {
  * POURQUOI PAS AUTOMATIQUE. MeilleursAgents répond 403 avec un en-tête
  * « x-datadome: protected », y compris depuis une adresse résidentielle —
  * mesuré. Comme pour SeLoger, on ne contourne pas : l'agent ouvre la page dans
- * son navigateur, où il est légitimement connecté, et colle ou imprime. La
- * donnée vient donc de lui, pas d'un robot.
+ * son navigateur, où il est légitimement connecté, et colle ou dépose son
+ * impression. La donnée vient donc de lui, pas d'un robot.
  *
- * La difficulté est de distinguer le prix au m² du QUARTIER des dizaines
- * d'autres montants d'une telle page : honoraires, évolution en pourcentage,
- * prix de biens en vitrine.
+ * LA DIFFICULTÉ EST DE CHOISIR. Une telle page aligne des dizaines de
+ * montants : honoraires, évolution en pourcentage, biens en vitrine, charges.
+ * On cherche donc d'abord une FOURCHETTE EXPLICITE — « de X à Y », « entre X
+ * et Y », « basse / haute », « min / max » — parce qu'une fourchette annoncée
+ * lève l'ambiguïté à elle seule. À défaut, on retombe sur le montant le mieux
+ * désigné par son voisinage.
  */
 export function extraireReferenceM2(brut: string): ReferenceM2 | null {
   const t = brut.normalize('NFKC').replace(/\s+/g, ' ');
 
-  // Un prix de référence s'écrit toujours « N €/m² » — l'unité est l'ancre.
-  const motif = /(?<![A-Za-zÀ-ÿ\d.,])(\d[\d .,]{1,9}\d)\s*(?:€|EUR)\s*\/\s*(?:m²|m2)/gi;
-  const trouves: { valeur: number; score: number; extrait: string; index: number }[] = [];
+  /** Un prix au m² plausible en France. */
+  const plausible = (v: number) => Number.isFinite(v) && v >= 300 && v <= 40000;
+  const UNITE = String.raw`(?:€|EUR)\s*\/\s*(?:m²|m2)`;
+  const NOMBRE = String.raw`\d[\d .,\u00A0\u202F]{1,9}\d`;
 
-  for (const m of t.matchAll(motif)) {
-    const valeur = nombreFr(m[1]);
-    // Bornes de vraisemblance : sous 300 €/m² ou au-delà de 40 000, ce n'est
-    // pas un prix de marché français.
-    if (!Number.isFinite(valeur) || valeur < 300 || valeur > 40000) continue;
-    const avant = sansAccent(t.slice(Math.max(0, m.index - 60), m.index));
-    // Ce qui désigne franchement le prix du secteur.
-    const score = /(prix|moyen|median|m2 moyen|estimation|quartier|secteur|appartement|maison)/.test(avant) ? 1 : 0;
-    trouves.push({ valeur, score, extrait: m[0].trim(), index: m.index });
+  // 1. Une fourchette annoncée : « de 8 900 à 12 400 €/m² », « entre X et Y ».
+  const fourchettes = [
+    new RegExp(String.raw`(?:de|entre)\s+(${NOMBRE})\s*(?:${UNITE})?\s*(?:à|a|et|-|–)\s*(${NOMBRE})\s*${UNITE}`, 'i'),
+    new RegExp(String.raw`(${NOMBRE})\s*${UNITE}\s*(?:à|a|et|-|–)\s*(${NOMBRE})\s*${UNITE}`, 'i'),
+  ];
+  let bas: number | undefined, haut: number | undefined;
+  for (const motif of fourchettes) {
+    const m = t.match(motif);
+    if (!m) continue;
+    const a = nombreFr(m[1]), b = nombreFr(m[2]);
+    if (plausible(a) && plausible(b) && a !== b) { bas = Math.min(a, b); haut = Math.max(a, b); break; }
   }
-  if (!trouves.length) return null;
 
-  trouves.sort((a, b) => b.score - a.score || a.index - b.index);
-  const principal = trouves[0];
+  // 2. Bas et haut nommés séparément, si la page les présente ainsi.
+  if (bas == null) {
+    const nomme = (mots: string) => {
+      const m = t.match(new RegExp(String.raw`(?:${mots})[^\d]{0,24}(${NOMBRE})\s*${UNITE}`, 'i'));
+      const v = m ? nombreFr(m[1]) : NaN;
+      return plausible(v) ? v : undefined;
+    };
+    const b = nomme('fourchette basse|estimation basse|prix bas|minimum|mini\\b|min\\b');
+    const h = nomme('fourchette haute|estimation haute|prix haut|maximum|maxi\\b|max\\b');
+    if (b != null && h != null && b !== h) { bas = Math.min(b, h); haut = Math.max(b, h); }
+  }
 
-  // Une fourchette, si la page en donne une : deux montants encadrant le
-  // principal, à moins de 40 % d'écart — au-delà ce sont d'autres chiffres.
-  const proches = trouves
-    .map(x => x.valeur)
-    .filter(v => v !== principal.valeur && Math.abs(v - principal.valeur) / principal.valeur < 0.4)
-    .sort((a, b) => a - b);
+  // 3. Le prix central : celui que son voisinage désigne le mieux.
+  const central = new RegExp(String.raw`(?<![A-Za-zÀ-ÿ\d.,])(${NOMBRE})\s*${UNITE}`, 'gi');
+  const candidats: { valeur: number; score: number; extrait: string; index: number }[] = [];
+  for (const m of t.matchAll(central)) {
+    const valeur = nombreFr(m[1]);
+    if (!plausible(valeur)) continue;
+    const avant = sansAccent(t.slice(Math.max(0, m.index - 70), m.index));
+    // Ce qui désigne franchement le prix du secteur, et ce qui l'exclut.
+    if (/(charge|honoraire|taxe|travaux|loyer)/.test(avant)) continue;
+    const score =
+      /(prix\s*(?:m2|au\s*m2|moyen)|prix moyen|estimation|prix de vente)/.test(avant) ? 2 :
+      /(median|moyen|quartier|secteur|appartement|maison|rue|adresse)/.test(avant) ? 1 : 0;
+    candidats.push({ valeur, score, extrait: m[0].trim(), index: m.index });
+  }
+  if (!candidats.length) {
+    // Une page peut n'annoncer QUE sa fourchette : le centre s'en déduit.
+    if (bas != null && haut != null) {
+      return { m2: Math.round((bas + haut) / 2), bas, haut, extrait: `${bas} – ${haut} €/m²` };
+    }
+    return null;
+  }
 
-  return {
-    m2: principal.valeur,
-    bas: proches.length ? Math.min(proches[0], principal.valeur) : undefined,
-    haut: proches.length ? Math.max(proches[proches.length - 1], principal.valeur) : undefined,
-    extrait: principal.extrait,
-  };
+  // Un candidat qui EST une borne de la fourchette n'est pas le prix central.
+  const horsBornes = candidats.filter(c => c.valeur !== bas && c.valeur !== haut);
+  // Si la page n'annonce QUE ses bornes, le centre se déduit — en retenir une
+  // comme « le prix » afficherait la borne basse en gros caractères.
+  if (!horsBornes.length && bas != null && haut != null) {
+    return { m2: Math.round((bas + haut) / 2), bas, haut, extrait: `${bas} – ${haut} €/m²` };
+  }
+  const liste = horsBornes.length ? horsBornes : candidats;
+  liste.sort((a, b) => b.score - a.score || a.index - b.index);
+  const principal = liste[0];
+
+  // 4. À défaut de fourchette annoncée, deux valeurs proches en tiennent lieu.
+  if (bas == null) {
+    const proches = candidats
+      .map(x => x.valeur)
+      .filter(v => v !== principal.valeur && Math.abs(v - principal.valeur) / principal.valeur < 0.4)
+      .sort((a, b) => a - b);
+    if (proches.length) {
+      bas = Math.min(proches[0], principal.valeur);
+      haut = Math.max(proches[proches.length - 1], principal.valeur);
+    }
+  }
+
+  return { m2: principal.valeur, bas, haut, extrait: principal.extrait };
 }
 
 /* ------------------------------------------------------------------ */

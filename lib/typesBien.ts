@@ -104,6 +104,12 @@ export type Bien = {
     prixCible?: number;
     dateMiseEnVente?: string;
     commentaire?: string;
+    /** Prix de référence du secteur, relevé par l'agent sur une page tierce. */
+    reference?: { m2: number; bas?: number; haut?: number; source?: string };
+    /** Réglages de la recherche DVF, pour retrouver le même document. */
+    dvfRayon?: number;
+    dvfDepuis?: number;
+    dvfPieces?: number;
     majAt?: string;
   };
   // Plan et vidéo

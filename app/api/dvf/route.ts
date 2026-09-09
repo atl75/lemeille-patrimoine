@@ -65,6 +65,10 @@ export async function POST(req: Request) {
   const rayon = Math.min(Math.max(Number(corps?.rayon) || 300, 50), 2000);
   const type = corps?.type === 'Maison' || corps?.type === 'Appartement' ? corps.type : null;
   const surfaceRef = Number(corps?.surface) > 0 ? Number(corps.surface) : null;
+  // Filtres demandés par l'agent : à partir de quelle année, et quelle
+  // typologie. Une vente de 2021 ne pèse pas comme une de l'an dernier.
+  const depuis = Number(corps?.depuis) > 1900 ? Number(corps.depuis) : null;
+  const pieces = Number(corps?.pieces) > 0 ? Number(corps.pieces) : null;
 
   // 1. Situer l'adresse. Le score et le type disent au lecteur si l'on est au
   //    numéro près ou seulement dans la rue.
@@ -100,6 +104,7 @@ export async function POST(req: Request) {
     toutes.push(...analyserCsvDvf(csv, {
       lat: point.lat, lon: point.lon, rayon, type,
       surfaceRef, toleranceSurface: surfaceRef ? 0.5 : undefined,
+      depuis, pieces,
     }));
   }
 
@@ -111,6 +116,7 @@ export async function POST(req: Request) {
     precision: point.precision,
     score: point.score,
     rayon,
+    depuis, pieces,
     annees: anneesTrouvees,
     // Assez de points pour que le graphique montre le MÊME effectif que le
     // constat : un lecteur qui compte « 200 » sous un titre annonçant 568

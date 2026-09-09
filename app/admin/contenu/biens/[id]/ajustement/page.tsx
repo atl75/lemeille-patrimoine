@@ -54,10 +54,17 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   /** Ventes signées autour du bien, tirées de DVF. */
   const [dvf, setDvf] = useState<{ ventes: VenteDvf[]; stats: StatsDvf | null; adresse: string; precision: string } | null>(null);
   const [rayonDvf, setRayonDvf] = useState(300);
+  /** Ne garder que les ventes à partir de cette année. */
+  const [dvfDepuis, setDvfDepuis] = useState(0);
+  /** Typologie : nombre de pièces, 0 = toutes. */
+  const [dvfPieces, setDvfPieces] = useState(0);
   const [chargeDvf, setChargeDvf] = useState(false);
   /** Prix de référence du secteur, relevé par l'agent sur une page tierce. */
   const [reference, setReference] = useState<ReferenceM2 | null>(null);
   const [collageRef, setCollageRef] = useState("");
+  const [chargeRef, setChargeRef] = useState(false);
+  /** URL du détail des ventes, quand le navigateur refuse un onglet. */
+  const [apercuVentes, setApercuVentes] = useState<string | null>(null);
   const [enregistrement, setEnregistrement] = useState(false);
 
   useEffect(() => {
@@ -76,6 +83,10 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         setPrixCible(a.prixCible ? String(a.prixCible) : "");
         setDateMiseEnVente(a.dateMiseEnVente || "");
         setCommentaire(a.commentaire || "");
+        setReference(a.reference || null);
+        if (a.dvfRayon) setRayonDvf(a.dvfRayon);
+        if (a.dvfDepuis) setDvfDepuis(a.dvfDepuis);
+        if (a.dvfPieces) setDvfPieces(a.dvfPieces);
         setEtat("ok");
       })
       .catch(() => { if (!annule) setEtat("introuvable"); });
@@ -248,7 +259,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     try {
       const r = await fetch("/api/dvf", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adresse, rayon, type: bien?.type === "Maison" ? "Maison" : "Appartement", surface: bien?.surface }),
+        body: JSON.stringify({ adresse, rayon, type: bien?.type === "Maison" ? "Maison" : "Appartement",
+                               surface: bien?.surface, depuis: dvfDepuis || undefined, pieces: dvfPieces || undefined }),
       });
       const d = await r.json();
       if (!r.ok) { toast(d?.error ?? "Recherche impossible."); return; }
@@ -261,6 +273,71 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     }
   };
 
+  /**
+   * Ouvre TOUTES les ventes retenues dans une fenêtre à part.
+   *
+   * Le document n'en détaille que douze ; avant de poser des chiffres devant un
+   * vendeur, on veut pouvoir vérifier la totalité, et retrouver chaque ligne
+   * dans la base officielle. D'où le rappel de la source et des filtres en tête.
+   */
+  const documentDesVentes = (): string => {
+    if (!dvf?.ventes.length) return "";
+    const ech = (v: unknown) => String(v ?? "").replace(/[&<>"]/g, c =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+    const lignes = dvf.ventes.map(v => `<tr>
+      <td>${ech(new Date(v.date).toLocaleDateString("fr-FR"))}</td>
+      <td>${ech(v.adresse || "—")}</td>
+      <td>${ech(v.type)}</td>
+      <td class="n">${ech(v.pieces ?? "—")}</td>
+      <td class="n">${v.surface} m²</td>
+      <td class="n">${Math.round(v.prix).toLocaleString("fr-FR")} €</td>
+      <td class="n"><b>${Math.round(v.prixM2).toLocaleString("fr-FR")} €/m²</b></td>
+      <td class="n">${Math.round(v.distance)} m</td></tr>`).join("");
+    return `<!doctype html><meta charset="utf-8">
+      <title>Ventes signées — ${ech(dvf.adresse)}</title>
+      <style>
+        body{font:13px/1.5 -apple-system,system-ui,sans-serif;margin:0;padding:22px;color:#111}
+        h1{font-size:17px;color:#1F3B2C;margin:0 0 4px}
+        p.src{font-size:12px;color:#52514e;margin:0 0 14px}
+        table{border-collapse:collapse;width:100%}
+        th{text-align:left;font-size:11px;color:#52514e;border-bottom:1px solid #d9d7d0;
+           padding:5px 8px 5px 0;position:sticky;top:0;background:#fff}
+        td{padding:3px 8px 3px 0;border-bottom:1px solid #f2f1ec}
+        .n{text-align:right;font-variant-numeric:tabular-nums}
+        tbody tr:hover{background:#f6f5f0}
+      </style>
+      <h1>${dvf.ventes.length} ventes signées retenues</h1>
+      <p class="src">
+        Adresse : ${ech(dvf.adresse)}${dvf.precision !== "housenumber" ? " (rue seulement, pas le numéro)" : ""} —
+        rayon ${rayonDvf} m${dvfDepuis ? ` — à partir de ${dvfDepuis}` : ""}${dvfPieces ? ` — ${dvfPieces} pièces` : ""}.<br>
+        Source : demandes de valeurs foncières (DGFiP), fichiers geo-dvf publiés sur data.gouv.fr sous licence ouverte.
+        Seules les mutations portant UN SEUL logement sont retenues : lorsqu'un acte en couvre plusieurs,
+        le prix déclaré est celui de l'ensemble et le prix au m² n'aurait aucun sens.
+      </p>
+      <table><thead><tr>
+        <th>Date</th><th>Adresse</th><th>Type</th><th class="n">Pièces</th>
+        <th class="n">Surface</th><th class="n">Prix</th><th class="n">€/m²</th><th class="n">Distance</th>
+      </tr></thead><tbody>${lignes}</tbody></table>`;
+  };
+
+  /**
+   * Ouvre le détail dans un onglet — ou, si le navigateur refuse, dans un
+   * panneau plein écran. Le MÊME document dans les deux cas : un bloqueur de
+   * fenêtres ne doit pas priver l'agent de la vérification.
+   */
+  const voirLesVentes = () => {
+    const html = documentDesVentes();
+    if (!html) return;
+    const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+    const f = window.open(url, "_blank");
+    if (f) {
+      // L'onglet a pris la main : on libère l'URL une fois qu'il a chargé.
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      return;
+    }
+    setApercuVentes(url);
+  };
+
   /** Lit un prix de référence au m² dans une page collée (MeilleursAgents…). */
   const lireReference = async () => {
     const v = collageRef.trim();
@@ -270,6 +347,39 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     if (!r) { toast("Aucun prix au m² trouvé dans ce texte."); return; }
     setReference({ ...r, source: /meilleursagents/i.test(v) ? "MeilleursAgents" : undefined });
     setCollageRef("");
+  };
+
+  /**
+   * Même chose depuis une IMPRESSION PDF de la page de prix.
+   *
+   * C'est le geste naturel : l'agent est devant la page MeilleursAgents, il
+   * l'imprime. Le PDF est lu dans le navigateur, il ne part pas sur le serveur.
+   */
+  const lireReferencePdf = async (fichier: File) => {
+    setChargeRef(true);
+    try {
+      const { texteDepuisPdf } = await import("@/lib/pdfTexte");
+      const { extraireReferenceM2 } = await import("@/lib/annonceConcurrente");
+      const lu = await texteDepuisPdf(fichier);
+      const r = extraireReferenceM2(`${lu.titre}\n${lu.texte}`);
+      if (!r) { toast("Aucun prix au m² trouvé dans ce PDF."); return; }
+      setReference({ ...r, source: /meilleursagents/i.test(lu.texte + lu.titre) ? "MeilleursAgents" : undefined });
+    } catch {
+      toast("Ce PDF n'a pas pu être lu.");
+    } finally {
+      setChargeRef(false);
+    }
+  };
+
+  /** Remonte ou descend un bien concurrent dans le tableau. */
+  const deplacer = (index: number, sens: -1 | 1) => {
+    setComparables(cs => {
+      const cible = index + sens;
+      if (cible < 0 || cible >= cs.length) return cs;
+      const copie = [...cs];
+      [copie[index], copie[cible]] = [copie[cible], copie[index]];
+      return copie;
+    });
   };
 
   const ajouterSaisie = () => {
@@ -302,7 +412,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       const r = await fetch(`/api/properties/${id}/ajustement`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comparables, prixCible: cible, dateMiseEnVente, commentaire }),
+        body: JSON.stringify({ comparables, prixCible: cible, dateMiseEnVente, commentaire,
+          reference, dvfRayon: rayonDvf, dvfDepuis, dvfPieces }),
       });
       toast(r.ok ? "Argumentaire enregistré." : "Erreur lors de l'enregistrement.");
     } catch {
@@ -473,7 +584,12 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {[...comparables].sort((a, b) => (m2Retenu(a) ?? 0) - (m2Retenu(b) ?? 0)).map((c, i) => {
+                  {/* ORDRE DE SAISIE, et non tri par prix au m². Le tableau est
+                      celui du document remis au vendeur : l'agent doit pouvoir
+                      placer en tête le bien le plus parlant. Un tri automatique
+                      rendait les flèches sans effet — elles déplaçaient bien la
+                      donnée, l'affichage la remettait aussitôt en ordre. */}
+                  {comparables.map((c, i) => {
                     const m = m2Retenu(c);
                     const plusCher = m !== null && pos !== null && m > pos.prixM2Bien;
                     return (
@@ -490,9 +606,18 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                         <td className={`py-1.5 pr-2 text-right whitespace-nowrap font-medium ${plusCher ? "" : "text-red-700"}`}>{m !== null ? eurM2(m) : "—"}</td>
                         <td className="py-1.5 pr-2 whitespace-nowrap text-xs">{c.statut === "VENDU" ? "✅ Vendu" : "En vente"}</td>
                         {!presentation && (
-                          <td className="py-1.5 text-right sans-impression">
+                          <td className="py-1.5 text-right sans-impression whitespace-nowrap">
+                            {/* L'ordre du tableau est celui du document remis au
+                                vendeur : on veut pouvoir placer en tête le bien
+                                le plus parlant. */}
+                            <button onClick={() => deplacer(i, -1)} disabled={i === 0}
+                              className="text-xs opacity-50 hover:opacity-100 disabled:opacity-20 px-1"
+                              title="Monter" data-testid={`monter-${c.id}`}>↑</button>
+                            <button onClick={() => deplacer(i, 1)} disabled={i === comparables.length - 1}
+                              className="text-xs opacity-50 hover:opacity-100 disabled:opacity-20 px-1"
+                              title="Descendre" data-testid={`descendre-${c.id}`}>↓</button>
                             <button onClick={() => setComparables(cs => cs.filter(x => x.id !== c.id))}
-                              className="text-xs opacity-50 hover:opacity-100" title="Retirer" data-testid={`retirer-${c.id}`}>✕</button>
+                              className="text-xs opacity-50 hover:opacity-100 pl-2" title="Retirer" data-testid={`retirer-${c.id}`}>✕</button>
                           </td>
                         )}
                       </tr>
@@ -513,10 +638,21 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           <div className="card p-5 mb-4 sans-impression">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
               <h2 className="font-semibold text-sm text-[#1F3B2C]">Ventes signées autour du bien</h2>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <select value={rayonDvf} onChange={e => setRayonDvf(Number(e.target.value))}
-                  className="input text-xs py-1" data-testid="rayon-dvf">
+                  className="input text-xs py-1" data-testid="rayon-dvf" title="Rayon autour du bien">
                   {[150, 300, 500, 1000].map(r => <option key={r} value={r}>{r} m</option>)}
+                </select>
+                <select value={dvfDepuis} onChange={e => setDvfDepuis(Number(e.target.value))}
+                  className="input text-xs py-1" data-testid="depuis-dvf" title="À partir de quelle année">
+                  <option value={0}>toutes les années</option>
+                  {[0, 1, 2, 3, 4].map(n => new Date().getFullYear() - n).map(a =>
+                    <option key={a} value={a}>depuis {a}</option>)}
+                </select>
+                <select value={dvfPieces} onChange={e => setDvfPieces(Number(e.target.value))}
+                  className="input text-xs py-1" data-testid="pieces-dvf" title="Typologie">
+                  <option value={0}>toutes typologies</option>
+                  {[1, 2, 3, 4, 5, 6].map(n => <option key={n} value={n}>{n === 1 ? "1 pièce" : `${n} pièces`}</option>)}
                 </select>
                 <button onClick={() => chercherDvf()} disabled={chargeDvf}
                   className="btn text-xs disabled:opacity-50" data-testid="chercher-dvf">
@@ -540,6 +676,9 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                   {dvf.precision !== "housenumber" && " — au niveau de la rue seulement, pas du numéro"}.
                   Dernière vente le {new Date(dvf.stats.derniereVente).toLocaleDateString("fr-FR")}.
                 </p>
+                <button onClick={voirLesVentes} className="btn text-xs mt-2" data-testid="voir-ventes">
+                  Voir les {dvf.ventes.length} ventes en détail
+                </button>
               </div>
             )}
             {dvf && !dvf.stats && (
@@ -558,9 +697,18 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               onChange={e => setCollageRef(e.target.value)}
               placeholder="Collez le texte de la page de prix (Ctrl+A puis Ctrl+C)"
               data-testid="collage-reference" />
-            <div className="flex items-center gap-3 mt-2">
+            <div className="flex items-center gap-3 mt-2 flex-wrap">
               <button onClick={lireReference} disabled={!collageRef.trim()}
                 className="btn text-xs disabled:opacity-50" data-testid="lire-reference">Lire le prix</button>
+              <label className="inline-flex items-center gap-2 text-xs cursor-pointer">
+                <span className="btn text-xs">{chargeRef ? "Lecture…" : "Déposer l'impression PDF"}</span>
+                <input type="file" accept="application/pdf,.pdf" className="sr-only" data-testid="pdf-reference"
+                  onChange={e => {
+                    const f = e.target.files?.[0];
+                    e.target.value = "";
+                    if (f) lireReferencePdf(f);
+                  }} />
+              </label>
               {reference && (
                 <p className="text-sm" data-testid="reference-lue">
                   <strong>{eurM2(reference.m2)}</strong>
@@ -677,6 +825,23 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             <p className="text-sm">En vente depuis <strong>{joursEnVente} jours</strong>{joursEnVente >= 90 ? " — au-delà de trois mois, un bien cesse d'être regardé comme une nouveauté." : "."}</p>
           )}
           {commentaire && <p className="text-sm mt-2 whitespace-pre-wrap">{commentaire}</p>}
+        </div>
+      )}
+
+      {/* Repli quand le navigateur refuse un onglet : le même document,
+          en panneau plein écran, imprimable comme l'onglet le serait. */}
+      {apercuVentes && (
+        <div className="fixed inset-0 z-50 bg-black/40 sans-impression" data-testid="apercu-ventes"
+          onClick={() => { URL.revokeObjectURL(apercuVentes); setApercuVentes(null); }}>
+          <div className="absolute inset-4 bg-white rounded shadow-xl flex flex-col"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-2 border-b">
+              <span className="text-sm font-semibold text-[#1F3B2C]">Détail des ventes signées</span>
+              <button onClick={() => { URL.revokeObjectURL(apercuVentes); setApercuVentes(null); }}
+                className="btn text-xs" data-testid="fermer-apercu">Fermer</button>
+            </div>
+            <iframe src={apercuVentes} className="flex-1 w-full" title="Détail des ventes signées" />
+          </div>
         </div>
       )}
     </AdminShell>

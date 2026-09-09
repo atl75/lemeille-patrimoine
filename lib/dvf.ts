@@ -51,6 +51,10 @@ export type OptionsDvf = {
   /** Écart de surface toléré, en proportion (0.4 = ±40 %). */
   toleranceSurface?: number;
   surfaceRef?: number | null;
+  /** Ne garder que les ventes à partir de cette année. */
+  depuis?: number | null;
+  /** Typologie : nombre exact de pièces principales. */
+  pieces?: number | null;
 };
 
 /** Bornes de vraisemblance : au-delà, c'est une anomalie de saisie. */
@@ -123,6 +127,10 @@ export function analyserCsvDvf(csv: string, o: OptionsDvf): VenteDvf[] {
 
     const type = r[iType] as 'Appartement' | 'Maison';
     if (o.type && type !== o.type) continue;
+
+    const date = r[iDate] || '';
+    if (o.depuis && Number(date.slice(0, 4)) < o.depuis) continue;
+    if (o.pieces && Number(r[iPieces]) !== o.pieces) continue;
 
     if (o.surfaceRef && o.toleranceSurface) {
       const ecart = Math.abs(surface - o.surfaceRef) / o.surfaceRef;

@@ -22,6 +22,17 @@ export async function PUT(
       prixCible: Number(body?.prixCible) || undefined,
       dateMiseEnVente: body?.dateMiseEnVente ? String(body.dateMiseEnVente).slice(0, 10) : undefined,
       commentaire: body?.commentaire ? String(body.commentaire).slice(0, 4000) : undefined,
+      // Le prix de référence vient d'une page tierce que l'agent a relevée à la
+      // main : sans lui, le document perdait cette source à chaque rechargement.
+      reference: Number(body?.reference?.m2) > 0 ? {
+        m2: Number(body.reference.m2),
+        bas: Number(body.reference.bas) > 0 ? Number(body.reference.bas) : undefined,
+        haut: Number(body.reference.haut) > 0 ? Number(body.reference.haut) : undefined,
+        source: body.reference.source ? String(body.reference.source).slice(0, 80) : undefined,
+      } : undefined,
+      dvfRayon: Number(body?.dvfRayon) > 0 ? Number(body.dvfRayon) : undefined,
+      dvfDepuis: Number(body?.dvfDepuis) > 0 ? Number(body.dvfDepuis) : undefined,
+      dvfPieces: Number(body?.dvfPieces) > 0 ? Number(body.dvfPieces) : undefined,
       majAt: new Date().toISOString(),
     };
 
