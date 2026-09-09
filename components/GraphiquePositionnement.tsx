@@ -82,13 +82,11 @@ export default function GraphiquePositionnement({
     ? Math.max(aBien ? yBien : 0, aCible ? yCible : 0) + CHIP_H
     : Y0;
   // Assez d'air : l'étiquette de l'avis venait toucher le bas du bandeau.
-  const Y_REF_TEXTE = basBandeau + 22;
-  const Y_REF_TRAIT = basBandeau + 33;
-  const HA = reference ? Y_REF_TRAIT + 16 : basBandeau + 14;
+  const HA = basBandeau + 14;
   // Assez de hauteur pour que les points RESPIRENT. Comprimés, les colonnes
   // fusionnent en barres pleines et l'on perd ce qui fait l'intérêt de la
   // forme : voir chaque vente, une par une.
-  const H = HA + 274;
+  const H = HA + (reference ? 300 : 274);
 
   /** Une étiquette de prix : pleine pour ce qui EST, cernée pour ce qu'on propose. */
   const etiquette = (v: number, y: number, texte: string, pleine: boolean) => {
@@ -114,7 +112,13 @@ export default function GraphiquePositionnement({
   for (let v = Math.ceil(x0 / marche) * marche; v <= x1; v += marche) graduations.push(v);
 
   const BASE_V = HA + 158;  // ventes signées : empilées vers le haut
-  const BASE_E = HA + 174;  // en vente : empilées vers le bas
+  /* L'AVIS DE MARCHÉ SE GLISSE ENTRE LES DEUX RANGÉES. Sa place dit son rôle :
+     il s'intercale entre ce qui s'est signé et ce qui se demande, et le lecteur
+     voit d'un coup de quel côté il penche. En tête, il concurrençait les deux
+     prix qui portent la discussion. */
+  const Y_REF_TEXTE = reference ? BASE_V + 16 : 0;
+  const Y_REF_TRAIT = reference ? BASE_V + 27 : 0;
+  const BASE_E = reference ? BASE_V + 46 : HA + 174;  // en vente : empilées vers le bas
 
   /**
    * Empile les points par colonne : la hauteur dit la densité.
@@ -216,6 +220,10 @@ export default function GraphiquePositionnement({
         {aBien && etiquette(bienM2!, yBien, `Votre bien · ${eur(bienM2!)} €/m²`, true)}
         {aCible && etiquette(cibleM2!, yCible, `Prix conseillé · ${eur(cibleM2!)} €/m²`, false)}
 
+        {/* LES DEUX PRIX, en tête : celui qui EST, celui qu'on PROPOSE. */}
+        {aBien && etiquette(bienM2!, yBien, `Votre bien · ${eur(bienM2!)} €/m²`, true)}
+        {aCible && etiquette(cibleM2!, yCible, `Prix conseillé · ${eur(cibleM2!)} €/m²`, false)}
+
         {/* L'AVIS DE MARCHÉ, en dessous — un crochet, pas une règle verticale.
             Trois traits verticaux se disputeraient la lecture ; et cette valeur
             est un avis, non un acte : elle mérite une forme à part, et une
@@ -231,6 +239,8 @@ export default function GraphiquePositionnement({
               <line x1={xB} y1={yC - 4} x2={xB} y2={yC + 4} stroke="var(--encre-2)" strokeWidth="1.5" />
               <line x1={xH} y1={yC - 4} x2={xH} y2={yC + 4} stroke="var(--encre-2)" strokeWidth="1.5" />
               <circle cx={X(reference.m2)} cy={yC} r="4" fill="var(--encre-2)" />
+              <rect x={Math.min(Math.max(X(reference.m2), G + 70), L - D - 70) - 96} y={Y_REF_TEXTE - 9}
+                width="192" height="13" fill="var(--surface)" opacity="0.92" />
               <text x={Math.min(Math.max(X(reference.m2), G + 70), L - D - 70)} y={Y_REF_TEXTE}
                 textAnchor="middle" fontSize="10" fill="var(--encre-2)">
                 {reference.source ?? 'Référence'} · {eur(reference.m2)} €/m²
@@ -246,7 +256,7 @@ export default function GraphiquePositionnement({
         <span style={{ color: 'var(--serie-1)' }}>●</span> Ventes signées, source DVF (DGFiP).{' '}
         <span style={{ color: 'var(--serie-2)' }}>●</span> Biens en vente relevés sur les portails.
         {' '}La bande claire couvre la moitié centrale des ventes signées.
-        {reference && ` Le crochet situe l'avis de marché${reference.source ? ` (${reference.source})` : ''}.`}
+        {reference && ` Le crochet, entre les deux rangées, situe l'avis de marché${reference.source ? ` (${reference.source})` : ''}.`}
         {cibleM2 != null && " Le trait discontinu marque le prix conseillé."}
         {horsEchelle > 0 && ` ${horsEchelle} vente${horsEchelle > 1 ? 's' : ''} hors échelle, `
           + `conservée${horsEchelle > 1 ? 's' : ''} dans la médiane.`}

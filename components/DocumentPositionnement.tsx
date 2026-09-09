@@ -23,6 +23,21 @@ import type { ReferenceM2 } from '@/lib/annonceConcurrente';
 const eur = (n: number) => Math.round(n).toLocaleString('fr-FR') + ' €';
 const eurM2 = (n: number) => Math.round(n).toLocaleString('fr-FR') + ' €/m²';
 const pct = (n: number) => (n > 0 ? '+' : '') + n.toFixed(1).replace('.', ',') + ' %';
+/**
+ * Un lien cliquable, ou rien.
+ *
+ * Le lien est SAISI À LA MAIN : un « javascript: » stocké s'exécuterait au clic
+ * de qui ouvre le document. On n'en fait donc un lien que si c'est bien du http
+ * ou du https.
+ */
+const lienSur = (v?: string): string | null => {
+  if (!v) return null;
+  try {
+    const u = new URL(v.trim());
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u.toString() : null;
+  } catch { return null; }
+};
+
 const jour = (iso: string) => {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('fr-FR');
@@ -229,7 +244,15 @@ export default function DocumentPositionnement({
                 const m = m2Retenu(c);
                 return (
                   <tr key={c.id}>
-                    <td>{c.titre}</td>
+                    <td>
+                      {/* Cliquable pour VÉRIFIER : devant un vendeur qui conteste
+                          un comparable, on ouvre l'annonce séance tenante. */}
+                      {lienSur(c.lien)
+                        ? <a href={lienSur(c.lien) as string} target="_blank" rel="noopener noreferrer"
+                            style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 2 }}
+                            title="Ouvrir l'annonce dans un nouvel onglet">{c.titre}</a>
+                        : c.titre}
+                    </td>
                     <td>{c.ville || '—'}</td>
                     <td className="num">{surfaceFr(c.surface)}</td>
                     <td className="num">{c.etage ?? '—'}</td>

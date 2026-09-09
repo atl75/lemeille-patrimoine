@@ -1321,3 +1321,28 @@ describe("ancienneteAnnonce — dire depuis quand, pas seulement quand", () => {
     assert.equal(ancienneteAnnonce("2027-01-01", REF), null);
   });
 });
+
+describe("lienSur — un lien saisi à la main n'est pas un lien de confiance", () => {
+  // Reproduit la règle appliquée dans le document : seuls http et https
+  // deviennent cliquables. Un « javascript: » stocké s'exécuterait au clic de
+  // qui ouvre l'argumentaire.
+  const lienSur = (v?: string): string | null => {
+    if (!v) return null;
+    try {
+      const u = new URL(v.trim());
+      return u.protocol === "http:" || u.protocol === "https:" ? u.toString() : null;
+    } catch { return null; }
+  };
+
+  test("les liens ordinaires passent", () => {
+    assert.equal(lienSur("https://www.seloger.com/annonces/1.htm"), "https://www.seloger.com/annonces/1.htm");
+    assert.ok(lienSur("http://agence.fr/bien/2"));
+  });
+
+  test("tout le reste est refusé", () => {
+    for (const v of ["javascript:alert(1)", "data:text/html,<b>x", "file:///etc/passwd",
+                     "vbscript:msgbox", "pas une url", "", undefined]) {
+      assert.equal(lienSur(v as any), null, `${v} ne doit pas devenir un lien`);
+    }
+  });
+});
