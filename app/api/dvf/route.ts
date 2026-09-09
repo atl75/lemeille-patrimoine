@@ -71,6 +71,8 @@ export async function POST(req: Request) {
   const pieces = Number(corps?.pieces) > 0 ? Number(corps.pieces) : null;
   const surfaceMin = Number(corps?.surfaceMin) > 0 ? Number(corps.surfaceMin) : null;
   const surfaceMax = Number(corps?.surfaceMax) > 0 ? Number(corps.surfaceMax) : null;
+  const terrainMin = Number(corps?.terrainMin) > 0 ? Number(corps.terrainMin) : null;
+  const terrainMax = Number(corps?.terrainMax) > 0 ? Number(corps.terrainMax) : null;
 
   // 1. Situer l'adresse. Le score et le type disent au lecteur si l'on est au
   //    numéro près ou seulement dans la rue.
@@ -106,7 +108,7 @@ export async function POST(req: Request) {
     toutes.push(...analyserCsvDvf(csv, {
       lat: point.lat, lon: point.lon, rayon, type,
       surfaceRef, toleranceSurface: surfaceRef ? 0.5 : undefined,
-      depuis, pieces, surfaceMin, surfaceMax,
+      depuis, pieces, surfaceMin, surfaceMax, terrainMin, terrainMax,
     }));
   }
 
@@ -121,7 +123,7 @@ export async function POST(req: Request) {
     precision: point.precision,
     score: point.score,
     rayon,
-    depuis, pieces, surfaceMin, surfaceMax,
+    depuis, pieces, surfaceMin, surfaceMax, terrainMin, terrainMax,
     annees: anneesTrouvees,
     // Assez de points pour que le graphique montre le MÊME effectif que le
     // constat : un lecteur qui compte « 200 » sous un titre annonçant 568

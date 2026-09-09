@@ -16,7 +16,7 @@
  */
 
 import GraphiquePositionnement, { type PointGraphique } from './GraphiquePositionnement';
-import { m2Retenu, ancienneteAnnonce, type Comparable, type Positionnement } from '@/lib/ajustementPrix';
+import { m2Retenu, prixM2, ancienneteAnnonce, type Comparable, type Positionnement } from '@/lib/ajustementPrix';
 import { surfaceFr } from '@/lib/formatFr';
 import type { VenteDvf, StatsDvf } from '@/lib/dvf';
 import type { ReferenceM2 } from '@/lib/annonceConcurrente';
@@ -64,7 +64,13 @@ export default function DocumentPositionnement({
   prixCible?: number | null;
   agence?: string;
 }) {
-  const bienM2 = position?.prixM2Bien ?? null;
+  /**
+   * Le prix au m² du bien se calcule sur LE BIEN, pas sur le positionnement.
+   * `positionner` exige au moins un comparable saisi : sans eux, le repère
+   * central du graphique disparaissait, alors même que les ventes DVF étaient
+   * là et que le prix du bien était connu.
+   */
+  const bienM2 = prixM2(bien.price, bien.surface) ?? position?.prixM2Bien ?? null;
   // Moyenne des biens EN VENTE : calculée sur les comparables retenus, pas sur
   // les statistiques du portefeuille — c'est ce tableau-là que le vendeur voit.
   const m2EnVente = comparables.map(m2Retenu).filter((x): x is number => x !== null);
@@ -189,7 +195,8 @@ export default function DocumentPositionnement({
           <h2>Ce qui s&apos;est réellement vendu autour</h2>
           <p className="doc-source" style={{ margin: '0 0 6px' }}>
             {statsDvf.nombre} ventes dans un rayon de {rayonDvf} m, dernière le {jour(statsDvf.derniereVente)}.
-            {' '}Médiane {eurM2(statsDvf.medianeM2)}, moitié centrale de {eurM2(statsDvf.q1M2)} à {eurM2(statsDvf.q3M2)}.
+            {' '}Médiane {eurM2(statsDvf.medianeM2)} — la moitié des ventes se situent entre
+            {' '}{eurM2(statsDvf.q1M2)} et {eurM2(statsDvf.q3M2)}.
             {' '}Source : demandes de valeurs foncières (DGFiP) — prix réellement signés chez le notaire.
           </p>
           <table className="doc-tableau">

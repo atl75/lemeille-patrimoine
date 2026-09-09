@@ -1267,6 +1267,29 @@ describe("dvf — les ventes signées, sans se laisser abuser par les actes grou
     assert.deepEqual(avecBorne.map(v => v.surface), [95]);
   });
 
+  test("bornes de terrain : n'ont de sens que pour une maison", () => {
+    const csv = [ENTETES,
+      ligne({ ...base, id_mutation: "M1", valeur_fonciere: 340000, type_local: "Maison",
+              surface_reelle_bati: 95, surface_terrain: 320 }),
+      ligne({ ...base, id_mutation: "M2", valeur_fonciere: 520000, type_local: "Maison",
+              surface_reelle_bati: 110, surface_terrain: 1800 }),
+    ].join("\n");
+    assert.equal(analyserCsvDvf(csv, { ...CENTRE, rayon: 300 }).length, 2);
+    const petit = analyserCsvDvf(csv, { ...CENTRE, rayon: 300, terrainMax: 600 });
+    assert.deepEqual(petit.map(v => v.prix), [340000]);
+    const grand = analyserCsvDvf(csv, { ...CENTRE, rayon: 300, terrainMin: 1000 });
+    assert.deepEqual(grand.map(v => v.prix), [520000]);
+  });
+
+  test("sans terrain déclaré, une vente ne satisfait aucune borne", () => {
+    // La retenir reviendrait à ignorer le filtre demandé : un appartement sans
+    // terrain passerait une recherche « terrain de 500 à 900 m² ».
+    const csv = [ENTETES, ligne({ ...base, id_mutation: "S", valeur_fonciere: 300000,
+      type_local: "Maison", surface_reelle_bati: 90 })].join("\n");
+    assert.equal(analyserCsvDvf(csv, { ...CENTRE, rayon: 300 }).length, 1);
+    assert.equal(analyserCsvDvf(csv, { ...CENTRE, rayon: 300, terrainMin: 200 }).length, 0);
+  });
+
   test("statistiques : médiane et quartiles", () => {
     const faux = [1000, 2000, 3000, 4000, 5000].map((m, i) => ({
       id: `x${i}`, date: `2024-0${i + 1}-01`, type: "Appartement" as const,

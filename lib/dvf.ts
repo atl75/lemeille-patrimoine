@@ -64,6 +64,13 @@ export type OptionsDvf = {
    */
   surfaceMin?: number | null;
   surfaceMax?: number | null;
+  /**
+   * Bornes de surface de TERRAIN, en m². N'ont de sens que pour une maison :
+   * deux maisons de même surface habitable ne valent pas le même prix sur
+   * 300 m² ou sur 2 000 m².
+   */
+  terrainMin?: number | null;
+  terrainMax?: number | null;
   /** Typologie : nombre exact de pièces principales. */
   pieces?: number | null;
 };
@@ -101,6 +108,7 @@ export function analyserCsvDvf(csv: string, o: OptionsDvf): VenteDvf[] {
     iNum = col('adresse_numero'), iVoie = col('adresse_nom_voie'),
     iType = col('type_local'), iSurf = col('surface_reelle_bati'),
     iPieces = col('nombre_pieces_principales'),
+    iTerrain = col('surface_terrain'),
     iLon = col('longitude'), iLat = col('latitude');
   if (iMut < 0 || iValeur < 0 || iLat < 0) return [];
 
@@ -150,6 +158,15 @@ export function analyserCsvDvf(csv: string, o: OptionsDvf): VenteDvf[] {
     } else if (o.surfaceRef && o.toleranceSurface) {
       const ecart = Math.abs(surface - o.surfaceRef) / o.surfaceRef;
       if (ecart > o.toleranceSurface) continue;
+    }
+
+    if ((o.terrainMin ?? 0) > 0 || (o.terrainMax ?? 0) > 0) {
+      // Une mutation sans terrain déclaré ne peut pas satisfaire une borne :
+      // la retenir reviendrait à ignorer le filtre demandé.
+      const terrain = iTerrain >= 0 ? Number(r[iTerrain]) : NaN;
+      if (!Number.isFinite(terrain)) continue;
+      if (o.terrainMin && terrain < o.terrainMin) continue;
+      if (o.terrainMax && terrain > o.terrainMax) continue;
     }
 
     const distance = distanceM(o.lat, o.lon, lat, lon);

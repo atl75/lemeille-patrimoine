@@ -35,6 +35,8 @@ export async function PUT(
       dvfPieces: Number(body?.dvfPieces) > 0 ? Number(body.dvfPieces) : undefined,
       dvfSurfaceMin: Number(body?.dvfSurfaceMin) > 0 ? Number(body.dvfSurfaceMin) : undefined,
       dvfSurfaceMax: Number(body?.dvfSurfaceMax) > 0 ? Number(body.dvfSurfaceMax) : undefined,
+      dvfTerrainMin: Number(body?.dvfTerrainMin) > 0 ? Number(body.dvfTerrainMin) : undefined,
+      dvfTerrainMax: Number(body?.dvfTerrainMax) > 0 ? Number(body.dvfTerrainMax) : undefined,
       majAt: new Date().toISOString(),
     };
 

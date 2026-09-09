@@ -29,7 +29,7 @@ import { useRef, useState } from 'react';
 export type PointGraphique = { m2: number; libelle: string };
 
 const L = 700;
-const G = 118, D = 24, BA = 46;
+const G = 118, D = 24;
 const R = 3.6;                 // rayon d'un point
 const COL = R * 2 + 1.4;       // largeur d'une colonne de l'essaim
 
@@ -66,6 +66,23 @@ export default function GraphiquePositionnement({
     bien: true, cible: true, mediane: true, moyVentes: false, moyEnVente: false,
   });
   const bascule = (cle: string) => setVisibles(v => ({ ...v, [cle]: !v[cle] }));
+
+  /* ————— Le bas du cadre : une ligne par libellé —————
+   * La médiane et la moyenne des ventes se dessinaient à la MÊME hauteur, et la
+   * seconde moyenne à trois pixels des graduations : les textes se
+   * chevauchaient dès qu'on allumait un repère. Chacun reçoit désormais sa
+   * ligne, et la marge basse s'ajuste à ce qui est réellement affiché.
+   */
+  const montreMediane = medianeM2 != null && visibles.mediane;
+  const montreMoyV = moyenneVentes != null && visibles.moyVentes;
+  const montreMoyE = moyenneEnVente != null && visibles.moyEnVente;
+  let rang = 14;
+  const Y_GRAD = rang; rang += 13;
+  const Y_MEDIANE = montreMediane ? rang : 0; if (montreMediane) rang += 13;
+  const Y_MOY_V = montreMoyV ? rang : 0; if (montreMoyV) rang += 13;
+  const Y_MOY_E = montreMoyE ? rang : 0; if (montreMoyE) rang += 13;
+  const Y_UNITE = rang + 3;
+  const BA = Y_UNITE + 9;
 
   const tous = [...ventes, ...enVente].map(p => p.m2).filter(Number.isFinite);
   if (!tous.length) return null;
@@ -262,11 +279,11 @@ export default function GraphiquePositionnement({
         {graduations.map(v => (
           <g key={v}>
             <line x1={X(v)} y1={HA - 6} x2={X(v)} y2={H - BA} stroke="var(--trait)" strokeWidth="1" />
-            <text x={X(v)} y={H - BA + 26} textAnchor="middle" fontSize="10" fill="var(--encre-2)">{eur(v)}</text>
+            <text x={X(v)} y={H - BA + Y_GRAD} textAnchor="middle" fontSize="10" fill="var(--encre-2)">{eur(v)}</text>
           </g>
         ))}
         <line x1={G} y1={BASE_V + 3} x2={L - D} y2={BASE_V + 3} stroke="var(--trait)" strokeWidth="1" />
-        <text x={(G + L - D) / 2} y={H - 4} textAnchor="middle" fontSize="9" fill="var(--encre-2)">
+        <text x={(G + L - D) / 2} y={H - BA + Y_UNITE} textAnchor="middle" fontSize="9" fill="var(--encre-2)">
           prix au mètre carré (€)
         </text>
 
@@ -276,7 +293,7 @@ export default function GraphiquePositionnement({
               stroke="var(--serie-1)" strokeWidth="1.5" strokeDasharray="4 3" />
             {/* Bien SÉPARÉE des graduations : « médiane 10 005 » posée sur
                 « 10 000 » rendait les deux illisibles. */}
-            <text x={X(medianeM2)} y={H - BA + 11} textAnchor="middle" fontSize="10"
+            <text x={X(medianeM2)} y={H - BA + Y_MEDIANE} textAnchor="middle" fontSize="10"
               fontWeight="600" fill="var(--serie-1)">médiane {eur(medianeM2)}</text>
           </>
         )}
@@ -320,15 +337,15 @@ export default function GraphiquePositionnement({
             de nouvelles catégories, mais le résumé de rangées déjà présentes.
             Étiquettes décalées en hauteur pour ne pas se croiser. */}
         {[
-          { on: visibles.moyVentes, v: moyenneVentes, couleur: 'var(--serie-1)', texte: 'moyenne ventes', dy: 0 },
-          { on: visibles.moyEnVente, v: moyenneEnVente, couleur: 'var(--serie-2)', texte: 'moyenne en vente', dy: 12 },
+          { on: montreMoyV, v: moyenneVentes, couleur: 'var(--serie-1)', texte: 'moyenne ventes', y: Y_MOY_V },
+          { on: montreMoyE, v: moyenneEnVente, couleur: 'var(--serie-2)', texte: 'moyenne en vente', y: Y_MOY_E },
         ].filter(m => m.on && m.v != null && (m.v as number) >= x0 && (m.v as number) <= x1)
          .map(m => (
           <g key={m.texte}>
             <line x1={X(m.v as number)} y1={HA - 6} x2={X(m.v as number)} y2={H - BA}
               stroke={m.couleur} strokeWidth="1.5" strokeDasharray="1 3" />
             <text x={Math.min(Math.max(X(m.v as number), G + 46), L - D - 46)}
-              y={H - BA + 11 + m.dy} textAnchor="middle" fontSize="9" fontWeight="600" fill={m.couleur}>
+              y={H - BA + m.y} textAnchor="middle" fontSize="9" fontWeight="600" fill={m.couleur}>
               {m.texte} {eur(m.v as number)}
             </text>
           </g>
@@ -368,7 +385,8 @@ export default function GraphiquePositionnement({
       <figcaption className="text-[11px] mt-1" style={{ color: 'var(--encre-2)' }}>
         <span style={{ color: 'var(--serie-1)' }}>●</span> Ventes signées, source DVF (DGFiP).{' '}
         <span style={{ color: 'var(--serie-2)' }}>●</span> Biens en vente relevés sur les portails.
-        {' '}La bande claire couvre la moitié centrale des ventes signées.
+        {' '}La bande claire encadre la moitié des ventes signées :
+        un quart se sont vendues moins cher, un quart plus cher.
         {reference && (
           <>
             {' '}

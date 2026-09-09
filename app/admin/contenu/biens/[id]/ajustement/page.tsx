@@ -67,6 +67,9 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   /** Bornes de surface, en m². Vides = tolérance automatique autour du bien. */
   const [dvfSurfaceMin, setDvfSurfaceMin] = useState("");
   const [dvfSurfaceMax, setDvfSurfaceMax] = useState("");
+  /** Bornes de terrain : n'ont de sens que pour une maison. */
+  const [dvfTerrainMin, setDvfTerrainMin] = useState("");
+  const [dvfTerrainMax, setDvfTerrainMax] = useState("");
   const [chargeDvf, setChargeDvf] = useState(false);
   /** Prix de référence du secteur, relevé par l'agent sur une page tierce. */
   const [reference, setReference] = useState<ReferenceM2 | null>(null);
@@ -100,6 +103,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         if (a.dvfPieces) setDvfPieces(a.dvfPieces);
         if (a.dvfSurfaceMin) setDvfSurfaceMin(String(a.dvfSurfaceMin));
         if (a.dvfSurfaceMax) setDvfSurfaceMax(String(a.dvfSurfaceMax));
+        if (a.dvfTerrainMin) setDvfTerrainMin(String(a.dvfTerrainMin));
+        if (a.dvfTerrainMax) setDvfTerrainMax(String(a.dvfTerrainMax));
         setEtat("ok");
       })
       .catch(() => { if (!annule) setEtat("introuvable"); });
@@ -294,9 +299,15 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     try {
       const r = await fetch("/api/dvf", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adresse, rayon, type: bien?.type === "Maison" ? "Maison" : "Appartement",
+        body: JSON.stringify({ adresse, rayon,
+                               // Le type est stocké en MAJUSCULES (« MAISON »). Comparer à
+                               // « Maison » n'était jamais vrai : la recherche portait sur des
+                               // APPARTEMENTS même pour une maison, et tout l'argumentaire
+                               // reposait alors sur des ventes sans rapport.
+                               type: estMaison ? "Maison" : "Appartement",
                                surface: bien?.surface, depuis: dvfDepuis || undefined, pieces: dvfPieces || undefined,
-                               surfaceMin: Number(dvfSurfaceMin) || undefined, surfaceMax: Number(dvfSurfaceMax) || undefined }),
+                               surfaceMin: Number(dvfSurfaceMin) || undefined, surfaceMax: Number(dvfSurfaceMax) || undefined,
+                               terrainMin: Number(dvfTerrainMin) || undefined, terrainMax: Number(dvfTerrainMax) || undefined }),
       });
       const d = await r.json();
       if (!r.ok) { toast(d?.error ?? "Recherche impossible."); return; }
@@ -586,7 +597,9 @@ licence ouverte. Fond de carte OpenStreetMap.</p>
         body: JSON.stringify({ comparables, prixCible: cible, dateMiseEnVente, commentaire,
           reference, dvfRayon: rayonDvf, dvfDepuis, dvfPieces,
           dvfSurfaceMin: Number(dvfSurfaceMin) || undefined,
-          dvfSurfaceMax: Number(dvfSurfaceMax) || undefined }),
+          dvfSurfaceMax: Number(dvfSurfaceMax) || undefined,
+          dvfTerrainMin: Number(dvfTerrainMin) || undefined,
+          dvfTerrainMax: Number(dvfTerrainMax) || undefined }),
       });
       toast(r.ok ? "Argumentaire enregistré." : "Erreur lors de l'enregistrement.");
     } catch {
@@ -621,6 +634,8 @@ licence ouverte. Fond de carte OpenStreetMap.</p>
     commentaire.trim() ? "commentaire renseigné" : null,
   ].filter(Boolean).join(" · ") || "à renseigner";
 
+  /** Le type est stocké en majuscules par le schéma. */
+  const estMaison = String(bien.type ?? '').toUpperCase().startsWith('MAIS');
   const m2Bien = prixM2(bien.price, bien.surface);
   const presentation = mode === "presenter";
 
@@ -878,6 +893,17 @@ licence ouverte. Fond de carte OpenStreetMap.</p>
                     title="Surface maximale, en m²" />
                   <span className="opacity-50">m²</span>
                 </span>
+                {estMaison && (
+                  <span className="inline-flex items-center gap-1 text-xs" title="Surface de terrain">
+                    <span className="opacity-60">terrain</span>
+                    <ChampNombre placeholder="min" value={dvfTerrainMin} onChange={setDvfTerrainMin}
+                      className="input text-xs py-1 w-[5rem]" testid="terrain-min-dvf" />
+                    <span className="opacity-50">–</span>
+                    <ChampNombre placeholder="max" value={dvfTerrainMax} onChange={setDvfTerrainMax}
+                      className="input text-xs py-1 w-[5rem]" testid="terrain-max-dvf" />
+                    <span className="opacity-50">m²</span>
+                  </span>
+                )}
                 <button onClick={() => chercherDvf()} disabled={chargeDvf}
                   className="btn text-xs disabled:opacity-50" data-testid="chercher-dvf">
                   {chargeDvf ? "Recherche…" : "Chercher"}
@@ -887,6 +913,7 @@ licence ouverte. Fond de carte OpenStreetMap.</p>
             <p className="text-xs opacity-70">
               Les actes déclarés à la DGFiP (base DVF) : des prix réellement signés, pas des prix demandés.
               C&apos;est l&apos;argument le plus difficile à contester.
+              {` La recherche porte sur des ${estMaison ? "maisons" : "appartements"}, comme le bien.`}
               {Number(dvfSurfaceMin) || Number(dvfSurfaceMax)
                 ? " Les bornes de surface que vous posez remplacent la tolérance automatique."
                 : bien?.surface
@@ -898,7 +925,7 @@ licence ouverte. Fond de carte OpenStreetMap.</p>
                 <p>
                   <strong>{dvf.stats.nombre} ventes</strong> à moins de {rayonDvf} m —
                   médiane <strong>{eurM2(dvf.stats.medianeM2)}</strong>,
-                  moitié centrale de {eurM2(dvf.stats.q1M2)} à {eurM2(dvf.stats.q3M2)}.
+                  la moitié des ventes entre {eurM2(dvf.stats.q1M2)} et {eurM2(dvf.stats.q3M2)}.
                 </p>
                 <p className="text-xs opacity-70 mt-1">
                   Adresse retenue : {dvf.adresse}

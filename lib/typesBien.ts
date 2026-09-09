@@ -112,6 +112,8 @@ export type Bien = {
     dvfPieces?: number;
     dvfSurfaceMin?: number;
     dvfSurfaceMax?: number;
+    dvfTerrainMin?: number;
+    dvfTerrainMax?: number;
     majAt?: string;
   };
   // Plan et vidéo
