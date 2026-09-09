@@ -67,6 +67,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [reference, setReference] = useState<ReferenceM2 | null>(null);
   const [collageRef, setCollageRef] = useState("");
   const [chargeRef, setChargeRef] = useState(false);
+  /** Ce que le PDF contenait, quand aucun prix n'y a été reconnu. */
+  const [diagnosticRef, setDiagnosticRef] = useState<string | null>(null);
   /** URL du détail des ventes, quand le navigateur refuse un onglet. */
   const [apercuVentes, setApercuVentes] = useState<string | null>(null);
   const [enregistrement, setEnregistrement] = useState(false);
@@ -98,6 +100,25 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       .catch(() => { if (!annule) setEtat("introuvable"); });
     return () => { annule = true; };
   }, [id]);
+
+  /**
+   * Relance la recherche des ventes signées dès que le bien est chargé.
+   *
+   * Les résultats DVF ne sont PAS enregistrés avec l'argumentaire — 568 ventes
+   * pèseraient lourd dans un fichier relu à chaque page, et les données
+   * bougeraient sans qu'on le sache. On refait donc la recherche, avec les
+   * réglages enregistrés : le serveur garde les fichiers six heures en cache,
+   * l'attente est de l'ordre de la seconde. Sans cela le document perdait sa
+   * pièce maîtresse à chaque rafraîchissement.
+   */
+  useEffect(() => {
+    if (etat !== "ok" || !bien || dvf) return;
+    const adresse = (bien.map?.query || "").trim() || [bien.city, bien.region].filter(Boolean).join(" ");
+    if (!adresse) return;
+    chercherDvf(rayonDvf);
+    // Une seule fois, au chargement : les recherches suivantes sont demandées.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [etat, bien?.id]);
 
   // Concurrents du portefeuille non encore retenus : proposés, jamais imposés.
   const suggestions = useMemo(() => {
@@ -368,9 +389,22 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       const { texteDepuisPdf } = await import("@/lib/pdfTexte");
       const { extraireReferenceM2 } = await import("@/lib/annonceConcurrente");
       const lu = await texteDepuisPdf(fichier);
-      const r = extraireReferenceM2(`${lu.titre}\n${lu.texte}`);
-      if (!r) { toast("Aucun prix au m² trouvé dans ce PDF."); return; }
-      setReference({ ...r, source: /meilleursagents/i.test(lu.texte + lu.titre) ? "MeilleursAgents" : undefined });
+      const brut = `${lu.titre}\n${lu.texte}`;
+      const r = extraireReferenceM2(brut);
+      if (!r) {
+        // On MONTRE ce qui a été lu. Un échec muet ne dit pas s'il s'agit
+        // d'une page en image, d'une mise en forme inattendue, ou d'un
+        // document qui ne contient tout simplement pas de prix.
+        const utile = lu.texte.replace(/\s+/g, " ").trim();
+        setDiagnosticRef(
+          utile.length < 40
+            ? "Ce PDF ne contient pas de texte : ses pages sont des images. Copiez plutôt le texte de la page depuis votre navigateur (Ctrl+A puis Ctrl+C) et collez-le ci-dessus."
+            : `Aucun prix au m² reconnu. Voici ce que le document contient, pour que vous puissiez vérifier :\n\n${utile.slice(0, 700)}${utile.length > 700 ? "…" : ""}`,
+        );
+        return;
+      }
+      setDiagnosticRef(null);
+      setReference({ ...r, source: /meilleursagents/i.test(brut) ? "MeilleursAgents" : undefined });
     } catch {
       toast("Ce PDF n'a pas pu être lu.");
     } finally {
@@ -486,7 +520,9 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           reference={reference}
           rayonDvf={rayonDvf}
           fourchette={fourchetteRetenue}
-          impact={prixAligneRetenu != null ? impactNetVendeur(bien, prixAligneRetenu) : null}
+          prixCible={cible}
+          impact={cible != null ? impactNetVendeur(bien, cible)
+                  : prixAligneRetenu != null ? impactNetVendeur(bien, prixAligneRetenu) : null}
           fiabilite={confiance}
           commentaire={commentaire}
         />
@@ -732,6 +768,14 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                 aide="ou cliquez pour la choisir sur votre ordinateur"
               />
             </div>
+            {diagnosticRef && (
+              <div className="mt-2 text-xs bg-amber-50 border border-amber-300 rounded p-2" data-testid="diagnostic-reference">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="whitespace-pre-wrap flex-1">{diagnosticRef}</p>
+                  <button onClick={() => setDiagnosticRef(null)} className="underline opacity-60 shrink-0">fermer</button>
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-3 mt-2 flex-wrap">
               <button onClick={lireReference} disabled={!collageRef.trim()}
                 className="btn text-xs disabled:opacity-50" data-testid="lire-reference">Lire le prix</button>

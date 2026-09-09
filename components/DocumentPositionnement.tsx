@@ -30,7 +30,7 @@ const jour = (iso: string) => {
 
 export default function DocumentPositionnement({
   bien, position, comparables, dvf, statsDvf, reference, rayonDvf,
-  fourchette, impact, fiabilite, commentaire, agence = 'Lemeille Patrimoine',
+  fourchette, impact, fiabilite, commentaire, prixCible, agence = 'Lemeille Patrimoine',
 }: {
   bien: { title?: string; address?: string; city?: string; surface?: number | null; price?: number | null; type?: string };
   position: Positionnement | null;
@@ -43,6 +43,8 @@ export default function DocumentPositionnement({
   impact: { netActuel: number; netNouveau: number; perte: number; honoraires: number } | null;
   fiabilite: 'faible' | 'moyenne' | 'bonne' | null;
   commentaire?: string;
+  /** Le prix que l'agent a décidé de conseiller. Il prime sur tout calcul. */
+  prixCible?: number | null;
   agence?: string;
 }) {
   const bienM2 = position?.prixM2Bien ?? null;
@@ -223,17 +225,34 @@ export default function DocumentPositionnement({
       )}
 
       {/* ————— La recommandation ————— */}
-      {(fourchette || impact) && (
+      {(fourchette || impact || prixCible) && (
         <div className="doc-bloc" style={{
           marginBottom: 14, border: '1px solid var(--encre)', borderRadius: 4, padding: '10px 12px',
         }}>
           <h2>Ce que nous recommandons</h2>
-          {fourchette && (
+          {/* LE PRIX DÉCIDÉ PAR L'AGENT PASSE DEVANT. Le calcul ne fait que le
+              justifier : c'est lui qui connaît le bien, le vendeur et le
+              moment. Auparavant ce prix était saisi et n'apparaissait nulle
+              part dans le document — la page l'ignorait purement. */}
+          {prixCible ? (
+            <>
+              <p style={{ margin: '4px 0', fontSize: '13pt' }}>
+                Prix de mise en marché conseillé : <strong style={{ color: 'var(--encre)' }}>{eur(prixCible)}</strong>
+                {bien.surface ? <span style={{ color: 'var(--encre-2)', fontSize: '10.5pt' }}>
+                  {' '}— soit {eurM2(prixCible / Number(bien.surface))}</span> : null}
+              </p>
+              {fourchette && (
+                <p style={{ margin: '2px 0', fontSize: '10pt', color: 'var(--encre-2)' }}>
+                  Le marché constaté situe ce bien entre {eur(fourchette.bas)} et {eur(fourchette.haut)}.
+                </p>
+              )}
+            </>
+          ) : fourchette ? (
             <p style={{ margin: '4px 0', fontSize: '11pt' }}>
               Un prix compris entre <strong>{eur(fourchette.bas)}</strong> et <strong>{eur(fourchette.haut)}</strong> place
               le bien dans le marché constaté.
             </p>
-          )}
+          ) : null}
           {impact && impact.perte > 0 && (
             <p style={{ margin: '4px 0', fontSize: '10.5pt', color: 'var(--encre-2)' }}>
               Sur votre net vendeur, l&apos;ajustement représente {eur(impact.perte)} :

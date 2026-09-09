@@ -358,82 +358,113 @@ export type ReferenceM2 = {
 export function extraireReferenceM2(brut: string): ReferenceM2 | null {
   const t = brut.normalize('NFKC').replace(/\s+/g, ' ');
 
-  /** Un prix au m² plausible en France. */
+  /** Un prix au m² plausible en France. Un prix TOTAL sort de ces bornes. */
   const plausible = (v: number) => Number.isFinite(v) && v >= 300 && v <= 40000;
-  const UNITE = String.raw`(?:€|EUR)\s*\/\s*(?:m²|m2)`;
+  // L'unité telle qu'un PDF la rend RÉELLEMENT : pdf.js recolle les fragments
+  // de texte avec des espaces, si bien que « €/m² » ressort souvent en
+  // « € / m ² ». Un motif strict n'y reconnaissait rien.
+  const UNITE = String.raw`(?:€|EUR)\s*\/?\s*(?:m\s*²|m\s*2|㎡)`;
   const NOMBRE = String.raw`\d[\d .,\u00A0\u202F]{1,9}\d`;
 
-  // 1. Une fourchette annoncée : « de 8 900 à 12 400 €/m² », « entre X et Y ».
-  const fourchettes = [
-    new RegExp(String.raw`(?:de|entre)\s+(${NOMBRE})\s*(?:${UNITE})?\s*(?:à|a|et|-|–)\s*(${NOMBRE})\s*${UNITE}`, 'i'),
-    new RegExp(String.raw`(${NOMBRE})\s*${UNITE}\s*(?:à|a|et|-|–)\s*(${NOMBRE})\s*${UNITE}`, 'i'),
-  ];
-  let bas: number | undefined, haut: number | undefined;
-  for (const motif of fourchettes) {
-    const m = t.match(motif);
-    if (!m) continue;
-    const a = nombreFr(m[1]), b = nombreFr(m[2]);
-    if (plausible(a) && plausible(b) && a !== b) { bas = Math.min(a, b); haut = Math.max(a, b); break; }
-  }
+  /* --- 1. Le prix central ------------------------------------------------ */
 
-  // 2. Bas et haut nommés séparément, si la page les présente ainsi.
-  if (bas == null) {
-    const nomme = (mots: string) => {
-      const m = t.match(new RegExp(String.raw`(?:${mots})[^\d]{0,24}(${NOMBRE})\s*${UNITE}`, 'i'));
-      const v = m ? nombreFr(m[1]) : NaN;
-      return plausible(v) ? v : undefined;
-    };
-    const b = nomme('fourchette basse|estimation basse|prix bas|minimum|mini\\b|min\\b');
-    const h = nomme('fourchette haute|estimation haute|prix haut|maximum|maxi\\b|max\\b');
-    if (b != null && h != null && b !== h) { bas = Math.min(b, h); haut = Math.max(b, h); }
-  }
-
-  // 3. Le prix central : celui que son voisinage désigne le mieux.
+  // D'abord les montants portant l'unité, notés selon ce que leur voisinage
+  // en dit.
   const central = new RegExp(String.raw`(?<![A-Za-zÀ-ÿ\d.,])(${NOMBRE})\s*${UNITE}`, 'gi');
-  const candidats: { valeur: number; score: number; extrait: string; index: number }[] = [];
+  const candidats: { valeur: number; score: number; extrait: string }[] = [];
   for (const m of t.matchAll(central)) {
     const valeur = nombreFr(m[1]);
     if (!plausible(valeur)) continue;
     const avant = sansAccent(t.slice(Math.max(0, m.index - 70), m.index));
-    // Ce qui désigne franchement le prix du secteur, et ce qui l'exclut.
     if (/(charge|honoraire|taxe|travaux|loyer)/.test(avant)) continue;
     const score =
       /(prix\s*(?:m2|au\s*m2|moyen)|prix moyen|estimation|prix de vente)/.test(avant) ? 2 :
       /(median|moyen|quartier|secteur|appartement|maison|rue|adresse)/.test(avant) ? 1 : 0;
-    candidats.push({ valeur, score, extrait: m[0].trim(), index: m.index });
+    candidats.push({ valeur, score, extrait: m[0].trim() });
   }
+
+  // À défaut, un LIBELLÉ suivi de son montant, sans unité accolée. C'est la
+  // forme réelle d'une impression MeilleursAgents : « Prix m2 moyen » sur une
+  // ligne, « 11 025 € » sur la suivante, et l'unité nulle part entre les deux.
   if (!candidats.length) {
-    // Une page peut n'annoncer QUE sa fourchette : le centre s'en déduit.
-    if (bas != null && haut != null) {
-      return { m2: Math.round((bas + haut) / 2), bas, haut, extrait: `${bas} – ${haut} €/m²` };
+    const parLibelle = new RegExp(
+      String.raw`(?:prix\s*(?:au\s*)?m\s*[²2]|prix\s*moyen|prix\s*m\s*[²2]\s*moyen|estimation)` +
+      String.raw`[^\d]{0,40}(${NOMBRE})`, 'i');
+    const m = t.match(parLibelle);
+    const v = m ? nombreFr(m[1]) : NaN;
+    if (plausible(v)) candidats.push({ valeur: v, score: 2, extrait: m![0].trim().slice(0, 40) });
+  }
+
+  /* --- 2. Les fourchettes candidates ------------------------------------- */
+
+  // L'unité est FACULTATIVE : la page réelle écrit « de 10 333 € à 12 228 € »,
+  // l'unité vivant dans un libellé séparé. Les bornes de vraisemblance
+  // écartent d'elles-mêmes les fourchettes de prix totaux.
+  const fourchettes: { bas: number; haut: number }[] = [];
+  const motifsFourchette = [
+    new RegExp(String.raw`(?:de|entre)\s+(${NOMBRE})\s*(?:${UNITE}|€|EUR)?\s*(?:à|a|et|–|-)\s*(${NOMBRE})\s*(?:${UNITE}|€|EUR)`, 'gi'),
+    new RegExp(String.raw`(${NOMBRE})\s*${UNITE}\s*(?:à|a|et|–|-)\s*(${NOMBRE})\s*${UNITE}`, 'gi'),
+  ];
+  for (const motif of motifsFourchette) {
+    for (const m of t.matchAll(motif)) {
+      const a = nombreFr(m[1]), b = nombreFr(m[2]);
+      if (plausible(a) && plausible(b) && a !== b) {
+        fourchettes.push({ bas: Math.min(a, b), haut: Math.max(a, b) });
+      }
+    }
+  }
+
+  // Bornes nommées séparément, si la page les présente ainsi.
+  const nomme = (mots: string) => {
+    const m = t.match(new RegExp(String.raw`(?:${mots})[^\d]{0,24}(${NOMBRE})\s*(?:${UNITE}|€|EUR)?`, 'i'));
+    const v = m ? nombreFr(m[1]) : NaN;
+    return plausible(v) ? v : undefined;
+  };
+  const bNom = nomme('fourchette basse|estimation basse|prix bas|minimum|mini\\b|min\\b');
+  const hNom = nomme('fourchette haute|estimation haute|prix haut|maximum|maxi\\b|max\\b');
+  if (bNom != null && hNom != null && bNom !== hNom) {
+    fourchettes.push({ bas: Math.min(bNom, hNom), haut: Math.max(bNom, hNom) });
+  }
+
+  /* --- 3. Choisir, en écartant ce qui ne se tient pas --------------------- */
+
+  if (!candidats.length) {
+    // Aucune valeur centrale : une fourchette seule en tient lieu.
+    if (fourchettes.length) {
+      const f = fourchettes[0];
+      return { m2: Math.round((f.bas + f.haut) / 2), bas: f.bas, haut: f.haut,
+               extrait: `${f.bas} – ${f.haut} €/m²` };
     }
     return null;
   }
 
-  // Un candidat qui EST une borne de la fourchette n'est pas le prix central.
-  const horsBornes = candidats.filter(c => c.valeur !== bas && c.valeur !== haut);
+  // Un candidat qui EST une borne n'est pas le prix central.
+  const bornes = new Set(fourchettes.flatMap(f => [f.bas, f.haut]));
+  const horsBornes = candidats.filter(c => !bornes.has(c.valeur));
+
   // Si la page n'annonce QUE ses bornes, le centre se déduit — en retenir une
-  // comme « le prix » afficherait la borne basse en gros caractères.
-  if (!horsBornes.length && bas != null && haut != null) {
-    return { m2: Math.round((bas + haut) / 2), bas, haut, extrait: `${bas} – ${haut} €/m²` };
+  // afficherait la borne basse en gros caractères comme « le prix ».
+  if (!horsBornes.length && fourchettes.length) {
+    const f = fourchettes[0];
+    return { m2: Math.round((f.bas + f.haut) / 2), bas: f.bas, haut: f.haut,
+             extrait: `${f.bas} – ${f.haut} €/m²` };
   }
+
   const liste = horsBornes.length ? horsBornes : candidats;
-  liste.sort((a, b) => b.score - a.score || a.index - b.index);
+  liste.sort((a, b) => b.score - a.score);
   const principal = liste[0];
 
-  // 4. À défaut de fourchette annoncée, deux valeurs proches en tiennent lieu.
-  if (bas == null) {
-    const proches = candidats
-      .map(x => x.valeur)
-      .filter(v => v !== principal.valeur && Math.abs(v - principal.valeur) / principal.valeur < 0.4)
-      .sort((a, b) => a - b);
-    if (proches.length) {
-      bas = Math.min(proches[0], principal.valeur);
-      haut = Math.max(proches[proches.length - 1], principal.valeur);
-    }
-  }
+  // LA FOURCHETTE DOIT ENCADRER LE PRIX CENTRAL. Sans cette règle, une plage
+  // de charges annuelles — « de 1 200 € à 1 500 € », dans les bornes de
+  // vraisemblance — serait présentée au vendeur comme la fourchette de prix.
+  const encadre = fourchettes.find(f => f.bas <= principal.valeur && principal.valeur <= f.haut);
 
-  return { m2: principal.valeur, bas, haut, extrait: principal.extrait };
+  return {
+    m2: principal.valeur,
+    bas: encadre?.bas,
+    haut: encadre?.haut,
+    extrait: principal.extrait,
+  };
 }
 
 /* ------------------------------------------------------------------ */

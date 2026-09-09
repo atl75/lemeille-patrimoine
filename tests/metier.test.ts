@@ -884,6 +884,54 @@ describe("annonceConcurrente — lire une annonce sans se faire piéger", () => 
     assert.equal(r.m2, 10000);
   });
 
+  test("unité morcelée par le PDF : « € / m ² »", () => {
+    // pdf.js recolle les fragments avec des espaces. Un motif strict ne
+    // reconnaissait rien dans une vraie impression.
+    const r = extraireReferenceM2("Prix moyen appartement 10 350 € / m ² sur ce secteur")!;
+    assert.equal(r.m2, 10350);
+  });
+
+  test("libellé et montant séparés, unité perdue entre les deux", () => {
+    // Mise en page en colonnes : « Prix au m² » d'un côté, « 10 350 € » de
+    // l'autre, et l'unité nulle part entre les deux.
+    const r = extraireReferenceM2("Prix au m2\n\n10 350 €\n\nEvolution sur un an -1,8 %")!;
+    assert.equal(r.m2, 10350);
+  });
+
+  test("IMPRESSION MEILLEURSAGENTS RÉELLE — le cas qui ne marchait pas", () => {
+    // Texte tiré d'une vraie impression, 23 rue du Chevalier de la Barre.
+    // Deux raisons à l'échec initial : le prix central n'a AUCUNE unité
+    // accolée (le libellé est sur la ligne au-dessus), et la fourchette
+    // s'écrit « de X € à Y € » — sans €/m² non plus.
+    const page = `Prix immobilier Ile-de-France Paris Paris 18e Clignancourt Rue du Chevalier de la Barre N°23
+      23 rue du Chevalier de la Barre, 75018 Paris
+      Estimations de prix MeilleursAgents au 1 septembre 2026.
+      APPARTEMENT
+      Prix m2 moyen
+      11 025 €
+      Indice de confiance
+      Loyer au m²Prix au m²
+      de 10 333 € à 12 228 €
+      Évolution du prix des appartements 1 mois + 1.0% 3 mois + 3.0% 1 an + 2.1%`;
+    const r = extraireReferenceM2(page)!;
+    assert.equal(r.m2, 11025);
+    assert.equal(r.bas, 10333);
+    assert.equal(r.haut, 12228);
+  });
+
+  test("une fourchette qui n'encadre pas le prix central est écartée", () => {
+    // Des charges annuelles « de 1 200 € à 1 500 € » tiennent dans les bornes
+    // de vraisemblance : sans cette règle elles seraient présentées au vendeur
+    // comme la fourchette de prix du secteur.
+    const page = `Prix m2 moyen
+      11 025 €
+      Charges de copropriété : de 1 200 € à 1 500 € par an`;
+    const r = extraireReferenceM2(page)!;
+    assert.equal(r.m2, 11025);
+    assert.equal(r.bas, undefined);
+    assert.equal(r.haut, undefined);
+  });
+
   test("les charges et les travaux au m² ne sont pas un prix de référence", () => {
     assert.equal(extraireReferenceM2("Charges : 32 €/m² par an. Travaux estimés 1 200 €/m²."), null);
   });
