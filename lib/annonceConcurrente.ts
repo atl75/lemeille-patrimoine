@@ -30,6 +30,10 @@ export type ChampsAnnonce = {
   pieces?: number;
   /** Date de parution, quand le site la publie (schema.org datePosted). */
   dateParution?: string;
+  /** Étiquette énergie, A à G. */
+  dpe?: string;
+  /** Étage, tel que l'annonce l'écrit. */
+  etage?: string;
   source?: string;
   lien?: string;
 };
@@ -216,6 +220,40 @@ export function surfaceDepuisTexte(texte: string): { valeur: number; extrait: st
 /* Pièces et ville                                                     */
 /* ------------------------------------------------------------------ */
 
+/**
+ * L'étiquette énergie, de A à G.
+ *
+ * On exige un LIBELLÉ devant : « DPE », « classe énergie », « étiquette ».
+ * Une lettre isolée entre A et G se trouve partout dans un texte français, et
+ * la prendre au hasard donnerait un classement faux dans un document remis au
+ * vendeur. Le GES est écarté : c'est l'autre étiquette.
+ */
+export function dpeDepuisTexte(texte: string): string | null {
+  // On travaille SANS ACCENTS : un texte collé les perd souvent, et « classe
+  // energie » doit se lire aussi bien que « classe énergie ».
+  const t = sansAccent(texte.normalize('NFKC').replace(/\s+/g, ' '));
+  const m = t.match(/(?:dpe|classe\s+energ(?:ie|etique)|etiquette\s+energie)\s*:?\s*\(?\s*([a-g])\b/);
+  return m ? m[1].toUpperCase() : null;
+}
+
+/**
+ * L'étage, tel que l'annonce l'écrit.
+ *
+ * Ici encore le texte est mis à plat : « 4eme etage » se rencontre autant que
+ * « 4ème étage ». Et pas de \b devant « etage » quand l'accent subsiste —
+ * « é » n'étant pas un caractère de mot pour une regex JavaScript, la frontière
+ * n'existerait jamais.
+ */
+export function etageDepuisTexte(texte: string): string | null {
+  const t = sansAccent(texte.normalize('NFKC').replace(/\s+/g, ' '));
+  if (/\b(rez[- ]de[- ]chaussee|rdc)\b/.test(t)) return 'RDC';
+  const m = t.match(/\b(\d{1,2})\s*(?:er|eme|e|è)?\s*etage\b/)
+    || t.match(/(?:^|[^a-z])etages?\s*:?\s*(\d{1,2})\b/);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return n >= 0 && n <= 50 ? String(n) : null;
+}
+
 export function piecesDepuisTexte(texte: string): number | null {
   const t = sansAccent(texte);
   if (/\bstudio\b/.test(t)) return 1;
@@ -277,6 +315,12 @@ export function extraireDepuisTexte(brut: string): Extraction {
 
   const ville = villeDepuisTexte(texte);
   if (ville) { champs.ville = ville; provenance.ville = ville; }
+
+  const dpe = dpeDepuisTexte(texte);
+  if (dpe) { champs.dpe = dpe; provenance.dpe = `DPE ${dpe}`; }
+
+  const etage = etageDepuisTexte(texte);
+  if (etage) { champs.etage = etage; provenance.etage = etage === 'RDC' ? 'rez-de-chaussée' : `${etage}e étage`; }
 
   const titre = titreDeduit(texte, champs);
   if (titre) { champs.titre = titre; provenance.titre = 'déduit du texte'; }

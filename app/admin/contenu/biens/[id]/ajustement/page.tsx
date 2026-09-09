@@ -8,6 +8,7 @@ import { propertyLabel } from "@/lib/propertyLabel";
 import DocumentPositionnement from "@/components/DocumentPositionnement";
 import DeposePdf from "@/components/DeposePdf";
 import ChampNombre from "@/components/ChampNombre";
+import CollapsibleSection from "@/components/CollapsibleSection";
 import type { VenteDvf, StatsDvf } from "@/lib/dvf";
 import type { ReferenceM2 } from "@/lib/annonceConcurrente";
 import type { Bien } from "@/lib/typesBien";
@@ -33,7 +34,7 @@ const eur = (n: number) => Math.round(n).toLocaleString("fr-FR") + " €";
 const eurM2 = (n: number) => Math.round(n).toLocaleString("fr-FR") + " €/m²";
 const pct = (n: number) => (n > 0 ? "+" : "") + n.toFixed(1).replace(".", ",") + " %";
 
-const COMPARABLE_VIERGE = { titre: "", ville: "", prix: "", surface: "", prixVente: "", dateParution: "", source: "SeLoger", lien: "" };
+const COMPARABLE_VIERGE = { titre: "", ville: "", prix: "", surface: "", prixVente: "", dateParution: "", dpe: "", etage: "", source: "SeLoger", lien: "" };
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -257,6 +258,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         poser("prix", c.prix);
         poser("surface", c.surface);
         poser("dateParution", c.dateParution);
+        poser("dpe", c.dpe);
+        poser("etage", c.etage);
         poser("source", c.source);
         poser("lien", c.lien);
         // prixVente n'est jamais proposé : il déclenche le statut VENDU et
@@ -443,6 +446,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       surface: c.surface ? String(c.surface) : "",
       prixVente: c.prixVente ? String(c.prixVente) : "",
       dateParution: c.dateParution ?? "",
+      dpe: c.dpe ?? "",
+      etage: c.etage ?? "",
       source: c.source ?? "",
       lien: c.lien ?? "",
     });
@@ -470,6 +475,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       prixVente: Number(saisie.prixVente) || undefined,
       statut: (Number(saisie.prixVente) > 0 ? "VENDU" : "EN_VENTE") as "VENDU" | "EN_VENTE",
       dateParution: saisie.dateParution || undefined,
+      dpe: saisie.dpe || undefined,
+      etage: saisie.etage.trim() || undefined,
       source: saisie.source.trim() || undefined,
       lien: saisie.lien.trim() || undefined,
     };
@@ -508,6 +515,28 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
   if (etat === "chargement") return <AdminShell title="Ajustement de prix"><div className="card p-6 opacity-70">Chargement…</div></AdminShell>;
   if (etat === "introuvable" || !bien) return <AdminShell title="Ajustement de prix"><div className="card p-6">Bien introuvable. <Link className="underline" href="/admin/contenu/biens">Retour à la liste</Link></div></AdminShell>;
+
+  /**
+   * Les onglets des tiroirs portent l'ESSENTIEL de ce qu'ils contiennent.
+   * Replier ne doit pas revenir à cacher : on doit pouvoir vérifier d'un coup
+   * d'œil, tiroirs fermés, que rien ne manque avant de présenter.
+   */
+  const resumeDvf = chargeDvf ? "recherche en cours…"
+    : dvf?.stats ? `${dvf.stats.nombre} ventes à moins de ${rayonDvf} m · médiane ${eurM2(dvf.stats.medianeM2)}`
+    : dvf ? "aucune vente dans ce rayon"
+    : "pas encore recherchées";
+  const resumeReference = reference
+    ? `${eurM2(reference.m2)}${reference.bas && reference.haut && reference.bas !== reference.haut
+        ? ` · de ${eurM2(reference.bas)} à ${eurM2(reference.haut)}` : ""}`
+    : "non renseigné";
+  const resumeSuggestions = `${suggestions.length} bien${suggestions.length > 1 ? "s" : ""} de votre portefeuille`;
+  const resumeConcurrents = enEdition ? "modification en cours"
+    : comparables.length ? `${comparables.length} bien${comparables.length > 1 ? "s" : ""} retenu${comparables.length > 1 ? "s" : ""}`
+    : "aucun bien concurrent";
+  const resumeContexte = [
+    dateMiseEnVente ? `en vente depuis le ${new Date(dateMiseEnVente).toLocaleDateString("fr-FR")}` : null,
+    commentaire.trim() ? "commentaire renseigné" : null,
+  ].filter(Boolean).join(" · ") || "à renseigner";
 
   const m2Bien = prixM2(bien.price, bien.surface);
   const presentation = mode === "presenter";
@@ -581,7 +610,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               </div>
               <div>
                 <div className="text-2xl font-semibold">{eurM2(pos.stats.medianeM2)}</div>
-                <div className="text-xs opacity-70 mt-1">Médiane des {pos.stats.nombre} biens comparables</div>
+                <div className="text-xs opacity-70 mt-1">Médiane {pos.stats.nombre > 1 ? `des ${pos.stats.nombre} biens comparables` : "du seul bien comparable"}</div>
               </div>
               <div>
                 <div className={`text-2xl font-semibold ${pos.ecartPourcent > 0 ? "text-red-700" : "text-green-700"}`}>{pct(pos.ecartPourcent)}</div>
@@ -595,10 +624,10 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
             <p className="text-sm mt-4 leading-relaxed">
               {pos.moinsChers > 0 ? (
-                <>Sur les {pos.stats.nombre} biens retenus, <strong>{pos.moinsChers}</strong> {pos.moinsChers > 1 ? "sont" : "est"} moins {pos.moinsChers > 1 ? "chers" : "cher"} au mètre carré.
+                <>Sur {pos.stats.nombre > 1 ? `les ${pos.stats.nombre} biens retenus` : "le bien retenu"}, <strong>{pos.moinsChers}</strong> {pos.moinsChers > 1 ? "sont" : "est"} moins {pos.moinsChers > 1 ? "chers" : "cher"} au mètre carré.
                 Un acquéreur qui compare les voit avant celui-ci.</>
               ) : (
-                <>Aucun des {pos.stats.nombre} biens retenus n&apos;est moins cher au mètre carré : le prix est déjà bien placé.</>
+                <>{pos.stats.nombre > 1 ? `Aucun des ${pos.stats.nombre} biens retenus n'est` : "Le seul bien retenu n'est pas"} moins cher au mètre carré : le prix est déjà bien placé.</>
               )}
               {" "}Aligné sur la médiane, le bien serait affiché à <strong>{eur(pos.prixAligne)}</strong>.
             </p>
@@ -664,6 +693,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                     <th className="py-1.5 pr-2 text-right">Surface</th>
                     <th className="py-1.5 pr-2 text-right">Prix</th>
                     <th className="py-1.5 pr-2 text-right">€/m²</th>
+                    <th className="py-1.5 pr-2 whitespace-nowrap">Étage</th>
+                    <th className="py-1.5 pr-2 whitespace-nowrap">DPE</th>
                     <th className="py-1.5 pr-2 whitespace-nowrap">En ligne</th>
                     <th className="py-1.5 pr-2">État</th>
                     {!presentation && <th className="py-1.5 sans-impression"></th>}
@@ -690,6 +721,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                           {c.prixVente ? <><span className="line-through opacity-50">{eur(c.prix)}</span> {eur(c.prixVente)}</> : eur(c.prix)}
                         </td>
                         <td className={`py-1.5 pr-2 text-right whitespace-nowrap font-medium ${plusCher ? "" : "text-red-700"}`}>{m !== null ? eurM2(m) : "—"}</td>
+                        <td className="py-1.5 pr-2 whitespace-nowrap text-xs">{c.etage ?? "—"}</td>
+                        <td className="py-1.5 pr-2 whitespace-nowrap text-xs">{c.dpe ?? "—"}</td>
                         <td className="py-1.5 pr-2 whitespace-nowrap text-xs" title={c.dateParution ? `Paru le ${new Date(c.dateParution).toLocaleDateString("fr-FR")}` : undefined}>
                           {ancienneteAnnonce(c.dateParution) ?? "—"}
                         </td>
@@ -727,9 +760,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       {!presentation && (
         <>
           {/* ————— Les ventes réellement signées autour ————— */}
-          <div className="card p-5 mb-4 sans-impression">
+          <CollapsibleSection title="Ventes signées autour du bien" subtitle={resumeDvf}>
             <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
-              <h2 className="font-semibold text-sm text-[#1F3B2C]">Ventes signées autour du bien</h2>
               <div className="flex items-center gap-2 flex-wrap">
                 <select value={rayonDvf} onChange={e => setRayonDvf(Number(e.target.value))}
                   className="input text-xs py-1" data-testid="rayon-dvf" title="Rayon autour du bien">
@@ -791,11 +823,10 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             {dvf && !dvf.stats && (
               <p className="mt-3 text-sm opacity-75 italic">Aucune vente comparable dans ce rayon — essayez plus large.</p>
             )}
-          </div>
+          </CollapsibleSection>
 
           {/* ————— Le prix de référence du secteur ————— */}
-          <div className="card p-5 mb-4 sans-impression">
-            <h2 className="font-semibold text-sm mb-1 text-[#1F3B2C]">Prix de référence du secteur</h2>
+          <CollapsibleSection title="Prix de référence du secteur" subtitle={resumeReference}>
             <p className="text-xs opacity-70 mb-2">
               MeilleursAgents refuse d&apos;être lu par un serveur. Ouvrez la page à l&apos;adresse du bien
               dans votre navigateur, puis collez-en le texte ici.
@@ -833,11 +864,10 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                 </p>
               )}
             </div>
-          </div>
+          </CollapsibleSection>
 
           {suggestions.length > 0 && (
-            <div className="card p-5 mb-4 sans-impression">
-              <h2 className="font-semibold text-sm mb-1 text-[#1F3B2C]">Depuis votre portefeuille</h2>
+            <CollapsibleSection title="Depuis votre portefeuille" subtitle={resumeSuggestions}>
               <p className="text-xs opacity-70 mb-3">Même type, même ville, surface à ±30 %. À vous de retenir ce qui est réellement comparable.</p>
               <div className="space-y-1">
                 {suggestions.map(s => {
@@ -851,11 +881,10 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                   );
                 })}
               </div>
-            </div>
+            </CollapsibleSection>
           )}
 
-          <div className="card p-5 mb-4 sans-impression">
-            <h2 className="font-semibold text-sm mb-1 text-[#1F3B2C]">{enEdition ? "Modifier ce bien concurrent" : "Ajouter un bien vu ailleurs"}</h2>
+          <CollapsibleSection title={enEdition ? "Modifier ce bien concurrent" : "Ajouter un bien vu ailleurs"} subtitle={resumeConcurrents} ouvrirQuand={!!enEdition} defaultOpen>
             <p className="text-xs opacity-70 mb-3">Une annonce SeLoger, LeBonCoin, une vitrine concurrente. Renseignez le prix de vente si le bien est déjà parti : c&apos;est l&apos;argument le plus solide.</p>
 
             <div className="mb-4">
@@ -906,6 +935,15 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                   value={saisie.dateParution} onChange={e => maj("dateParution", e.target.value)}
                   data-testid="saisie-date-parution" />
               </label>
+              <select className={`input text-sm${propose("dpe")}`} value={saisie.dpe}
+                onChange={e => maj("dpe", e.target.value)} data-testid="saisie-dpe"
+                title="Étiquette énergie">
+                <option value="">DPE non communiqué</option>
+                {["A", "B", "C", "D", "E", "F", "G"].map(l => <option key={l} value={l}>DPE {l}</option>)}
+              </select>
+              <input className={`input text-sm${propose("etage")}`} placeholder="Étage (ex. 3 ou RDC)"
+                value={saisie.etage} onChange={e => maj("etage", e.target.value)}
+                data-testid="saisie-etage" maxLength={24} />
               <input className={`input text-sm${propose("source")}`} title={proposes.source} placeholder="Source" value={saisie.source} onChange={e => maj("source", e.target.value)} data-testid="saisie-source" />
               <input className={`input text-sm md:col-span-2${propose("lien")}`} title={proposes.lien} placeholder="Lien vers l'annonce (facultatif)" value={saisie.lien} onChange={e => maj("lien", e.target.value)} data-testid="saisie-lien" />
             </div>
@@ -919,10 +957,9 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                 </button>
               )}
             </div>
-          </div>
+          </CollapsibleSection>
 
-          <div className="card p-5 mb-4 sans-impression">
-            <h2 className="font-semibold text-sm mb-3 text-[#1F3B2C]">Contexte de l&apos;entretien</h2>
+          <CollapsibleSection title="Contexte de l'entretien" subtitle={resumeContexte}>
             <div className="grid md:grid-cols-2 gap-4">
               <label className="text-sm">
                 <span className="block text-xs font-medium mb-1">En vente depuis le</span>
@@ -935,7 +972,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                   placeholder="Ex. deux visites en six semaines, aucune offre." data-testid="commentaire" />
               </label>
             </div>
-          </div>
+          </CollapsibleSection>
         </>
       )}
 

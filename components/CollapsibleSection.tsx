@@ -1,19 +1,27 @@
 "use client";
-import { useState, ReactNode } from "react";
+import { useEffect, useState, ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 
 export default function CollapsibleSection({
   title,
   subtitle,
   defaultOpen = false,
+  ouvrirQuand,
   children,
 }: {
   title: string;
   subtitle?: string;
   defaultOpen?: boolean;
+  /**
+   * Passe à true pour DÉPLIER de force. Sert quand une action extérieure amène
+   * l'utilisateur dans ce tiroir — modifier un bien renvoie au formulaire, qui
+   * resterait invisible s'il était replié.
+   */
+  ouvrirQuand?: boolean;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  useEffect(() => { if (ouvrirQuand) setOpen(true); }, [ouvrirQuand]);
   return (
     <div className="border rounded-lg mb-3 overflow-hidden">
       <button

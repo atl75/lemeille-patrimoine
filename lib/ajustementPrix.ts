@@ -38,6 +38,14 @@ export type Comparable = {
    * qui compare son bien aux annonces voisines sans regarder leur ancienneté.
    */
   dateParution?: string;
+  /**
+   * Étiquette énergie, de A à G. Deux biens identiques ne valent pas le même
+   * prix si l'un est en F : depuis les interdictions de location par étiquette,
+   * l'acquéreur le chiffre lui-même.
+   */
+  dpe?: string;
+  /** Étage. Texte libre : « 3 », « RDC », « 5 sans ascenseur ». */
+  etage?: string;
   source?: string;
   lien?: string;
   note?: string;

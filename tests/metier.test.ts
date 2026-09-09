@@ -15,6 +15,7 @@ import { analyserCsvDvf, statistiquesDvf, distanceM, urlDvf } from "../lib/dvf.t
 import { ancienneteAnnonce } from "../lib/ajustementPrix.ts";
 import {
   nombreFr, sourceDepuisUrl, prixDepuisTexte, surfaceDepuisTexte, fusionner, extraireReferenceM2,
+  dpeDepuisTexte, etageDepuisTexte,
   piecesDepuisTexte, villeDepuisTexte, extraireDepuisTexte, extraireDepuisHtml,
 } from "../lib/annonceConcurrente.ts";
 import { needsFollowUp, formatDate } from "../lib/typesLead.ts";
@@ -753,6 +754,30 @@ describe("annonceConcurrente — lire une annonce sans se faire piéger", () => 
     assert.equal(piecesDepuisTexte("Beau F4 rénové"), 4);
     assert.equal(piecesDepuisTexte("Logement de 5 pièces"), 5);
     assert.equal(piecesDepuisTexte("Studio meublé"), 1);
+  });
+
+  test("DPE : la lettre doit être annoncée, jamais devinée", () => {
+    assert.equal(dpeDepuisTexte("DPE : D (180 kWh/m²/an) — GES : B"), "D");
+    assert.equal(dpeDepuisTexte("Classe énergie F, logement passoire"), "F");
+    assert.equal(dpeDepuisTexte("Étiquette énergie : C"), "C");
+    // Une lettre isolée se trouve partout dans un texte français : sans
+    // libellé devant, on ne propose rien plutôt qu'un classement faux.
+    assert.equal(dpeDepuisTexte("Appartement F3 avec balcon, exposition E"), null);
+    assert.equal(dpeDepuisTexte("Aucune mention"), null);
+    assert.equal(dpeDepuisTexte("DPE : E (280 kWh/m2/an) - GES : C"), "E");
+    assert.equal(dpeDepuisTexte("Classe energie D"), "D");
+  });
+
+  test("ÉTAGE : chiffre ou rez-de-chaussée", () => {
+    assert.equal(etageDepuisTexte("Situé au 3ème étage avec ascenseur"), "3");
+    assert.equal(etageDepuisTexte("Au 5e étage sans ascenseur"), "5");
+    assert.equal(etageDepuisTexte("Étage : 2"), "2");
+    assert.equal(etageDepuisTexte("Appartement en rez-de-chaussée"), "RDC");
+    assert.equal(etageDepuisTexte("RDC surélevé"), "RDC");
+    assert.equal(etageDepuisTexte("Immeuble de 6 étages"), null);
+    // Un texte collé perd souvent ses accents : il doit se lire pareil.
+    assert.equal(etageDepuisTexte("Situe au 4eme etage avec ascenseur"), "4");
+    assert.equal(etageDepuisTexte("Appartement en rez de chaussee"), "RDC");
   });
 
   test("VILLE : ancrée par le code postal, dans les deux ordres", () => {

@@ -216,6 +216,7 @@ export default function DocumentPositionnement({
             <thead>
               <tr>
                 <th>Bien</th><th>Ville</th><th className="num">Surface</th>
+                <th className="num">Étage</th><th className="num">DPE</th>
                 <th className="num">Prix</th><th className="num">€/m²</th>
                 <th className="num">En ligne</th><th>Statut</th>
               </tr>
@@ -228,6 +229,8 @@ export default function DocumentPositionnement({
                     <td>{c.titre}</td>
                     <td>{c.ville || '—'}</td>
                     <td className="num">{surfaceFr(c.surface)}</td>
+                    <td className="num">{c.etage ?? '—'}</td>
+                    <td className="num">{c.dpe ?? '—'}</td>
                     <td className="num">{eur(c.prixVente ?? c.prix)}</td>
                     <td className="num"><strong>{m ? eurM2(m) : '—'}</strong></td>
                     <td className="num">{ancienneteAnnonce(c.dateParution) ?? '—'}</td>
