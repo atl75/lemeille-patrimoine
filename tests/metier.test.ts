@@ -1155,6 +1155,46 @@ describe("dvf — les ventes signées, sans se laisser abuser par les actes grou
     assert.equal(Math.round(v[0].prixM2), 4375);
   });
 
+  test("UNE MAISON SUR PLUSIEURS PARCELLES N'EST PAS UNE VENTE MULTI-LOGEMENTS", () => {
+    // Cas réel : vente du 21/03/2022, 65 av Cougoulins à Antibes. Une maison de
+    // 131 m² sur deux terrains de 500 et 1 436 m² produit DEUX lignes « Maison »
+    // identiques, une par parcelle. Compter les lignes la faisait passer pour
+    // une vente à plusieurs logements. Mesuré : sur Antibes, 46 % des ventes de
+    // maisons étaient ainsi écartées.
+    const csv = [ENTETES,
+      ligne({ ...base, id_mutation: "A", valeur_fonciere: 800000, type_local: "Maison",
+              surface_reelle_bati: 131, nombre_pieces_principales: 6,
+              id_parcelle: "06004000EB0021", surface_terrain: 500,
+              adresse_numero: 65, adresse_nom_voie: "AV COUGOULINS" }),
+      ligne({ ...base, id_mutation: "A", valeur_fonciere: 800000, type_local: "Maison",
+              surface_reelle_bati: 131, nombre_pieces_principales: 6,
+              id_parcelle: "06004000EB0021", surface_terrain: 1436,
+              adresse_numero: 65, adresse_nom_voie: "AV COUGOULINS" }),
+      ligne({ ...base, id_mutation: "A", valeur_fonciere: 800000, type_local: "Dépendance",
+              id_parcelle: "06004000EB0021", surface_terrain: 500 }),
+    ].join("\n");
+    const v = analyserCsvDvf(csv, { ...CENTRE, rayon: 300 });
+    assert.equal(v.length, 1, "un seul bien, pas deux, pas zéro");
+    assert.equal(v[0].surface, 131);
+    assert.equal(Math.round(v[0].prixM2), 6107);
+  });
+
+  test("le terrain d'une vente est la SOMME de ses parcelles", () => {
+    // 500 + 1 436 = 1 936 m², ce qu'affiche l'explorateur officiel. Retenir la
+    // valeur d'une seule ligne aurait sous-estimé le terrain de moitié.
+    const csv = [ENTETES,
+      ligne({ ...base, id_mutation: "A", valeur_fonciere: 800000, type_local: "Maison",
+              surface_reelle_bati: 131, nombre_pieces_principales: 6,
+              id_parcelle: "P1", surface_terrain: 500 }),
+      ligne({ ...base, id_mutation: "A", valeur_fonciere: 800000, type_local: "Maison",
+              surface_reelle_bati: 131, nombre_pieces_principales: 6,
+              id_parcelle: "P1", surface_terrain: 1436 }),
+    ].join("\n");
+    assert.equal(analyserCsvDvf(csv, { ...CENTRE, rayon: 300, terrainMin: 1900, terrainMax: 2000 }).length, 1);
+    assert.equal(analyserCsvDvf(csv, { ...CENTRE, rayon: 300, terrainMax: 600 }).length, 0);
+    assert.equal(analyserCsvDvf(csv, { ...CENTRE, rayon: 300, terrainMin: 1400, terrainMax: 1500 }).length, 0);
+  });
+
   test("UN ACTE À PLUSIEURS LOGEMENTS EST ÉCARTÉ — le piège le plus coûteux", () => {
     // valeur_fonciere est le prix de TOUTE la mutation, répété sur chaque
     // ligne. Un immeuble vendu d'un bloc donnerait ici 900 000 € / 40 m²,

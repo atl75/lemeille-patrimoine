@@ -108,7 +108,7 @@ export function analyserCsvDvf(csv: string, o: OptionsDvf): VenteDvf[] {
     iNum = col('adresse_numero'), iVoie = col('adresse_nom_voie'),
     iType = col('type_local'), iSurf = col('surface_reelle_bati'),
     iPieces = col('nombre_pieces_principales'),
-    iTerrain = col('surface_terrain'),
+    iTerrain = col('surface_terrain'), iParcelle = col('id_parcelle'), iLot = col('lot1_numero'),
     iLon = col('longitude'), iLat = col('latitude');
   if (iMut < 0 || iValeur < 0 || iLat < 0) return [];
 
@@ -130,8 +130,24 @@ export function analyserCsvDvf(csv: string, o: OptionsDvf): VenteDvf[] {
     if (rangs[0][iNature] !== 'Vente') continue;
 
     const logements = rangs.filter(r => r[iType] === 'Appartement' || r[iType] === 'Maison');
-    if (logements.length !== 1) continue;                       // piège 1
+    if (!logements.length) continue;
     if (rangs.some(r => (r[iType] || '').startsWith('Local'))) continue;  // piège 3
+
+    /* PIÈGE 1, DANS SA VRAIE FORME. Quand une vente porte sur PLUSIEURS
+     * PARCELLES, l'export répète la ligne du bâti une fois par parcelle : une
+     * maison de 131 m² sur deux terrains de 500 et 1 436 m² produit DEUX lignes
+     * « Maison ». Compter les lignes faisait passer ce bien unique pour une
+     * vente à plusieurs logements, et l'écartait.
+     *
+     * Mesuré sur Antibes 2022 : 91 mutations écartées à tort contre 99 à juste
+     * titre — près de la moitié des rejets étaient faux.
+     *
+     * On compare donc ce qui identifie un LOGEMENT — type, surface, pièces,
+     * parcelle, numéro de lot — et non le nombre de lignes. Deux logements
+     * réellement distincts diffèrent sur au moins un de ces champs. */
+    const identite = (x: string[]) =>
+      [x[iType], x[iSurf], x[iPieces], iParcelle >= 0 ? x[iParcelle] : '', iLot >= 0 ? x[iLot] : ''].join('|');
+    if (new Set(logements.map(identite)).size !== 1) continue;
 
     const r = logements[0];
     const prix = Number(r[iValeur]);
@@ -163,8 +179,17 @@ export function analyserCsvDvf(csv: string, o: OptionsDvf): VenteDvf[] {
     if ((o.terrainMin ?? 0) > 0 || (o.terrainMax ?? 0) > 0) {
       // Une mutation sans terrain déclaré ne peut pas satisfaire une borne :
       // la retenir reviendrait à ignorer le filtre demandé.
-      const terrain = iTerrain >= 0 ? Number(r[iTerrain]) : NaN;
-      if (!Number.isFinite(terrain)) continue;
+      /* Le terrain d'une vente est la SOMME de ses parcelles : ici 500 + 1 436
+       * = 1 936 m², ce qu'affiche aussi l'explorateur officiel. Retenir la
+       * valeur d'une seule ligne aurait sous-estimé le terrain de moitié. */
+      const parcelles = new Map<string, number>();
+      for (const x of rangs) {
+        const t = iTerrain >= 0 ? Number(x[iTerrain]) : NaN;
+        if (!Number.isFinite(t) || t <= 0) continue;
+        parcelles.set(`${iParcelle >= 0 ? x[iParcelle] : ''}|${t}`, t);
+      }
+      const terrain = [...parcelles.values()].reduce((a, b) => a + b, 0);
+      if (!terrain) continue;
       if (o.terrainMin && terrain < o.terrainMin) continue;
       if (o.terrainMax && terrain > o.terrainMax) continue;
     }
