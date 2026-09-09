@@ -22,6 +22,10 @@
  * l'impression, print-color-adjust force le rendu des aplats.
  */
 
+'use client';
+
+import { useRef, useState } from 'react';
+
 export type PointGraphique = { m2: number; libelle: string };
 
 const L = 700;
@@ -47,6 +51,11 @@ export default function GraphiquePositionnement({
   // marché, pas une transaction. La mêler aux points laisserait croire qu'elle
   // a le même statut de preuve que les actes.
   // (mise en page des repères calculée plus bas : elle dépend de X)
+  // Les hooks se déclarent AVANT tout retour anticipé — sans quoi leur ordre
+  // change d'un rendu à l'autre et React refuse de compiler.
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [survol, setSurvol] = useState<number | null>(null);
+
   const tous = [...ventes, ...enVente].map(p => p.m2).filter(Number.isFinite);
   if (!tous.length) return null;
 
@@ -65,6 +74,23 @@ export default function GraphiquePositionnement({
   const largeur = L - G - D;
   const X = (v: number) => G + ((v - x0) / (x1 - x0)) * largeur;
   const eur = (n: number) => (Math.round(n) === 0 ? 0 : Math.round(n)).toLocaleString('fr-FR');
+
+  /* ————— Le survol : lire une valeur n'importe où sur l'axe —————
+   * Un essaim dit la forme, pas la valeur exacte sous le doigt. Le survol
+   * comble ce manque : il donne le prix au mètre carré à l'endroit pointé, et
+   * la part des ventes signées qui lui sont inférieures — c'est cette part,
+   * plus que le prix lui-même, qui se dit devant un vendeur.
+   */
+  const surviser = (e: React.MouseEvent) => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const r = svg.getBoundingClientRect();
+    // Le SVG est mis à l'échelle par sa largeur : on repasse en coordonnées
+    // du viewBox avant de convertir en euros.
+    const xVue = ((e.clientX - r.left) / r.width) * L;
+    if (xVue < G || xVue > L - D) { setSurvol(null); return; }
+    setSurvol(x0 + ((xVue - G) / largeur) * (x1 - x0));
+  };
 
   /* ————— Mise en page des repères —————
    * Trois bandes, de haut en bas : les deux PRIX (le bien, puis celui qu'on
@@ -179,7 +205,8 @@ export default function GraphiquePositionnement({
         .gp-point { stroke: var(--surface); stroke-width: 1.2; }
       `}</style>
 
-      <svg viewBox={`0 0 ${L} ${H}`} role="img"
+      <svg ref={svgRef} viewBox={`0 0 ${L} ${H}`} role="img"
+        onMouseMove={surviser} onMouseLeave={() => setSurvol(null)}
         aria-label={`Positionnement du bien à ${bienM2 ? eur(bienM2) : '—'} euros par mètre carré, face à ${ventes.length} ventes signées et ${enVente.length} biens en vente.`}>
 
         {/* La moitié centrale des ventes signées : le cœur du marché. */}
@@ -245,6 +272,35 @@ export default function GraphiquePositionnement({
               <line x1={xB} y1={yC - 4} x2={xB} y2={yC + 4} stroke="var(--encre-2)" strokeWidth="1.5" />
               <line x1={xH} y1={yC - 4} x2={xH} y2={yC + 4} stroke="var(--encre-2)" strokeWidth="1.5" />
               <circle cx={X(reference.m2)} cy={yC} r="4" fill="var(--encre-2)" />
+            </g>
+          );
+        })()}
+
+        {/* LE SURVOL — dessiné en dernier, il passe au-dessus de tout.
+            Ni impression ni trace : c'est un outil de lecture, pas une donnée
+            du document. */}
+        {survol != null && (() => {
+          const x = X(survol);
+          const moinsChers = ventes.length
+            ? Math.round((ventes.filter(v => v.m2 < survol).length / ventes.length) * 100)
+            : null;
+          const largeurChip = moinsChers != null ? 176 : 96;
+          const cx = Math.min(Math.max(x, largeurChip / 2 + 2), L - largeurChip / 2 - 2);
+          const yChip = HA + 2;
+          return (
+            <g style={{ pointerEvents: 'none' }}>
+              <line x1={x} y1={HA - 6} x2={x} y2={H - BA} stroke="var(--encre-2)"
+                strokeWidth="1" strokeDasharray="2 2" />
+              <rect x={cx - largeurChip / 2} y={yChip} width={largeurChip}
+                height={moinsChers != null ? 30 : 18} rx="3"
+                fill="var(--surface)" stroke="var(--trait)" strokeWidth="1" />
+              <text x={cx} y={yChip + 13} textAnchor="middle" fontSize="11"
+                fontWeight="700" fill="var(--encre)">{eur(survol)} €/m²</text>
+              {moinsChers != null && (
+                <text x={cx} y={yChip + 25} textAnchor="middle" fontSize="9" fill="var(--encre-2)">
+                  {moinsChers} % des ventes signées sont en dessous
+                </text>
+              )}
             </g>
           );
         })()}

@@ -15,6 +15,7 @@ import { analyserCsvDvf, statistiquesDvf, distanceM, urlDvf } from "../lib/dvf.t
 import { ancienneteAnnonce } from "../lib/ajustementPrix.ts";
 import { surfaceFr, nombreDecimalFr } from "../lib/formatFr.ts";
 import { insertPropertySchema } from "../shared/schema.ts";
+import { fusionneBien } from "../lib/fusionBien.ts";
 import {
   nombreFr, sourceDepuisUrl, prixDepuisTexte, surfaceDepuisTexte, fusionner, extraireReferenceM2,
   dpeDepuisTexte, etageDepuisTexte,
@@ -1406,5 +1407,45 @@ describe("schéma d'un bien — la surface accepte le centième", () => {
 
   test("une surface négative est refusée", () => {
     assert.equal(valide(-5).success, false);
+  });
+});
+
+describe("fusionneBien — enregistrer un bien ne doit pas effacer son argumentaire", () => {
+  const CLES = ["title", "price", "surface", "soldDate"];
+
+  test("l'argumentaire de prix survit à une modification du bien", () => {
+    // Constaté en usage : modifier un champ du bien effaçait comparables,
+    // prix de référence et réglages. La route remplaçait la fiche entière par
+    // le résultat de la validation, et zod supprime ce qu'il ne connaît pas.
+    const ancien = {
+      id: "b1", title: "Ancien titre", price: 700000, surface: 61,
+      ajustementPrix: { comparables: [{ id: "c1" }], reference: { m2: 11025 } },
+    };
+    const valide = { title: "Nouveau titre", price: 690000, surface: 61 };
+    const f = fusionneBien(ancien, valide, CLES, "b1");
+    assert.equal(f.title, "Nouveau titre");
+    assert.equal(f.price, 690000);
+    assert.deepEqual(f.ajustementPrix, ancien.ajustementPrix, "l'argumentaire doit rester intact");
+  });
+
+  test("les champs du schéma gardent leur comportement : ils sont remplacés", () => {
+    // Y compris pour être vidés — sans quoi on ne pourrait plus effacer une
+    // date de vente.
+    const f = fusionneBien(
+      { id: "b1", title: "Ancien", soldDate: "2026-01-01", ajustementPrix: { x: 1 } },
+      { title: "Nouveau", soldDate: undefined },
+      CLES, "b1");
+    assert.equal(f.title, "Nouveau");
+    assert.equal(f.soldDate, undefined);
+    assert.deepEqual(f.ajustementPrix, { x: 1 });
+  });
+
+  test("l'identifiant ne se duplique pas et ne vient jamais du corps", () => {
+    const f = fusionneBien({ id: "ancien" }, { title: "x" } as any, CLES, "b1");
+    assert.equal(f.id, "b1");
+  });
+
+  test("une fiche neuve ne casse rien", () => {
+    assert.deepEqual(fusionneBien(undefined, { title: "x" }, CLES, "b1"), { id: "b1", title: "x" });
   });
 });
