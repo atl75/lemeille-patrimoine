@@ -401,8 +401,33 @@ export type ReferenceM2 = {
  * lève l'ambiguïté à elle seule. À défaut, on retombe sur le montant le mieux
  * désigné par son voisinage.
  */
-export function extraireReferenceM2(brut: string): ReferenceM2 | null {
-  const t = brut.normalize('NFKC').replace(/\s+/g, ' ');
+/**
+ * Isole la section d'une page de prix correspondant au type du bien.
+ *
+ * Une page MeilleursAgents porte DEUX sections — « APPARTEMENT » puis
+ * « MAISON » — chacune avec son propre prix au mètre carré. Sans distinction,
+ * on retenait la première venue : le prix des appartements servait
+ * d'argumentaire pour une maison, ce qui n'a aucun sens sur la Côte d'Azur où
+ * les deux marchés n'ont rien à voir.
+ *
+ * Les titres sont en CAPITALES et seuls sur leur ligne : c'est ce qui les
+ * distingue du mot « maison » qui parsème le texte courant.
+ */
+export function sectionDuType(brut: string, type?: string | null): string {
+  if (!type) return brut;
+  const titres = [...brut.matchAll(/(?:^|\n)[ \t]*(APPARTEMENTS?|MAISONS?)[ \t]*(?=\n|$)/g)]
+    .map(m => ({ mot: m[1], avant: m.index, apres: m.index + m[0].length }));
+  // Une seule section : il n'y a rien à choisir.
+  if (titres.length < 2) return brut;
+  const maison = type.toUpperCase().startsWith('MAIS');
+  const i = titres.findIndex(t => t.mot.startsWith(maison ? 'MAISON' : 'APPARTEMENT'));
+  if (i === -1) return brut;
+  const fin = i + 1 < titres.length ? titres[i + 1].avant : brut.length;
+  return brut.slice(titres[i].apres, fin);
+}
+
+export function extraireReferenceM2(brut: string, type?: string | null): ReferenceM2 | null {
+  const t = sectionDuType(brut, type).normalize('NFKC').replace(/\s+/g, ' ');
 
   /** Un prix au m² plausible en France. Un prix TOTAL sort de ces bornes. */
   const plausible = (v: number) => Number.isFinite(v) && v >= 300 && v <= 40000;

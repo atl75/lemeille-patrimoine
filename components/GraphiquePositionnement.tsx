@@ -95,6 +95,15 @@ export default function GraphiquePositionnement({
   const dedans = [centile(0.02), centile(0.98), ...enVente.map(p => p.m2)];
   if (bienM2 != null) dedans.push(bienM2);
   if (cibleM2 != null) dedans.push(cibleM2);
+  /* L'AVIS DE MARCHÉ ENTRE AUSSI DANS L'ÉCHELLE. Sans lui, une référence
+   * au-delà du 98e centile des ventes était tracée hors du cadre : le crochet
+   * se réduisait à un trait collé au bord et son point sortait de la zone
+   * visible. On croyait l'indicateur absent alors qu'il était hors champ. */
+  if (reference) {
+    dedans.push(reference.m2);
+    if (reference.bas) dedans.push(reference.bas);
+    if (reference.haut) dedans.push(reference.haut);
+  }
   const b0 = Math.min(...dedans), b1 = Math.max(...dedans);
   const marge = Math.max((b1 - b0) * 0.06, 100);
   const x0 = Math.max(0, b0 - marge), x1 = b1 + marge;

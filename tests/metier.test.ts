@@ -18,7 +18,7 @@ import { insertPropertySchema } from "../shared/schema.ts";
 import { fusionneBien } from "../lib/fusionBien.ts";
 import {
   nombreFr, sourceDepuisUrl, prixDepuisTexte, surfaceDepuisTexte, fusionner, extraireReferenceM2,
-  dpeDepuisTexte, etageDepuisTexte,
+  dpeDepuisTexte, etageDepuisTexte, sectionDuType,
   piecesDepuisTexte, villeDepuisTexte, extraireDepuisTexte, extraireDepuisHtml,
 } from "../lib/annonceConcurrente.ts";
 import { needsFollowUp, formatDate } from "../lib/typesLead.ts";
@@ -925,6 +925,65 @@ describe("annonceConcurrente — lire une annonce sans se faire piéger", () => 
     // l'autre, et l'unité nulle part entre les deux.
     const r = extraireReferenceM2("Prix au m2\n\n10 350 €\n\nEvolution sur un an -1,8 %")!;
     assert.equal(r.m2, 10350);
+  });
+
+  test("UNE PAGE PORTE DEUX SECTIONS : on lit celle du bon type", () => {
+    // Constaté en usage sur une maison d'Antibes : le prix des APPARTEMENTS
+    // servait d'argumentaire pour une MAISON. Deux marchés sans rapport.
+    const page = `Prix immobilier Antibes
+APPARTEMENT
+
+Prix m2 moyen
+6 100 €
+Prix au m²
+de 5 400 € à 7 200 €
+
+MAISON
+
+Prix m2 moyen
+7 850 €
+Prix au m²
+de 6 900 € à 9 100 €`;
+    const maison = extraireReferenceM2(page, "MAISON")!;
+    assert.equal(maison.m2, 7850);
+    assert.equal(maison.bas, 6900);
+    assert.equal(maison.haut, 9100);
+
+    const appart = extraireReferenceM2(page, "APPARTEMENT")!;
+    assert.equal(appart.m2, 6100);
+    assert.equal(appart.bas, 5400);
+    assert.equal(appart.haut, 7200);
+  });
+
+  test("une page à section unique n'est pas amputée", () => {
+    // Le cas réel du 18e : une seule section APPARTEMENT. Chercher « MAISON »
+    // ne doit pas rendre la page illisible.
+    const page = `Prix immobilier Paris 18e
+APPARTEMENT
+
+Prix m2 moyen
+11 025 €
+de 10 333 € à 12 228 €`;
+    assert.equal(extraireReferenceM2(page, "MAISON")?.m2, 11025);
+    assert.equal(extraireReferenceM2(page, "APPARTEMENT")?.m2, 11025);
+    assert.equal(extraireReferenceM2(page)?.m2, 11025);
+  });
+
+  test("le mot « maison » dans le texte courant n'est pas un titre de section", () => {
+    // Seuls les titres en CAPITALES, seuls sur leur ligne, découpent la page.
+    const page = `APPARTEMENT
+
+Prix m2 moyen
+6 100 €
+Cette maison de ville est un bien recherché dans le secteur.
+
+MAISON
+
+Prix m2 moyen
+7 850 €`;
+    assert.equal(extraireReferenceM2(page, "MAISON")?.m2, 7850);
+    assert.ok(sectionDuType(page, "MAISON").includes("7 850"));
+    assert.ok(!sectionDuType(page, "MAISON").includes("6 100"));
   });
 
   test("IMPRESSION MEILLEURSAGENTS RÉELLE — le cas qui ne marchait pas", () => {

@@ -1,5 +1,5 @@
 "use client";
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import AdminShell from "@/components/AdminShell";
 import Breadcrumb from "@/components/Breadcrumb";
@@ -52,6 +52,16 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [saisie, setSaisie] = useState({ ...COMPARABLE_VIERGE });
   /** Identifiant du bien concurrent en cours de modification, le cas échéant. */
   const [enEdition, setEnEdition] = useState<string | null>(null);
+  /**
+   * Instantané de ce qui est ENREGISTRÉ, pour signaler ce qui ne l'est pas.
+   *
+   * Le prix de référence se lit à l'écran mais ne rejoint le stockage qu'au
+   * clic sur « Enregistrer ». Un rechargement le perdait donc en silence — les
+   * ventes DVF se rechargent seules, les comparables reviennent du stockage, et
+   * seule la référence manquait, sans que rien ne le dise. On rend l'écart
+   * visible plutôt que de deviner ce qui a été gardé.
+   */
+  const instantaneEnregistre = useRef<string>("");
   const [collage, setCollage] = useState("");
   const [analyse, setAnalyse] = useState(false);
   /** Champs remplis par l'extraction et pas encore relus par un humain. */
@@ -472,7 +482,8 @@ licence ouverte. Fond de carte OpenStreetMap.</p>
     const v = collageRef.trim();
     if (!v) return;
     const { extraireReferenceM2 } = await import("@/lib/annonceConcurrente");
-    const r = extraireReferenceM2(v);
+    // Le type du bien choisit la section : une page porte APPARTEMENT et MAISON.
+    const r = extraireReferenceM2(v, bien?.type);
     if (!r) { toast("Aucun prix au m² trouvé dans ce texte."); return; }
     setReference({ ...r, source: /meilleursagents/i.test(v) ? "MeilleursAgents" : undefined });
     setCollageRef("");
@@ -491,7 +502,7 @@ licence ouverte. Fond de carte OpenStreetMap.</p>
       const { extraireReferenceM2 } = await import("@/lib/annonceConcurrente");
       const lu = await texteDepuisPdf(fichier);
       const brut = `${lu.titre}\n${lu.texte}`;
-      const r = extraireReferenceM2(brut);
+      const r = extraireReferenceM2(brut, bien?.type);
       if (!r) {
         // On MONTRE ce qui a été lu. Un échec muet ne dit pas s'il s'agit
         // d'une page en image, d'une mise en forme inattendue, ou d'un
@@ -588,22 +599,61 @@ licence ouverte. Fond de carte OpenStreetMap.</p>
     setMotExtraction(null);
   };
 
-  const enregistrer = async () => {
+  /** Tout ce qui part à l'enregistrement, rassemblé en un seul endroit. */
+  const aEnregistrer = () => ({
+    comparables, prixCible: cible, dateMiseEnVente, commentaire, reference,
+    dvfRayon: rayonDvf, dvfDepuis, dvfPieces,
+    dvfSurfaceMin: Number(dvfSurfaceMin) || undefined,
+    dvfSurfaceMax: Number(dvfSurfaceMax) || undefined,
+    dvfTerrainMin: Number(dvfTerrainMin) || undefined,
+    dvfTerrainMax: Number(dvfTerrainMax) || undefined,
+  });
+  const modifie = etat === "ok" && instantaneEnregistre.current !== JSON.stringify(aEnregistrer());
+
+  /* Quitter la page en emportant son travail : le navigateur demande
+     confirmation tant qu'il reste des modifications non enregistrées. */
+  useEffect(() => {
+    if (!modifie) return;
+    const avertir = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", avertir);
+    return () => window.removeEventListener("beforeunload", avertir);
+  }, [modifie]);
+
+  // Une fois le bien chargé, on fige l'état de référence.
+  useEffect(() => {
+    if (etat === "ok") instantaneEnregistre.current = JSON.stringify(aEnregistrer());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [etat]);
+
+  /**
+   * ENREGISTREMENT AUTOMATIQUE, une seconde et demie après la dernière frappe.
+   *
+   * Le prix de référence se lisait à l'écran sans rejoindre le stockage : un
+   * rechargement le perdait en silence, et l'on découvrait son absence en
+   * présentant. Plutôt que de compter sur un clic, la page garde ce qu'on lui
+   * donne. Le délai évite d'écrire à chaque caractère tapé.
+   */
+  useEffect(() => {
+    if (!modifie || enregistrement) return;
+    const t = setTimeout(() => { enregistrer(true); }, 1500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modifie, enregistrement]);
+
+  const enregistrer = async (automatique = false) => {
     setEnregistrement(true);
     try {
       const r = await fetch(`/api/properties/${id}/ajustement`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comparables, prixCible: cible, dateMiseEnVente, commentaire,
-          reference, dvfRayon: rayonDvf, dvfDepuis, dvfPieces,
-          dvfSurfaceMin: Number(dvfSurfaceMin) || undefined,
-          dvfSurfaceMax: Number(dvfSurfaceMax) || undefined,
-          dvfTerrainMin: Number(dvfTerrainMin) || undefined,
-          dvfTerrainMax: Number(dvfTerrainMax) || undefined }),
+        body: JSON.stringify(aEnregistrer()),
       });
-      toast(r.ok ? "Argumentaire enregistré." : "Erreur lors de l'enregistrement.");
+      if (r.ok) instantaneEnregistre.current = JSON.stringify(aEnregistrer());
+      // Un enregistrement automatique ne s'annonce pas : le bandeau le dit déjà.
+      if (!automatique) toast(r.ok ? "Argumentaire enregistré." : "Erreur lors de l'enregistrement.");
+      else if (!r.ok) toast("L'enregistrement automatique a échoué.");
     } catch {
-      toast("Erreur lors de l'enregistrement.");
+      if (!automatique) toast("Erreur lors de l'enregistrement.");
     } finally {
       setEnregistrement(false);
     }
@@ -674,10 +724,17 @@ licence ouverte. Fond de carte OpenStreetMap.</p>
           <button onClick={() => window.print()}
             className="rounded-full border border-black/10 bg-white px-4 py-1.5 text-sm hover:bg-black/[0.04] transition-colors"
             data-testid="imprimer">Imprimer</button>
-          <button onClick={enregistrer} disabled={enregistrement}
-            className="rounded-full bg-[#1F3B2C] text-white px-4 py-1.5 text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
+          {/* Le bouton DIT s'il reste quelque chose à enregistrer : sans ce
+              signal, on quitte la page en croyant son travail conservé. */}
+          <span className="text-xs whitespace-nowrap opacity-70" data-testid="etat-enregistrement">
+            {enregistrement ? "Enregistrement…" : modifie ? "Modifications en attente…" : "Tout est enregistré"}
+          </span>
+          <button onClick={() => enregistrer()} disabled={enregistrement}
+            className={`rounded-full px-4 py-1.5 text-sm transition-opacity disabled:opacity-50 ${
+              modifie ? "bg-[#1F3B2C] text-white hover:opacity-90"
+                      : "border border-black/10 bg-white text-black/60"}`}
             data-testid="enregistrer">
-            {enregistrement ? "Enregistrement…" : "Enregistrer"}
+            {enregistrement ? "…" : "Enregistrer"}
           </button>
         </div>
       </div>
