@@ -143,6 +143,13 @@ export const insertPropertySchema = createInsertSchema(properties, {
   features: z.array(z.string()),
   map: mapConfigSchema,
   dpe: dpeSchema,
+  /**
+   * La surface accepte les DÉCIMALES. La colonne est déclarée en integer, et
+   * createInsertSchema en dérivait un entier strict : enregistrer 56,59
+   * renvoyait « Validation failed » en 400, alors même que le formulaire
+   * acceptait la saisie. Une surface Carrez se déclare au centième.
+   */
+  surface: z.number().nonnegative(),
   status: z.enum(['AVAILABLE', 'OFFER_RECEIVED', 'UNDER_OFFER', 'SOLD']).default('AVAILABLE'),
   soldDate: z.string().optional(),
   cadastralReference: z.string().optional(),

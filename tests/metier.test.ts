@@ -14,6 +14,7 @@ import { adresseInterdite, urlAutorisee } from "../lib/urlSortante.ts";
 import { analyserCsvDvf, statistiquesDvf, distanceM, urlDvf } from "../lib/dvf.ts";
 import { ancienneteAnnonce } from "../lib/ajustementPrix.ts";
 import { surfaceFr, nombreDecimalFr } from "../lib/formatFr.ts";
+import { insertPropertySchema } from "../shared/schema.ts";
 import {
   nombreFr, sourceDepuisUrl, prixDepuisTexte, surfaceDepuisTexte, fusionner, extraireReferenceM2,
   dpeDepuisTexte, etageDepuisTexte,
@@ -1374,5 +1375,36 @@ describe("formatFr — une surface au centième, écrite en français", () => {
     assert.equal(nombreDecimalFr(""), undefined);
     assert.equal(nombreDecimalFr("   "), undefined);
     assert.equal(nombreDecimalFr("abc"), undefined);
+  });
+});
+
+describe("schéma d'un bien — la surface accepte le centième", () => {
+  const BIEN = {
+    title: "T2 d'essai", type: "APPARTEMENT", city: "Paris", region: "PARIS",
+    price: 699000, rooms: 2, description: "x".repeat(60),
+    images: [], features: [],
+    map: { precision: "EXACT", query: "23 rue X, Paris", zoom: 15 },
+    dpe: { classEnergy: "E", classGES: "C", consumptionKwh: 280, emissionsKg: 25,
+           date: "2025-01-01", ref: "R1" },
+  };
+  const valide = (surface: number) =>
+    insertPropertySchema.omit({ id: true }).safeParse({ ...BIEN, surface });
+
+  test("une surface décimale passe la validation", () => {
+    // La colonne est declarée en integer, et le schéma en dérivait un entier
+    // strict : enregistrer 56,59 renvoyait « Validation failed » en 400, alors
+    // que le formulaire acceptait la saisie. Le champ et la validation doivent
+    // s'accorder, sinon la saisie n'est qu'une promesse.
+    const r = valide(56.59);
+    assert.equal(r.success, true, JSON.stringify((r as any).error?.issues ?? ""));
+    assert.equal((r as any).data.surface, 56.59);
+  });
+
+  test("un entier passe toujours", () => {
+    assert.equal(valide(61).success, true);
+  });
+
+  test("une surface négative est refusée", () => {
+    assert.equal(valide(-5).success, false);
   });
 });
