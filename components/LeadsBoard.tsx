@@ -31,13 +31,30 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
       if (sienne) { window.location.href = `/admin/estimations/${sienne.id}`; return; }
 
       const nom = [lead.firstName, lead.lastName].filter(Boolean).join(' ').trim();
+
+      // Reprendre CE QUE LE VENDEUR A DÉJÀ SAISI. Le formulaire public collecte
+      // surface, pièces, état, DPE, étage et ascenseur ; sans cela l'agent
+      // rouvrait une fiche vide et retapait trente champs devant le client, avec
+      // le risque de se tromper sur la surface — laquelle divise tous les prix
+      // au m² du document. L'adresse ne vit pas dans `lead.address` pour un lead
+      // venu du formulaire : elle est dans meta.property.city.
+      const { criteresDepuisFormulaire } = await import('@/lib/estimation');
+      const bien = lead.meta?.property ?? {};
+      const nombre = (v: unknown) => (Number(v) > 0 ? Number(v) : undefined);
+
       const r = await fetch('/api/estimations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           leadId: lead.id,
           titre: nom ? `Estimation — ${nom}` : 'Estimation',
-          adresse: lead.address || '',
+          demandeur: nom || undefined,
+          adresse: lead.address || bien.city || '',
+          ville: bien.city || undefined,
+          type: bien.type === 'Maison' ? 'Maison' : 'Appartement',
+          surface: nombre(bien.surface),
+          pieces: nombre(bien.rooms),
+          criteres: criteresDepuisFormulaire(bien),
         }),
       });
       if (!r.ok) throw new Error();

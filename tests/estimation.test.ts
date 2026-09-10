@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   estimer, composer, ajustementsDe, alertes, criteresDe, modalitesDe, pourcentDe,
-  BAREME_COURANT, type Bareme,
+  criteresDepuisFormulaire, BAREME_COURANT, type Bareme,
 } from '../lib/estimation.ts';
 
 const bien = { baseM2: 5000, surface: 100, type: 'Appartement' as const };
@@ -211,4 +211,64 @@ test('une date illisible est écartée sans faire tomber le calcul', () => {
 
 test('sans vente, l’historique est vide', () => {
   assert.deepEqual(parAnnee([]), []);
+});
+
+// ── Reprise des données du formulaire public ────────────────────────────────
+
+test('l’état, le DPE et l’étage du formulaire public se traduisent en critères', () => {
+  const c = criteresDepuisFormulaire({
+    type: 'Appartement', condition: 'À rénover', dpe: 'F', floor: 4, elevator: false,
+  });
+  assert.equal(c.etat, 'A_RENOVER');
+  assert.equal(c.dpe, 'F');
+  assert.equal(c.etage, 'HAUT');
+  assert.equal(c.ascenseur, 'SANS_MOYEN');
+});
+
+test('un rez-de-chaussée est un étage, pas une absence d’étage', () => {
+  // floor = 0 est tombé dans un `if (!floor)` sur une première version : le
+  // rez-de-chaussée, l'étage le plus décoté, était le seul jamais renseigné.
+  const c = criteresDepuisFormulaire({ type: 'Appartement', floor: 0, elevator: false });
+  assert.equal(c.etage, 'RDC');
+  assert.equal(c.ascenseur, 'AVEC', 'au rez-de-chaussée, l’ascenseur ne se paie pas');
+});
+
+test('un étage vide ne renseigne ni l’étage ni l’ascenseur', () => {
+  const c = criteresDepuisFormulaire({ type: 'Appartement', floor: '', elevator: false });
+  assert.equal(c.etage, undefined);
+  assert.equal(c.ascenseur, undefined);
+});
+
+test('l’étage ne s’applique pas à une maison', () => {
+  const c = criteresDepuisFormulaire({ type: 'Maison', floor: 2, elevator: false, dpe: 'C' });
+  assert.equal(c.etage, undefined);
+  assert.equal(c.ascenseur, undefined);
+  assert.equal(c.dpe, 'C');
+});
+
+test('une case non cochée ne décote pas — elle ne dit rien', () => {
+  // Le vendeur ne coche que ce qui l'avantage. Traiter « lumineux non coché »
+  // comme « sombre » décoterait un bien sur un silence.
+  const c = criteresDepuisFormulaire({ type: 'Appartement', lumineux: false, calme: false });
+  assert.equal(c.ensoleillement, undefined);
+  assert.equal(c.bruit, undefined);
+
+  const d = criteresDepuisFormulaire({ type: 'Appartement', lumineux: true, calme: true });
+  assert.equal(d.ensoleillement, 'LUMINEUX');
+  assert.equal(d.bruit, 'CALME');
+});
+
+test('un formulaire vide ou absent ne produit aucun critère', () => {
+  assert.deepEqual(criteresDepuisFormulaire(null), {});
+  assert.deepEqual(criteresDepuisFormulaire({}), {});
+  assert.deepEqual(criteresDepuisFormulaire({ condition: 'Inconnu', dpe: 'Z' }), {});
+});
+
+test('les critères repris alimentent réellement le calcul', () => {
+  const choix = criteresDepuisFormulaire({
+    type: 'Appartement', condition: 'À rafraîchir', dpe: 'E', floor: 0, elevator: false,
+  });
+  const r = estimer({ baseM2: 4000, surface: 60, type: 'Appartement', choix });
+  assert.equal(r?.ajustements.length, 4);
+  assert.ok(r!.composition.pourcent < -15, 'RDC + travaux + E doit peser');
 });

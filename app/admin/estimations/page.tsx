@@ -92,7 +92,7 @@ export default function Page() {
                   </Link>
                   <p className="truncate text-xs text-stone-500">
                     {e.adresse || "adresse à renseigner"}
-                    {e.surface ? ` · ${e.type} ${surfaceFr(e.surface)} m²` : ""}
+                    {e.surface ? ` · ${e.type} ${surfaceFr(e.surface)}` : ""}
                     {nom ? ` · ${nom}` : ""}
                     {` · modifiée le ${new Date(e.majAt ?? e.createdAt).toLocaleDateString("fr-FR")}`}
                   </p>

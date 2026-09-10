@@ -328,3 +328,59 @@ export function alertes(ajustements: Ajustement[]): Alerte[] {
 
   return sorties;
 }
+
+/**
+ * Traduit ce qu'un vendeur a saisi sur le formulaire public en critères du barème.
+ *
+ * Le formulaire d'estimation en ligne (components/EstimationForm.tsx) demande
+ * déjà l'état, le DPE, l'étage, l'ascenseur, la luminosité et le calme — dans
+ * son propre vocabulaire. Sans cette traduction, l'agent qui ouvre l'estimation
+ * d'un lead retrouve une fiche vide et retape une trentaine de champs devant le
+ * client, avec le risque de faute de frappe sur la surface, laquelle divise
+ * TOUS les prix au m² du document.
+ *
+ * Ce qui n'est pas reconnu n'est pas deviné : un critère absent vaut mieux
+ * qu'un critère faux, car l'agent relit ce qui est rempli et ne relit pas ce
+ * qui est vide.
+ */
+export function criteresDepuisFormulaire(p: any): Choix {
+  const choix: Choix = {};
+  if (!p || typeof p !== 'object') return choix;
+
+  const etat: Record<string, string> = {
+    'à rénover': 'A_RENOVER',
+    'à rafraîchir': 'TRAVAUX',
+    'bon état': 'CORRECT',
+    'refait à neuf': 'RENOVE',
+  };
+  const cleEtat = etat[String(p.condition ?? '').trim().toLowerCase()];
+  if (cleEtat) choix.etat = cleEtat;
+
+  const dpe = String(p.dpe ?? '').trim().toUpperCase();
+  if (/^[A-G]$/.test(dpe)) choix.dpe = dpe;
+
+  if (String(p.type) === 'Appartement') {
+    // `floor` peut valoir 0 : c'est un rez-de-chaussée, pas une absence.
+    const etage = p.floor === '' || p.floor == null ? null : Number(p.floor);
+    const ascenseur = p.elevator === true;
+    if (etage !== null && Number.isFinite(etage)) {
+      choix.etage =
+        etage <= 0 ? 'RDC'
+        : etage === 1 ? 'PREMIER'
+        : etage <= 3 ? 'COURANT'
+        : 'HAUT';
+      choix.ascenseur =
+        ascenseur || etage <= 0 ? 'AVEC'
+        : etage <= 2 ? 'SANS_BAS'
+        : etage <= 4 ? 'SANS_MOYEN'
+        : 'SANS_HAUT';
+    }
+  }
+
+  // Le vendeur ne coche que ce qui l'avantage : une case décochée ne veut pas
+  // dire « sombre » ou « bruyant », elle ne veut rien dire. On ne décote donc pas.
+  if (p.lumineux === true) choix.ensoleillement = 'LUMINEUX';
+  if (p.calme === true) choix.bruit = 'CALME';
+
+  return choix;
+}

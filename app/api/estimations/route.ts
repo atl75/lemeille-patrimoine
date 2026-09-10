@@ -33,6 +33,8 @@ export async function POST(req: Request) {
     majAt: maintenant,
     leadId: corps?.leadId ? String(corps.leadId) : undefined,
     titre: String(corps?.titre ?? '').slice(0, 200) || 'Nouvelle estimation',
+    /** « À la demande de … » en tête du document. */
+    demandeur: String(corps?.demandeur ?? '').slice(0, 200) || undefined,
     adresse: String(corps?.adresse ?? '').slice(0, 300),
     ville: String(corps?.ville ?? '').slice(0, 120),
     type: corps?.type === 'Maison' ? 'Maison' : 'Appartement',

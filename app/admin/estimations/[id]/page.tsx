@@ -45,7 +45,14 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [chargeDvf, setChargeDvf] = useState(false);
   const [enregistrement, setEnregistrement] = useState<"repos" | "encours" | "fait">("repos");
   const [collageRef, setCollageRef] = useState("");
+  /** Saisie d'un bien concurrent, avant ajout au tableau. */
+  const CONCURRENT_VIERGE = { titre: "", ville: "", prix: "", surface: "", dateParution: "", source: "SeLoger", lien: "" };
+  const [concurrent, setConcurrent] = useState({ ...CONCURRENT_VIERGE });
+  const [analyseConcurrent, setAnalyseConcurrent] = useState(false);
+  const [collageConcurrent, setCollageConcurrent] = useState("");
   const [chargeRef, setChargeRef] = useState(false);
+  /** Ce que le document contenait, quand aucun prix n'y a été reconnu. */
+  const [diagnosticRef, setDiagnosticRef] = useState<string | null>(null);
 
   useEffect(() => {
     let annule = false;
@@ -168,23 +175,99 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [etat]);
 
-  /** Lit un relevé de prix de secteur — texte collé ou impression PDF. */
-  const lireReference = async (source: { texte?: string; url?: string; titre?: string }) => {
+  /**
+   * Lit un relevé de prix de secteur — texte collé ou impression PDF.
+   *
+   * L'extraction se fait DANS LE NAVIGATEUR, comme sur l'argumentaire de prix :
+   * /api/annonces/extraire lit des annonces et ne renvoie que `champs`, jamais
+   * de prix de secteur. Une première version l'appelait quand même et testait
+   * `d.reference.m2` — un champ que cette route n'a jamais produit : le dépôt
+   * échouait donc à tous les coups, en accusant le document.
+   */
+  const lireReference = async (source: { texte: string; brut?: string }) => {
     setChargeRef(true);
+    setDiagnosticRef(null);
+    try {
+      const { extraireReferenceM2 } = await import("@/lib/annonceConcurrente");
+      const brut = source.brut ?? source.texte;
+      // Une page de prix porte APPARTEMENT et MAISON : le type choisit la section.
+      const r = extraireReferenceM2(brut, type);
+      if (!r) {
+        // Montrer CE QUI A ÉTÉ LU. Un échec muet ne dit pas si le PDF est en
+        // image, si la mise en forme a changé, ou s'il n'y a simplement pas de prix.
+        const utile = brut.replace(/\s+/g, " ").trim();
+        setDiagnosticRef(
+          utile.length < 40
+            ? "Ce PDF ne contient pas de texte : ses pages sont des images. Copiez plutôt le texte de la page depuis votre navigateur (Ctrl+A puis Ctrl+C) et collez-le ci-dessous."
+            : `Aucun prix au m² reconnu. Voici ce que le document contient, pour que vous puissiez vérifier :\n\n${utile.slice(0, 700)}${utile.length > 700 ? "…" : ""}`,
+        );
+        return;
+      }
+      set("reference", { ...r, source: /meilleursagents/i.test(brut) ? "MeilleursAgents" : undefined });
+      setCollageRef("");
+      toast("✅ Prix de secteur relevé.");
+    } catch {
+      toast("❌ Ce document n'a pas pu être lu.");
+    } finally {
+      setChargeRef(false);
+    }
+  };
+
+  /**
+   * Ajoute le concurrent saisi au tableau.
+   *
+   * Sans prix ni surface, un bien ne pèse RIEN dans une médiane : on refuse
+   * plutôt que d'ajouter une ligne qui gonflera l'effectif affiché sans rien
+   * apporter au calcul.
+   */
+  const ajouterConcurrent = () => {
+    const prix = Number(concurrent.prix), surf = Number(concurrent.surface);
+    if (!(prix > 0) || !(surf > 0)) { toast("❌ Il faut au moins un prix et une surface."); return; }
+    const nouveau: Comparable = {
+      id: `c_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`,
+      titre: concurrent.titre.trim() || "Bien concurrent",
+      ville: concurrent.ville.trim() || undefined,
+      prix, surface: surf,
+      statut: "EN_VENTE",
+      dateParution: concurrent.dateParution || undefined,
+      source: concurrent.source || undefined,
+      lien: concurrent.lien.trim() || undefined,
+    };
+    set("comparables", [...comparables, nouveau]);
+    setConcurrent({ ...CONCURRENT_VIERGE });
+  };
+
+  const retirerConcurrent = (id: string) =>
+    set("comparables", comparables.filter((c) => c.id !== id));
+
+  /** Lit une annonce — lien ou texte collé — et PRÉ-REMPLIT sans jamais ajouter. */
+  const lireConcurrent = async (source: { url?: string; texte?: string; titre?: string }) => {
+    setAnalyseConcurrent(true);
     try {
       const r = await fetch("/api/annonces/extraire", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...source, type }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(source),
       });
       const d = await r.json();
-      if (!r.ok || !d?.reference?.m2) { toast(d?.error ?? "❌ Aucun prix au m² reconnu."); return; }
-      set("reference", d.reference);
-      toast("✅ Prix de secteur relevé.");
+      if (!r.ok) { toast(d?.error ?? "❌ Lecture impossible."); return; }
+      const c = d.champs ?? {};
+      // On n'écrase jamais ce que l'agent a déjà tapé lui-même.
+      setConcurrent((p) => ({
+        titre: p.titre || String(c.titre ?? ""),
+        ville: p.ville || String(c.ville ?? ""),
+        prix: p.prix || String(c.prix ?? ""),
+        surface: p.surface || String(c.surface ?? ""),
+        dateParution: p.dateParution || String(c.dateParution ?? ""),
+        source: p.source !== "SeLoger" ? p.source : String(c.source ?? "SeLoger"),
+        lien: p.lien || String(c.lien ?? ""),
+      }));
+      setCollageConcurrent("");
+      if (d.avertissement) toast(d.avertissement);
+      else if (!c.prix || !c.surface) toast("Rempli en partie — vérifiez le prix et la surface.");
     } catch {
       toast("❌ Lecture impossible.");
     } finally {
-      setChargeRef(false);
+      setAnalyseConcurrent(false);
     }
   };
 
@@ -323,7 +406,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                 onFichier={async (f) => {
                   const { texteDepuisPdf } = await import("@/lib/pdfTexte");
                   const lu = await texteDepuisPdf(f);
-                  await lireReference({ texte: lu.texte, titre: lu.titre });
+                  await lireReference({ texte: lu.texte, brut: `${lu.titre}\n${lu.texte}` });
                 }}
               />
               <div className="mt-1.5 flex gap-1.5">
@@ -332,6 +415,11 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                 <button onClick={() => lireReference({ texte: collageRef })} disabled={chargeRef || !collageRef.trim()}
                   className="btn rounded-lg px-3 text-sm">{chargeRef ? "…" : "Lire"}</button>
               </div>
+              {diagnosticRef && (
+                <p className="mt-1.5 whitespace-pre-wrap rounded-lg border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
+                  {diagnosticRef}
+                </p>
+              )}
               {e.reference?.m2 && (
                 <p className="mt-1.5 text-xs text-stone-600">
                   {e.reference.source ?? "Avis de marché"} · {eurM2(e.reference.m2)}
@@ -343,6 +431,105 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                   value={e.baseManuelle ? String(e.baseManuelle) : ""} onChange={(v) => set("baseManuelle", Number(v) || 0)} />
               </label>
             </div>
+          </CollapsibleSection>
+
+          <CollapsibleSection
+            title="Biens concurrents"
+            subtitle={comparables.length ? `${comparables.length} bien${comparables.length > 1 ? "s" : ""} en vente relevé${comparables.length > 1 ? "s" : ""}` : "ce que l’acquéreur voit en même temps"}
+          >
+            <p className="mb-2 text-xs text-stone-600">
+              Les biens actuellement en vente autour du vôtre. Ils ne disent pas ce que le marché
+              paie — les ventes signées le disent mieux — mais ils disent à quoi votre bien sera
+              comparé, et c’est cette page que le vendeur regarde le plus longtemps.
+            </p>
+
+            <div className="mb-2 flex gap-1.5">
+              <input
+                className="input flex-1 text-sm"
+                placeholder="Collez le lien d’une annonce, ou son texte"
+                value={collageConcurrent}
+                data-testid="collage-concurrent"
+                onChange={(ev) => setCollageConcurrent(ev.target.value)}
+              />
+              <button
+                className="btn rounded-lg px-3 text-sm"
+                disabled={analyseConcurrent || !collageConcurrent.trim()}
+                onClick={() => {
+                  const v = collageConcurrent.trim();
+                  const estLien = !/\s/.test(v) && /^https?:\/\//i.test(v);
+                  lireConcurrent(estLien ? { url: v } : { texte: v });
+                }}
+              >
+                {analyseConcurrent ? "…" : "Lire"}
+              </button>
+            </div>
+            <DeposePdf
+              libelle="…ou glissez l’impression PDF d’une annonce"
+              occupe={analyseConcurrent}
+              testid="depose-concurrent"
+              onFichier={async (f) => {
+                const { texteDepuisPdf } = await import("@/lib/pdfTexte");
+                const lu = await texteDepuisPdf(f);
+                await lireConcurrent({ texte: lu.texte, titre: lu.titre });
+              }}
+            />
+
+            <div className="mt-3 grid gap-2 md:grid-cols-3">
+              <label className="text-sm md:col-span-2">Titre
+                <input className="input mt-0.5 w-full" value={concurrent.titre}
+                  onChange={(ev) => setConcurrent({ ...concurrent, titre: ev.target.value })} />
+              </label>
+              <label className="text-sm">Ville
+                <input className="input mt-0.5 w-full" value={concurrent.ville}
+                  onChange={(ev) => setConcurrent({ ...concurrent, ville: ev.target.value })} />
+              </label>
+              <label className="text-sm">Prix affiché
+                <ChampNombre className="input mt-0.5 w-full" testid="concurrent-prix"
+                  value={concurrent.prix} onChange={(v) => setConcurrent({ ...concurrent, prix: v })} />
+              </label>
+              <label className="text-sm">Surface (m²)
+                <ChampNombre decimales className="input mt-0.5 w-full" testid="concurrent-surface"
+                  value={concurrent.surface} onChange={(v) => setConcurrent({ ...concurrent, surface: v })} />
+              </label>
+              <label className="text-sm">En ligne depuis le
+                <input type="date" className="input mt-0.5 w-full" value={concurrent.dateParution}
+                  onChange={(ev) => setConcurrent({ ...concurrent, dateParution: ev.target.value })} />
+              </label>
+            </div>
+            <button onClick={ajouterConcurrent} className="btn mt-2 rounded-lg px-3 py-1.5 text-sm" data-testid="ajouter-concurrent">
+              Ajouter ce bien
+            </button>
+
+            {comparables.length > 0 && (
+              <table className="mt-3 w-full text-sm">
+                <thead>
+                  <tr className="border-b text-xs text-stone-600">
+                    <th className="py-1 text-left">Bien</th>
+                    <th className="py-1 text-right">Surface</th>
+                    <th className="py-1 text-right">Prix</th>
+                    <th className="py-1 text-right">€/m²</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {comparables.map((c) => {
+                    const m2 = prixM2(c.prixVente ?? c.prix, c.surface);
+                    return (
+                      <tr key={c.id} className="border-b last:border-0">
+                        <td className="py-1">{c.titre}{c.ville ? ` · ${c.ville}` : ""}</td>
+                        <td className="py-1 text-right tabular-nums">{surfaceFr(c.surface)}</td>
+                        <td className="py-1 text-right tabular-nums">{eur(c.prix)}</td>
+                        <td className="py-1 text-right tabular-nums">{m2 ? eurM2(m2) : "—"}</td>
+                        <td className="py-1 text-right">
+                          <button onClick={() => retirerConcurrent(c.id)}
+                            className="btn px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50">Retirer</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </CollapsibleSection>
 
           <CollapsibleSection
