@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
+import { envoyerEmail } from '@/lib/envoiEmail';
 import type { NextRequest } from 'next/server';
 import { readJSON, updateJSON, uid } from '@/lib/utils';
 import { isAdmin } from '@/lib/adminGuard';
 import { buildDocumentPdf, type DocData } from '@/lib/documentPdf';
-import { MAIL_COPY } from '@/lib/mailCopy';
 import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
 import { propertyLabel, propertyTypology } from '@/lib/propertyLabel';
 
@@ -11,28 +11,20 @@ import { propertyLabel, propertyTypology } from '@/lib/propertyLabel';
 async function emailDocumentToClient(record: any, pdfB64: string, property: any) {
   const to = (record?.client?.email || '').trim();
   if (!/.+@.+\..+/.test(to) || !process.env.RESEND_API_KEY) return false;
-  try {
-    const { Resend } = await import('resend');
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const isOffre = record.type === 'OFFRE';
-    const label = propertyLabel(property);
-    const prenom = record.client?.firstName ? ` ${record.client.firstName}` : '';
-    const intro = isOffre
-      ? `Vous venez de signer une offre d'achat portant sur le bien suivant : <strong>${label}</strong>. Vous en trouverez copie en pièce jointe.`
-      : `Vous venez de signer le bon de visite du bien suivant : <strong>${label}</strong>. Vous en trouverez copie en pièce jointe.`;
-    await resend.emails.send({
-      from: process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>',
-      to,
-      bcc: MAIL_COPY,
-      subject: `${isOffre ? "Votre offre d'achat" : 'Votre bon de visite'} — ${label}`,
-      html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#222;font-size:14px;line-height:1.55"><p>Bonjour${prenom},</p><p>${intro}</p><p>Je reste à votre disposition pour toute question.</p>${EMAIL_SIGNATURE_HTML}</div>`,
-      attachments: [{ filename: `${record.number || 'document'}.pdf`, content: pdfB64 }],
-    });
-    return true;
-  } catch (e) {
-    console.error('Envoi du document au client échoué:', e);
-    return false;
-  }
+  const isOffre = record.type === 'OFFRE';
+  const label = propertyLabel(property);
+  const prenom = record.client?.firstName ? ` ${record.client.firstName}` : '';
+  const intro = isOffre
+    ? `Vous venez de signer une offre d'achat portant sur le bien suivant : <strong>${label}</strong>. Vous en trouverez copie en pièce jointe.`
+    : `Vous venez de signer le bon de visite du bien suivant : <strong>${label}</strong>. Vous en trouverez copie en pièce jointe.`;
+  const envoi = await envoyerEmail({
+    to,
+    subject: `${isOffre ? "Votre offre d'achat" : 'Votre bon de visite'} — ${label}`,
+    html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#222;font-size:14px;line-height:1.55"><p>Bonjour${prenom},</p><p>${intro}</p><p>Je reste à votre disposition pour toute question.</p>${EMAIL_SIGNATURE_HTML}</div>`,
+    attachments: [{ filename: `${record.number || 'document'}.pdf`, content: pdfB64 }],
+  });
+  return envoi.ok;
+
 }
 
 const FILE = 'documents.json';

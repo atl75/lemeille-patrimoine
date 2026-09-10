@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { updateJSON } from '@/lib/utils';
 import { isAdmin } from '@/lib/adminGuard';
-import { MAIL_COPY } from '@/lib/mailCopy';
+import { envoyerEmail } from '@/lib/envoiEmail';
 import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
 import crypto from 'crypto';
 
@@ -52,21 +52,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   for (const s of m.signers) {
     const url = `${base}/mandat/signer/${s.token}`;
     let emailed = false;
-    if (!s.dataUrl && s.email && process.env.RESEND_API_KEY) {
-      try {
-        const { Resend } = await import('resend');
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        await resend.emails.send({
-          from: process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>',
-          to: s.email,
-          bcc: MAIL_COPY,
-          subject: `Signature de votre mandat de vente${m.mandateNumber ? ` — N° ${m.mandateNumber}` : ''}`,
-          html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#222;font-size:14px;line-height:1.5"><p>Bonjour ${s.name || ''},</p><p>Votre mandat de vente${m.mandateNumber ? ` (N° ${m.mandateNumber})` : ''} est prêt à être signé :</p><p><a href="${url}" style="display:inline-block;background:#1F3B2C;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Lire et signer le mandat</a></p><p style="font-size:12px;color:#999">${url}</p>${EMAIL_SIGNATURE_HTML}</div>`,
-        });
-        emailed = true;
-      } catch (e) { emailed = false; console.error(`Envoi lien de signature échoué (${s.email}):`, e); }
+    // `raison` remonte jusqu'à l'écran : un lien de signature qui n'est pas
+    // parti doit se voir tout de suite, sinon l'agent attend une signature que
+    // le mandant n'a jamais été invité à donner.
+    let raison: string | undefined;
+    if (!s.dataUrl && s.email) {
+      const envoi = await envoyerEmail({
+        to: s.email,
+        subject: `Signature de votre mandat de vente${m.mandateNumber ? ` — N° ${m.mandateNumber}` : ''}`,
+        html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#222;font-size:14px;line-height:1.5"><p>Bonjour ${s.name || ''},</p><p>Votre mandat de vente${m.mandateNumber ? ` (N° ${m.mandateNumber})` : ''} est prêt à être signé :</p><p><a href="${url}" style="display:inline-block;background:#1F3B2C;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Lire et signer le mandat</a></p><p style="font-size:12px;color:#999">${url}</p>${EMAIL_SIGNATURE_HTML}</div>`,
+      });
+      emailed = envoi.ok;
+      if (!envoi.ok) raison = envoi.raison;
     }
-    out.push({ name: s.name, email: s.email, phone: s.phone, url, signed: !!s.dataUrl, emailed });
+    out.push({ name: s.name, email: s.email, phone: s.phone, url, signed: !!s.dataUrl, emailed, raison });
   }
   return NextResponse.json({ signers: out });
 }

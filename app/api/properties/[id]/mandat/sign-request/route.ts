@@ -2,19 +2,15 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { SANS_ECRITURE, updateJSON } from '@/lib/utils';
 import { isAdmin } from '@/lib/adminGuard';
-import { MAIL_COPY } from '@/lib/mailCopy';
 import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
-import { Resend } from 'resend';
+import { envoyerEmail } from '@/lib/envoiEmail';
 import crypto from 'crypto';
 
-// Envoie au mandant l'invitation à signer le mandat en ligne. Silencieux si
-// Resend n'est pas configuré ou si l'email échoue (le lien reste disponible).
+// Envoie au mandant l'invitation à signer le mandat en ligne. Rend la raison
+// de l'échec le cas échéant : le lien reste utilisable à la main, mais l'agent
+// doit savoir que le mandant n'a rien reçu.
 async function sendSignInvite(to: string, name: string, url: string, mandateNumber: string) {
-  if (!to || !process.env.RESEND_API_KEY) return false;
-  try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const from = process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>';
-    const html = `
+  const html = `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1F3B2C">
         <h2 style="color:#B89C6D">Signature de votre mandat de vente</h2>
         <p>Bonjour ${name || ''},</p>
@@ -25,18 +21,11 @@ async function sendSignInvite(to: string, name: string, url: string, mandateNumb
         <p style="font-size:13px;color:#555">Ou copiez ce lien : <br>${url}</p>
         ${EMAIL_SIGNATURE_HTML}
       </div>`;
-    await resend.emails.send({
-      from,
-      to,
-      bcc: MAIL_COPY,
-      subject: `Signature de votre mandat de vente${mandateNumber ? ` — N° ${mandateNumber}` : ''}`,
-      html,
-    });
-    return true;
-  } catch (e) {
-    console.error('Erreur envoi invitation signature:', e);
-    return false;
-  }
+  return envoyerEmail({
+    to,
+    subject: `Signature de votre mandat de vente${mandateNumber ? ` — N° ${mandateNumber}` : ''}`,
+    html,
+  });
 }
 
 // Crée (ou régénère) un lien de signature électronique pour le mandat d'un bien.
@@ -80,6 +69,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const base = process.env.NEXT_PUBLIC_SITE_URL || 'https://lemeillepatrimoine.com';
   const url = `${base}/mandat/signer/${token}`;
-  const emailed = await sendSignInvite(signerEmail, signerName, url, mandateNumber);
-  return NextResponse.json({ token, url, signerName, signerEmail, emailed });
+  const envoi = await sendSignInvite(signerEmail, signerName, url, mandateNumber);
+  return NextResponse.json({
+    token, url, signerName, signerEmail,
+    emailed: envoi.ok,
+    // La raison remonte à l'écran : « envoyé » alors que rien n'est parti est
+    // le pire des retours, car l'agent cesse alors de relancer son mandant.
+    raison: envoi.ok ? undefined : envoi.raison,
+  });
 }

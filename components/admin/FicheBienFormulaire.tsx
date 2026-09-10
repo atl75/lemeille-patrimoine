@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import FeaturePicker from "@/components/FeaturePicker";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { nombreDecimalFr } from "@/lib/formatFr";
@@ -53,7 +53,72 @@ export default function FicheBienFormulaire({
   const [genMandate, setGenMandate] = useState(false);
   const [searchingCadastre, setSearchingCadastre] = useState(false);
   const [calculationMode, setCalculationMode] = useState<'FROM_NET' | 'FROM_FAI'>('FROM_NET');
-  const [dirty, setDirty] = useState(false);
+  /**
+   * Y a-t-il du travail non enregistré ?
+   *
+   * CALCULÉ, JAMAIS DÉCLARÉ. La version précédente reposait sur un
+   * `setDirty(true)` qu'il fallait penser à appeler à chaque champ : il ne
+   * l'était NULLE PART dans le projet. `dirty` valait donc false en
+   * permanence, et les deux protections qui s'appuient dessus — l'alerte de
+   * fermeture d'onglet et la confirmation du bouton Annuler — ne se sont
+   * jamais déclenchées. Le formulaire le plus long du back-office était le
+   * moins protégé.
+   *
+   * Comparer un instantané ne s'oublie pas quand on ajoute un champ.
+   */
+  const enregistre = useRef<string>(JSON.stringify(bienInitial ?? null));
+  const [pointDeReference, setPointDeReference] = useState(0);
+  const dirty = useMemo(
+    () => JSON.stringify(editing ?? null) !== enregistre.current,
+    // `pointDeReference` force le recalcul quand l'instantané est reposé après
+    // un enregistrement : une ref ne déclenche pas de rendu à elle seule.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [editing, pointDeReference],
+  );
+  /**
+   * Brouillon LOCAL, dans le navigateur.
+   *
+   * Pas d'enregistrement automatique vers le serveur ici, contrairement à
+   * l'estimation : `handleSave` refuse les fiches incomplètes et NAVIGUE en cas
+   * de succès, et sur un bien neuf chaque envoi créerait un doublon. Un
+   * brouillon local n'a aucun de ces défauts et couvre le vrai risque : le
+   * téléphone qui tue l'onglet en rendez-vous.
+   */
+  const cleBrouillon = bienInitial?.id ? `bien-brouillon:${bienInitial.id}` : null;
+  const [brouillonPropose, setBrouillonPropose] = useState<Partial<Bien> | null>(null);
+
+  useEffect(() => {
+    if (!cleBrouillon) return;
+    try {
+      const brut = localStorage.getItem(cleBrouillon);
+      if (!brut) return;
+      const { valeur, a } = JSON.parse(brut);
+      // Un brouillon plus vieux qu'une semaine n'apprend plus rien.
+      if (!valeur || Date.now() - (a || 0) > 7 * 86400000) { localStorage.removeItem(cleBrouillon); return; }
+      if (JSON.stringify(valeur) === JSON.stringify(bienInitial)) return;
+      setBrouillonPropose(valeur);
+    } catch { /* stockage indisponible : on continue sans brouillon */ }
+    // Au montage seulement : ensuite c'est l'utilisateur qui décide.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!cleBrouillon || !dirty) return;
+    const t = setTimeout(() => {
+      try { localStorage.setItem(cleBrouillon, JSON.stringify({ valeur: editing, a: Date.now() })); }
+      catch { /* quota atteint : le brouillon est un filet, pas une garantie */ }
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [editing, dirty, cleBrouillon]);
+
+  /** Repose l'instantané : ce qui est à l'écran devient « enregistré ». */
+  const marquerEnregistre = (valeur?: Partial<Bien> | null) => {
+    enregistre.current = JSON.stringify(valeur !== undefined ? valeur : editing ?? null);
+    setPointDeReference((n) => n + 1);
+    // Le brouillon n'a plus lieu d'être : le garder ferait proposer une
+    // restauration de ce qui vient précisément d'être enregistré.
+    if (cleBrouillon) { try { localStorage.removeItem(cleBrouillon); } catch {} }
+  };
   const [suppression, setSuppression] = useState(false);
 
   /**
@@ -63,10 +128,6 @@ export default function FicheBienFormulaire({
    * un clic de travers sur la mauvaise carte et le bien disparaissait. Ici, il
    * faut d'abord avoir ouvert LA fiche que l'on supprime — le geste engage
    * quelqu'un qui sait ce qu'il regarde.
-   *
-   * `setDirty(false)` avant de partir, sinon l'avertissement « modifications
-   * non enregistrées » se déclenche au moment de quitter une fiche qui vient
-   * précisément d'être effacée.
    */
   const supprimer = async () => {
     if (!editing?.id) return;
@@ -77,7 +138,9 @@ export default function FicheBienFormulaire({
     try {
       const res = await fetch(`/api/properties/${editing.id}`, { method: 'DELETE', credentials: 'include' });
       if (!res.ok) { toast('Erreur lors de la suppression.'); setSuppression(false); return; }
-      setDirty(false);
+      // Sans cela l'alerte « modifications non enregistrées » se déclenche en
+      // quittant une fiche qui vient précisément d'être effacée.
+      marquerEnregistre(null);
       onEnregistre();
     } catch {
       toast('Erreur réseau lors de la suppression.');
@@ -284,7 +347,7 @@ export default function FicheBienFormulaire({
       });
       
       if (res.ok) {
-        setDirty(false);
+        marquerEnregistre(propertyToSave as Partial<Bien>);
         toast('✅ Bien immobilier enregistré avec succès');
         // Le parent décide de la suite : recharger la liste, ou revenir en arrière.
         onEnregistre();
@@ -324,6 +387,34 @@ export default function FicheBienFormulaire({
             <h2 className="text-2xl font-semibold mb-4">
               {editing.id ? 'Modifier le bien' : 'Nouveau bien'}
             </h2>
+
+            {brouillonPropose && (
+              <div
+                className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+                data-testid="bandeau-brouillon"
+              >
+                <span className="mr-auto">
+                  Une saisie non enregistrée a été retrouvée sur cette fiche. La reprendre ?
+                </span>
+                <button
+                  type="button"
+                  className="rounded border border-amber-400 bg-white px-2.5 py-1 text-xs hover:bg-amber-100"
+                  onClick={() => { setEditing(brouillonPropose); setBrouillonPropose(null); }}
+                >
+                  Reprendre
+                </button>
+                <button
+                  type="button"
+                  className="rounded px-2.5 py-1 text-xs hover:bg-amber-100"
+                  onClick={() => {
+                    if (cleBrouillon) { try { localStorage.removeItem(cleBrouillon); } catch {} }
+                    setBrouillonPropose(null);
+                  }}
+                >
+                  Ignorer
+                </button>
+              </div>
+            )}
 
 
             {/* Infos générales + Propriétaires en 2 colonnes */}
@@ -1093,7 +1184,12 @@ export default function FicheBienFormulaire({
             {/* Information de vente : acquéreur, notaires (+ clerc chacun), finances négociées, mobilier */}
             <InfoVenteSection editing={editing} updateField={updateField} />
 
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              {dirty && (
+                <span className="mr-auto text-sm text-amber-700" data-testid="etat-non-enregistre">
+                  ● Modifications non enregistrées
+                </span>
+              )}
               <button
                 onClick={handleSave}
                 disabled={saving}
@@ -1105,8 +1201,13 @@ export default function FicheBienFormulaire({
               <button
                 onClick={async () => {
                   if (dirty && !(await confirm('Vos modifications non enregistrées seront perdues.', { title: 'Abandonner les modifications ?' }))) return;
-                  setDirty(false);
-                  setEditing(null);
+                  // `setEditing(null)` laissait une PAGE BLANCHE : le composant
+                  // n'a plus rien à rendre. Les deux appelants passent pourtant
+                  // un `onAnnule` qui ramène à la liste — il n'était jamais
+                  // appelé. On marque d'abord la fiche propre, sinon l'alerte
+                  // de sortie se déclenche sur le départ qu'on vient d'accepter.
+                  marquerEnregistre();
+                  onAnnule();
                 }}
                 className="px-4 py-2 border rounded hover:bg-gray-50"
                 data-testid="button-cancel"

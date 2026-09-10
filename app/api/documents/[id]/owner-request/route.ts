@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
+import { envoyerEmail } from '@/lib/envoiEmail';
 import type { NextRequest } from 'next/server';
 import { readJSON, updateJSON } from '@/lib/utils';
 import { isAdmin } from '@/lib/adminGuard';
-import { MAIL_COPY } from '@/lib/mailCopy';
 import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
 import crypto from 'crypto';
 
@@ -30,25 +30,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const base = process.env.NEXT_PUBLIC_SITE_URL || 'https://lemeillepatrimoine.com';
   const link = `${base}/offre/signer/${token}`;
 
-  try {
-    const { Resend } = await import('resend');
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    await resend.emails.send({
-      from: process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>',
-      to,
-      bcc: MAIL_COPY,
-      subject: `Offre d'achat ${doc.number || ''} — votre acceptation`,
-      html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#222;font-size:14px;line-height:1.55">
+  const envoi = await envoyerEmail({
+    to,
+    subject: `Offre d'achat ${doc.number || ''} — votre acceptation`,
+    html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#222;font-size:14px;line-height:1.55">
         <p>Bonjour${name ? ` ${name}` : ''},</p>
         <p>Une offre d'achat a été formulée sur votre bien <strong>${doc.propertyTitle || ''}</strong>${doc.propertyCity ? ` (${doc.propertyCity})` : ''}.</p>
         <p>Vous pouvez la consulter intégralement puis, si vous l'acceptez, la signer électroniquement :</p>
         <p><a href="${link}" style="display:inline-block;background:#B89C6D;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:600">Lire et accepter l'offre</a></p>
         <p style="font-size:12px;color:#666">Ce lien vous est personnel. La signature ne sera proposée qu'après lecture complète du document.</p>
         ${EMAIL_SIGNATURE_HTML}</div>`,
-    });
-  } catch (e) {
-    console.error("Envoi demande d'acceptation échoué:", e);
-    return NextResponse.json({ error: "L'email n'a pas pu être envoyé." }, { status: 500 });
+  });
+  // On n'enregistre PAS la demande si l'email n'est pas parti : sinon le
+  // document passe en « acceptation demandée » et l'agent attend une réponse
+  // à un message que le propriétaire n'a jamais reçu.
+  if (!envoi.ok) {
+    return NextResponse.json({ error: `L'email n'a pas pu être envoyé : ${envoi.raison}` }, { status: 502 });
   }
 
   await updateJSON('documents.json', (list: any[]) => {

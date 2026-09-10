@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
+import { envoyerEmail } from '@/lib/envoiEmail';
 import type { NextRequest } from 'next/server';
-import { readJSON, writeJSON, updateJSON } from '@/lib/utils';
+import { readJSON, updateJSON, SANS_ECRITURE } from '@/lib/utils';
 import { buildMandatePdf } from '@/lib/mandatPdf';
 import { buildAvenantPdf } from '@/lib/avenantPdf';
-import { MAIL_COPY } from '@/lib/mailCopy';
 import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
 
 // Intègre le PDF du mandat signé dans les documents du bien concerné (champ
@@ -30,13 +30,9 @@ async function emailSignedMandate(rec: any) {
     if (!to.length) return;
     const b64 = (rec.mandate || '').split(',')[1];
     if (!b64) return;
-    const { Resend } = await import('resend');
-    const resend = new Resend(process.env.RESEND_API_KEY);
     const num = rec.mandateNumber ? ` N° ${rec.mandateNumber}` : '';
-    await resend.emails.send({
-      from: process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>',
+    await envoyerEmail({
       to,
-      bcc: MAIL_COPY,
       subject: `Votre mandat de vente signé${num}`,
       html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#222;font-size:14px;line-height:1.5"><p>Bonjour,</p><p>Votre mandat de vente${num} a été signé par l'ensemble des parties. Vous en trouverez copie en pièce jointe.</p><p>Nous vous remercions de votre confiance.</p>${EMAIL_SIGNATURE_HTML}</div>`,
       attachments: [{ filename: `mandat-${rec.mandateNumber || 'vente'}.pdf`, content: b64 }],
@@ -58,14 +54,10 @@ async function emailSignedAvenant(mandat: any, avenant: any) {
     if (!to.length) return;
     const bytes = await buildAvenantPdf(mandat, avenant);
     const b64 = Buffer.from(bytes).toString('base64');
-    const { Resend } = await import('resend');
-    const resend = new Resend(process.env.RESEND_API_KEY);
     const num = mandat.mandateNumber ? ` N° ${mandat.mandateNumber}` : '';
     const prix = Math.round(Number(avenant?.nouveau?.price) || 0).toLocaleString('fr-FR');
-    await resend.emails.send({
-      from: process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>',
+    await envoyerEmail({
       to,
-      bcc: MAIL_COPY,
       subject: `Avenant signé — mandat de vente${num}`,
       html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#222;font-size:14px;line-height:1.5"><p>Bonjour,</p><p>L'avenant à votre mandat de vente${num} a été signé par l'ensemble des parties. Le prix de vente est désormais de ${prix} €. Vous en trouverez copie en pièce jointe.</p>${EMAIL_SIGNATURE_HTML}</div>`,
       attachments: [{ filename: `avenant-${avenant?.numero || 1}-mandat-${mandat.mandateNumber || ''}.pdf`, content: b64 }],
@@ -245,39 +237,107 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   if (r.signerIndex >= 0) {
     const s = rec.signers[r.signerIndex];
     if (s.dataUrl) return NextResponse.json({ error: 'Vous avez déjà signé ce mandat.' }, { status: 409 });
-    rec.signers[r.signerIndex] = {
-      ...s,
-      name: (body.signerName || s.name || '').toString().slice(0, 200),
-      dataUrl: body.dataUrl,
-      mention: (body.mention || 'Bon pour mandat').toString().slice(0, 120),
-      signedAt: new Date().toISOString(),
-      ip, userAgent,
-    };
-    const allSigned = rec.signers.every((x: any) => !!x.dataUrl);
-    rec.mandateSignStatus = allSigned ? 'SIGNED' : 'PENDING';
+
+    // Compare-et-échange, comme la branche des avenants juste au-dessus.
+    // Ce chemin faisait encore readJSON puis writeJSON, alors même que le
+    // commentaire de l'avenant en explique le danger : deux mandants qui
+    // signent à la même seconde, et la signature de l'un écrasait celle de
+    // l'autre — sur un document qui engage juridiquement.
+    //
+    // Le PDF n'est PAS construit ici : `mutate` peut être rejouée en cas de
+    // conflit, et rien ne justifie de refaire un PDF à chaque tentative.
+    const si = r.signerIndex;
+    let issue: any = null;
+    await updateJSON(r.file, (data: any[]) => {
+      const liste = Array.isArray(data) ? data : [];
+      const i = liste.findIndex((x: any) => x.id === rec.id);
+      if (i < 0) { issue = { error: 'Mandat introuvable' }; return data; }
+
+      const signers = [...(liste[i].signers || [])];
+      // Relu SOUS VERROU : entre la lecture d'ouverture et ici, l'autre mandant
+      // a pu signer sur ce même index depuis un second onglet.
+      if (signers[si]?.dataUrl) { issue = { deja: true }; return data; }
+
+      signers[si] = {
+        ...signers[si],
+        name: (body.signerName || signers[si]?.name || '').toString().slice(0, 200),
+        dataUrl: body.dataUrl,
+        mention: (body.mention || 'Bon pour mandat').toString().slice(0, 120),
+        signedAt: new Date().toISOString(),
+        ip, userAgent,
+      };
+      const tousSignes = signers.length > 0 && signers.every((x: any) => !!x.dataUrl);
+      liste[i] = { ...liste[i], signers, mandateSignStatus: tousSignes ? 'SIGNED' : 'PENDING' };
+      issue = { mandat: liste[i], tousSignes };
+      return liste;
+    });
+
+    if (issue?.error) return NextResponse.json({ error: issue.error }, { status: 404 });
+    if (issue?.deja) return NextResponse.json({ error: 'Vous avez déjà signé ce mandat.' }, { status: 409 });
+
+    const allSigned = !!issue.tousSignes;
     if (allSigned) {
-      try { const bytes = await buildMandatePdf(rec); rec.mandate = 'data:application/pdf;base64,' + Buffer.from(bytes).toString('base64'); } catch (e) { console.error('Archivage mandat échoué:', e); }
-    }
-    r.data[r.idx] = rec;
-    await writeJSON(r.file, r.data);
-    if (allSigned) {
-      // Mandat autonome signé par le(s) vendeur(s) : on l'ajoute aux documents du bien.
-      if (r.file === 'mandats.json' && rec.propertyId && rec.mandate) await attachMandateToProperty(rec.propertyId, rec.mandate);
-      await emailSignedMandate(rec);
+      // Archivage du PDF, en seconde écriture : il ne se calcule qu'une fois
+      // que TOUTES les signatures sont posées, donc jamais en concurrence.
+      let pdf: string | null = null;
+      try {
+        const bytes = await buildMandatePdf(issue.mandat);
+        pdf = 'data:application/pdf;base64,' + Buffer.from(bytes).toString('base64');
+      } catch (e) { console.error('Archivage mandat échoué:', e); }
+
+      if (pdf) {
+        await updateJSON(r.file, (data: any[]) => {
+          const liste = Array.isArray(data) ? data : [];
+          const i = liste.findIndex((x: any) => x.id === rec.id);
+          if (i < 0) return SANS_ECRITURE;
+          liste[i] = { ...liste[i], mandate: pdf };
+          return liste;
+        });
+        issue.mandat.mandate = pdf;
+        if (r.file === 'mandats.json' && issue.mandat.propertyId) {
+          await attachMandateToProperty(issue.mandat.propertyId, pdf);
+        }
+      }
+      await emailSignedMandate(issue.mandat);
     }
     return NextResponse.json({ ok: true, allSigned });
   }
 
-  // Héritage : signature unique.
+  // Héritage : signature unique, sans tableau de signataires.
   if (rec.mandateSignStatus === 'SIGNED') return NextResponse.json({ error: 'Ce mandat a déjà été signé.' }, { status: 409 });
-  r.data[r.idx] = {
-    ...rec,
-    mandateSignStatus: 'SIGNED',
-    mandateSignerName: (body.signerName || rec.mandateSignerName || '').toString().slice(0, 200),
-    mandateSignature: { dataUrl: body.dataUrl, mention: (body.mention || 'Bon pour mandat').toString().slice(0, 120), signedAt: new Date().toISOString(), ip, userAgent },
-  };
-  try { const bytes = await buildMandatePdf(r.data[r.idx]); r.data[r.idx].mandate = 'data:application/pdf;base64,' + Buffer.from(bytes).toString('base64'); } catch (e) { console.error('Archivage mandat échoué:', e); }
-  await writeJSON(r.file, r.data);
-  await emailSignedMandate(r.data[r.idx]);
+
+  let signe: any = null;
+  await updateJSON(r.file, (data: any[]) => {
+    const liste = Array.isArray(data) ? data : [];
+    const i = liste.findIndex((x: any) => x.id === rec.id);
+    if (i < 0) { signe = { error: 'Mandat introuvable' }; return data; }
+    if (liste[i].mandateSignStatus === 'SIGNED') { signe = { deja: true }; return data; }
+    liste[i] = {
+      ...liste[i],
+      mandateSignStatus: 'SIGNED',
+      mandateSignerName: (body.signerName || liste[i].mandateSignerName || '').toString().slice(0, 200),
+      mandateSignature: { dataUrl: body.dataUrl, mention: (body.mention || 'Bon pour mandat').toString().slice(0, 120), signedAt: new Date().toISOString(), ip, userAgent },
+    };
+    signe = { mandat: liste[i] };
+    return liste;
+  });
+
+  if (signe?.error) return NextResponse.json({ error: signe.error }, { status: 404 });
+  if (signe?.deja) return NextResponse.json({ error: 'Ce mandat a déjà été signé.' }, { status: 409 });
+
+  try {
+    const bytes = await buildMandatePdf(signe.mandat);
+    const pdf = 'data:application/pdf;base64,' + Buffer.from(bytes).toString('base64');
+    await updateJSON(r.file, (data: any[]) => {
+      const liste = Array.isArray(data) ? data : [];
+      const i = liste.findIndex((x: any) => x.id === rec.id);
+      if (i < 0) return SANS_ECRITURE;
+      liste[i] = { ...liste[i], mandate: pdf };
+      return liste;
+    });
+    signe.mandat.mandate = pdf;
+  } catch (e) { console.error('Archivage mandat échoué:', e); }
+
+  await emailSignedMandate(signe.mandat);
   return NextResponse.json({ ok: true });
 }

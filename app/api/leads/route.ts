@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { envoyerEmail } from '@/lib/envoiEmail';
 import { readJSON, uid, updateJSON } from '@/lib/utils';
 import { Resend } from 'resend';
 import { isAdmin } from '@/lib/adminGuard';
@@ -253,15 +254,15 @@ export async function POST(req: Request){
           subject = `📋 Nouvelle estimation — ${payload.firstName} ${payload.lastName}`;
           html = formatEstimationEmail(payload);
         }
-        await resend.emails.send({
-          from: process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>',
+        // `copie: false` : le destinataire EST déjà l'agent, une copie cachée
+        // vers la même boîte ferait doublon.
+        await envoyerEmail({
           to: process.env.LEADS_TO_EMAIL || 'arthur@lemeillepatrimoine.com',
-          subject,
-          html,
+          subject, html, copie: false,
         });
       } catch (error) {
         console.error('Erreur envoi email:', error);
-        // Continue même si l'email échoue
+        // Le lead est DÉJÀ enregistré : un email raté ne doit pas le perdre.
       }
     }
     if (!saisieAdmin) await sendClientAck(payload);
@@ -297,18 +298,12 @@ export async function POST(req: Request){
     
     // Envoyer l'email pour le formulaire de contact
     if (process.env.RESEND_API_KEY) {
-      try {
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        await resend.emails.send({
-          from: process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>',
-          to: process.env.LEADS_TO_EMAIL || 'arthur@lemeillepatrimoine.com',
-          subject: `📧 Nouveau contact — ${payload.firstName} ${payload.lastName}${payload.topic ? ` — ${payload.topic}` : ''}`,
-          html: formatContactEmail(payload)
-        });
-      } catch (error) {
-        console.error('Erreur envoi email contact:', error);
-        // Continue même si l'email échoue
-      }
+      await envoyerEmail({
+        to: process.env.LEADS_TO_EMAIL || 'arthur@lemeillepatrimoine.com',
+        subject: `📧 Nouveau contact — ${payload.firstName} ${payload.lastName}${payload.topic ? ` — ${payload.topic}` : ''}`,
+        html: formatContactEmail(payload),
+        copie: false,
+      });
     }
     if (!saisieAdmin) await sendClientAck(payload);
     return NextResponse.redirect(new URL('/contact?ok=1', req.url));

@@ -21,6 +21,17 @@
  * nommément : elles sont RAPPELÉES à chaque build mais ne bloquent pas. Toute
  * occurrence NOUVELLE, elle, fait échouer. La liste ne doit que rétrécir.
  *
+ * SECOND ANGLE MORT, CORRIGÉ LE 2026-09-10. La détection exigeait de voir la
+ * LECTURE et l'écriture dans la même fenêtre de texte. Or app/api/mandat/sign/
+ * lisait mandats.json depuis une fonction auxiliaire (resolveByToken) et
+ * écrivait bien plus loin : le contrôle ne voyait rien, et cette route — celle
+ * qui porte les signatures de mandat, où deux mandants signent parfois à la
+ * même minute — passait pour saine.
+ *
+ * On ne cherche donc plus une PAIRE. Tout appel à writeJSON depuis une route
+ * d'API est signalé : updateJSON étant la seule écriture correcte, un
+ * writeJSON y est en soi le défaut, qu'on retrouve la lecture ou non.
+ *
  * Usage : node scripts/verifie-ecritures.mjs   (sort en 1 si une violation NOUVELLE existe)
  */
 import fs from 'fs';
@@ -103,6 +114,23 @@ for (const dossier of DOSSIERS) {
   }
 }
 
+// Second contrôle, sans paire : writeJSON dans une route est le défaut lui-même.
+for (const dossier of DOSSIERS) {
+  const abs = path.join(RACINE, dossier);
+  if (!fs.existsSync(abs)) continue;
+  for (const f of fichiers(abs)) {
+    const rel = path.relative(RACINE, f);
+    if (!rel.startsWith('app/api/')) continue;
+    const s = fs.readFileSync(f, 'utf-8');
+    for (const m of s.matchAll(/(?<![\w.])writeJSON\s*\(/g)) {
+      const ligne = s.slice(0, m.index).split('\n').length;
+      // Ne pas compter deux fois ce que la détection par paire a déjà vu.
+      if (violations.some((v) => v.fichier === rel && Math.abs(v.ligne - ligne) < 60)) continue;
+      violations.push({ fichier: rel, ligne, donnee: null, seule: true });
+    }
+  }
+}
+
 const nouvelles = violations.filter((v) => !CONNUES.has(v.fichier));
 const rappels = violations.filter((v) => CONNUES.has(v.fichier));
 
@@ -125,17 +153,24 @@ violations.push(...nouvelles);
 
 
 
-console.error(`\n✗ ${violations.length} lecture(s) suivie(s) d'une écriture du même fichier, hors verrou :\n`);
+console.error(`\n✗ ${violations.length} écriture(s) hors verrou :\n`);
 for (const v of violations) {
-  console.error(`   ${v.fichier}:${v.ligne}   ${v.donnee}`);
+  console.error(
+    v.seule
+      ? `   ${v.fichier}:${v.ligne}   writeJSON — écriture directe dans une route`
+      : `   ${v.fichier}:${v.ligne}   readJSON('${v.donnee}') … writeJSON('${v.donnee}')`
+  );
 }
 console.error(`
-   Entre readJSON et writeJSON, une autre requête peut enregistrer une donnée
-   que l'écriture finale effacera — sans erreur et sans trace.
+   Entre la lecture et l'écriture, une autre requête peut enregistrer une
+   donnée que l'écriture finale effacera — sans erreur et sans trace. La
+   lecture n'est pas toujours voisine : elle peut vivre dans une fonction
+   auxiliaire, c'est ce qui a longtemps masqué la route de signature des
+   mandats. Un writeJSON dans une route est donc signalé à lui seul.
 
    Remplacer par :
 
-     await updateJSON('${violations[0].donnee}', (data) => {
+     await updateJSON(FICHIER, (data) => {
        // modifier data ici, sous verrou
        return data;              // ou SANS_ECRITURE pour ne rien écrire
      });

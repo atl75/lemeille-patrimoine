@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
+import { envoyerEmail } from '@/lib/envoiEmail';
 import type { NextRequest } from 'next/server';
 import { updateJSON } from '@/lib/utils';
 import { isAdmin } from '@/lib/adminGuard';
-import { MAIL_COPY } from '@/lib/mailCopy';
 import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
 import crypto from 'crypto';
 
@@ -134,21 +134,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   for (const s of av.signers) {
     const url = `${base}/mandat/signer/${s.token}`;
     let envoye = false;
-    if (s.email && process.env.RESEND_API_KEY) {
-      try {
-        const { Resend } = await import('resend');
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        await resend.emails.send({
-          from: process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>',
-          to: s.email,
-          bcc: MAIL_COPY,
-          subject: `Avenant à votre mandat de vente${m.mandateNumber ? ` — N° ${m.mandateNumber}` : ''}`,
-          html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#222;font-size:14px;line-height:1.5"><p>Bonjour ${s.name || ''},</p><p>Un avenant à votre mandat de vente${m.mandateNumber ? ` (N° ${m.mandateNumber})` : ''} vous attend : il porte le prix de vente à ${Math.round(av.nouveau.price).toLocaleString('fr-FR')} €.</p><p><a href="${url}" style="display:inline-block;background:#1F3B2C;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Lire et signer l'avenant</a></p><p style="font-size:12px;color:#999">${url}</p>${EMAIL_SIGNATURE_HTML}</div>`,
-        });
-        envoye = true;
-      } catch (e) { console.error(`Envoi du lien d'avenant échoué (${s.email}):`, e); }
+    let raison: string | undefined;
+    if (s.email) {
+      const envoi = await envoyerEmail({
+        to: s.email,
+        subject: `Avenant à votre mandat de vente${m.mandateNumber ? ` — N° ${m.mandateNumber}` : ''}`,
+        html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#222;font-size:14px;line-height:1.5"><p>Bonjour ${s.name || ''},</p><p>Un avenant à votre mandat de vente${m.mandateNumber ? ` (N° ${m.mandateNumber})` : ''} vous attend : il porte le prix de vente à ${Math.round(av.nouveau.price).toLocaleString('fr-FR')} €.</p><p><a href="${url}" style="display:inline-block;background:#1F3B2C;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Lire et signer l'avenant</a></p><p style="font-size:12px;color:#999">${url}</p>${EMAIL_SIGNATURE_HTML}</div>`,
+      });
+      envoye = envoi.ok;
+      if (!envoi.ok) raison = envoi.raison;
     }
-    sortie.push({ name: s.name, email: s.email, phone: s.phone, url, signed: false, emailed: envoye });
+    sortie.push({ name: s.name, email: s.email, phone: s.phone, url, signed: false, emailed: envoye, raison });
   }
 
   return NextResponse.json({ avenant: av, signers: sortie });

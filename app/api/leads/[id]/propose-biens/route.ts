@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
+import { envoyerEmail } from '@/lib/envoiEmail';
 import type { NextRequest } from 'next/server';
 import { readJSON } from '@/lib/utils';
 import { isAdmin } from '@/lib/adminGuard';
-import { MAIL_COPY } from '@/lib/mailCopy';
 import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
-import { Resend } from 'resend';
 
 // Envoie au lead (acheteur) une sélection de biens correspondant à sa recherche.
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -63,19 +62,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       <p style="font-size:11px;color:#999;margin-top:20px">Vous recevez cet email car vous avez sollicité Lemeille Patrimoine pour un projet immobilier.</p>
     </div>`;
 
-  try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const from = process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>';
-    await resend.emails.send({
-      from,
-      to: lead.email,
-      bcc: MAIL_COPY,
-      subject: `Votre sélection de biens — Lemeille Patrimoine (${list.length})`,
-      html,
-    });
-    return NextResponse.json({ ok: true, count: list.length });
-  } catch (e: any) {
-    console.error('Erreur envoi sélection biens:', e);
-    return NextResponse.json({ error: 'Échec de l\'envoi de l\'email.' }, { status: 500 });
+  const envoi = await envoyerEmail({
+    to: lead.email,
+    subject: `Votre sélection de biens — Lemeille Patrimoine (${list.length})`,
+    html,
+  });
+  if (!envoi.ok) {
+    // La raison est reprise telle quelle : « domaine non vérifié » et « adresse
+    // invalide » n'appellent pas la même correction, et l'agent doit pouvoir
+    // faire la différence sans ouvrir les journaux du serveur.
+    return NextResponse.json({ error: `L'email n'a pas pu être envoyé : ${envoi.raison}` }, { status: 502 });
   }
+  return NextResponse.json({ ok: true, count: list.length });
 }

@@ -33,10 +33,43 @@ export function rateLimit(key: string, limit: number, windowMs: number): { allow
   return { allowed: true, retryAfterSeconds: 0 };
 }
 
+/**
+ * Combien d'entrées notre propre infrastructure ajoute à la fin de
+ * `X-Forwarded-For`. Sur Cloud Run en accès direct : une seule, l'adresse
+ * réelle de l'appelant. Derrière un répartiteur Google, il en faudrait deux.
+ */
+const SAUTS_DE_CONFIANCE = Math.max(1, Number(process.env.PROXY_HOPS) || 1);
+
+/**
+ * L'adresse du client, telle qu'on peut la CROIRE.
+ *
+ * `X-Forwarded-For` est une liste que chaque relais ALLONGE PAR LA DROITE. Le
+ * client contrôle donc entièrement le DÉBUT de la liste — il peut y écrire ce
+ * qu'il veut — et rien de ce qui est ajouté après lui. La seule région digne
+ * de foi est la FIN.
+ *
+ * L'ancienne version prenait `split(",")[0]` : exactement l'entrée que
+ * l'appelant écrit. Il suffisait d'un en-tête différent à chaque requête pour
+ * obtenir un compteur neuf et contourner toutes les limitations du projet, y
+ * compris celle du chat facturé à l'API Anthropic.
+ *
+ * On compte donc DEPUIS LA FIN, et jamais depuis le début : un client qui
+ * allonge la liste par la gauche ne fait que repousser ses propres valeurs,
+ * il ne peut pas atteindre la position que notre infrastructure occupe.
+ */
 export function getClientIp(req: Request): string {
-  const forwarded = req.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
+  const brut = req.headers.get("x-forwarded-for");
+  if (brut) {
+    const chaine = brut.split(",").map((x) => x.trim()).filter(Boolean);
+    if (chaine.length) {
+      // Si la liste est plus courte que prévu, on prend la toute première
+      // entrée depuis la fin plutôt que de sortir du tableau.
+      const i = Math.max(0, chaine.length - SAUTS_DE_CONFIANCE);
+      return chaine[i];
+    }
+  }
   const real = req.headers.get("x-real-ip");
-  if (real) return real;
+  if (real) return real.trim();
   return "unknown";
 }
+

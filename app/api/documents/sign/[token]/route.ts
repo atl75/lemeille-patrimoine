@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
+import { envoyerEmail } from '@/lib/envoiEmail';
 import type { NextRequest } from 'next/server';
 import { readJSON, updateJSON } from '@/lib/utils';
 import { buildDocumentPdf } from '@/lib/documentPdf';
-import { MAIL_COPY } from '@/lib/mailCopy';
 import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
 
 // Acceptation d'une offre d'achat par le propriétaire. Accès par jeton
@@ -78,24 +78,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   });
 
   // Copie du document accepté aux deux parties.
-  if (process.env.RESEND_API_KEY) {
+  {
     const to = [r.doc.owner?.email, r.doc.client?.email].map((e: any) => (e || '').trim()).filter((e: string) => /.+@.+\..+/.test(e));
     if (to.length) {
-      try {
-        const { Resend } = await import('resend');
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        await resend.emails.send({
-          from: process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>',
-          to, bcc: MAIL_COPY,
-          subject: `Offre d'achat ${r.doc.number || ''} — acceptée par le vendeur`,
-          html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#222;font-size:14px;line-height:1.55">
+      // L'acceptation est déjà enregistrée : un échec d'envoi ne l'annule pas,
+      // mais envoyerEmail le journalise désormais avec sa cause au lieu de le
+      // faire passer pour un succès.
+      await envoyerEmail({
+        to,
+        subject: `Offre d'achat ${r.doc.number || ''} — acceptée par le vendeur`,
+        html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#222;font-size:14px;line-height:1.55">
             <p>Bonjour,</p>
             <p>L'offre d'achat portant sur <strong>${r.doc.propertyTitle || ''}</strong> a été acceptée par le vendeur. Vous en trouverez copie signée en pièce jointe.</p>
             <p>Je reviens vers vous pour la suite (compromis de vente).</p>
             ${EMAIL_SIGNATURE_HTML}</div>`,
-          attachments: [{ filename: `${r.doc.number || 'offre'}-acceptee.pdf`, content: pdfDataUrl.split(',')[1] || '' }],
-        });
-      } catch (e) { console.error('Envoi offre acceptée échoué:', e); }
+        attachments: [{ filename: `${r.doc.number || 'offre'}-acceptee.pdf`, content: pdfDataUrl.split(',')[1] || '' }],
+      });
     }
   }
 
