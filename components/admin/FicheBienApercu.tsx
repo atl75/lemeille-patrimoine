@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { cldImg } from "@/lib/cldImg";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useToast } from "@/components/Toast";
@@ -306,9 +307,13 @@ const openDocument = (url: string) => {
                             aria-label={`Agrandir l'image ${idx + 1} sur ${bien.images!.length}`}
                             data-testid={`button-zoom-image-${idx}`}
                           >
+                          {/* 320 px, pas l'original : une photo du portefeuille
+                              pèse jusqu'à 5,9 Mo, et cette fiche en affiche 28.
+                              Le plein format reste servi par la Lightbox au clic. */}
                           <img
-                            src={img}
+                            src={cldImg(img, 320)}
                             alt={`Image ${idx + 1}`}
+                            loading="lazy"
                             className="w-full h-32 object-cover rounded-lg border cursor-zoom-in transition-opacity hover:opacity-85"
                           />
                           </button>

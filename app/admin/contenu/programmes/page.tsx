@@ -1,5 +1,6 @@
 "use client";
 import AdminShell from "@/components/AdminShell";
+import { cldImg } from "@/lib/cldImg";
 import {
   DISPOS,
   STATUTS,
@@ -369,7 +370,7 @@ export default function Page() {
             {editing.coverImage ? (
               <div className="flex items-start gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={editing.coverImage} alt="Aperçu du programme" className="w-40 h-28 object-cover rounded border" />
+                <img src={cldImg(editing.coverImage, 320)} alt="Aperçu du programme" loading="lazy" className="w-40 h-28 object-cover rounded border" />
                 <button
                   type="button"
                   onClick={() => updateField('coverImage', '')}
@@ -437,7 +438,7 @@ export default function Page() {
             {editing.heroImage ? (
               <div className="flex items-start gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={editing.heroImage} alt="Aperçu hero" className="w-40 h-24 object-cover rounded border" />
+                <img src={cldImg(editing.heroImage, 320)} alt="Aperçu hero" loading="lazy" className="w-40 h-24 object-cover rounded border" />
                 <button type="button" onClick={() => updateField('heroImage', '')} className="px-3 py-1 border border-red-500 text-red-500 rounded hover:bg-red-500 hover:text-white text-sm">Retirer</button>
               </div>
             ) : (
@@ -485,7 +486,7 @@ export default function Page() {
                 <div key={i} className="flex items-center gap-2 border rounded p-2">
                   {pj.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={pj.image} alt="" className="w-20 h-14 object-cover rounded" />
+                    <img src={cldImg(pj.image, 160)} alt="" loading="lazy" className="w-20 h-14 object-cover rounded" />
                   ) : (
                     <input type="file" accept="image/*" onChange={async e => { const url = await uploadImage(e.target.files?.[0]); if (url) setProj(i, 'image', url); }} className="text-xs w-24" />
                   )}
@@ -522,7 +523,7 @@ export default function Page() {
                     <span className="text-xs w-12 opacity-70">Avant</span>
                     {pa.avant ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={pa.avant} alt="" className="w-20 h-14 object-cover rounded" />
+                      <img src={cldImg(pa.avant, 160)} alt="" loading="lazy" className="w-20 h-14 object-cover rounded" />
                     ) : (
                       <input type="file" accept="image/*" aria-label={`Photo avant ${i + 1}`}
                         onChange={async e => { const url = await uploadImage(e.target.files?.[0]); if (url) setAa(i, 'avant', url); }}
@@ -533,7 +534,7 @@ export default function Page() {
                     <span className="text-xs w-12 opacity-70">Après</span>
                     {pa.apres ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={pa.apres} alt="" className="w-20 h-14 object-cover rounded" />
+                      <img src={cldImg(pa.apres, 160)} alt="" loading="lazy" className="w-20 h-14 object-cover rounded" />
                     ) : (
                       <input type="file" accept="image/*" aria-label={`Photo après ${i + 1}`}
                         onChange={async e => { const url = await uploadImage(e.target.files?.[0]); if (url) setAa(i, 'apres', url); }}
@@ -590,7 +591,7 @@ export default function Page() {
                           className="select-none px-1 text-gray-400 hover:text-gray-700"
                           data-testid={`handle-gal-${i}`}>⠿</span>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        {g.image && <img src={g.image} alt="" className="w-20 h-14 object-cover rounded pointer-events-none" />}
+                        {g.image && <img src={cldImg(g.image, 160)} alt="" loading="lazy" className="w-20 h-14 object-cover rounded pointer-events-none" />}
                         <div className="flex-1 min-w-0 grid gap-1">
                           <input value={g.legende || ''} onChange={e => setGal(i, 'legende', e.target.value)}
                             placeholder="Légende (ex : Cage d'escalier restaurée)"
@@ -713,7 +714,7 @@ export default function Page() {
                     {lot.image ? (
                       <>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={lot.image} alt="" className="w-20 h-14 object-cover rounded border" />
+                        <img src={cldImg(lot.image, 160)} alt="" loading="lazy" className="w-20 h-14 object-cover rounded border" />
                         <button type="button" onClick={() => setLot(i, 'image', '')} className="text-xs text-red-500 hover:underline">Retirer photo</button>
                       </>
                     ) : (
@@ -726,7 +727,7 @@ export default function Page() {
                           <a href={lot.plan} target="_blank" rel="noopener noreferrer" className="text-xs text-[#B89C6D] underline">📄 Plan PDF</a>
                         ) : (
                           /* eslint-disable-next-line @next/next/no-img-element */
-                          <img src={lot.plan} alt="" className="w-20 h-14 object-contain rounded border bg-white" />
+                          <img src={cldImg(lot.plan, 160)} alt="" loading="lazy" className="w-20 h-14 object-contain rounded border bg-white" />
                         )}
                         <button type="button" onClick={() => setLot(i, 'plan', '')} className="text-xs text-red-500 hover:underline">Retirer</button>
                       </>
@@ -813,7 +814,7 @@ export default function Page() {
               <div className="flex gap-4 justify-between items-start">
                 {program.coverImage && (
                   /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={program.coverImage} alt="" className="w-24 h-20 object-cover rounded border shrink-0" />
+                  <img src={cldImg(program.coverImage, 240)} alt="" loading="lazy" className="w-24 h-20 object-cover rounded border shrink-0" />
                 )}
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">

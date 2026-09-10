@@ -1,5 +1,6 @@
 "use client";
 import { useToast } from "@/components/Toast";
+import { cldImg } from "@/lib/cldImg";
 import { useState, useRef, useEffect, DragEvent } from "react";
 import { Upload, X, Image as ImageIcon, ChevronUp, ChevronDown, GripVertical } from "lucide-react";
 import { useDragReorder } from "@/lib/useDragReorder";
@@ -283,8 +284,9 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
                 <div className="aspect-video bg-gray-100 relative">
                   {img.startsWith("data:") || img.startsWith("http") || img.startsWith("/") ? (
                     <img
-                      src={img}
+                      src={cldImg(img, 480)}
                       alt={`Image ${idx + 1}`}
+                      loading="lazy"
                       className="w-full h-full object-cover"
                     />
                   ) : (
