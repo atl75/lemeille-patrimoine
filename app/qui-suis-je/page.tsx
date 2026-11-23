@@ -5,17 +5,19 @@ import Section from "@/components/Section";
 import Breadcrumb from "@/components/Breadcrumb";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
+import { pageMetadata } from '@/lib/pageMetadata';
+
+export const metadata: Metadata = pageMetadata({
   title: "Qui suis-je | Lemeille Patrimoine",
   description:
     "Arthur Lemeille, fondateur de Lemeille Patrimoine à Rouen : parcours, méthode de travail, matériel photographique et cadre réglementaire de l'agence.",
   alternates: { canonical: "/qui-suis-je" },
-};
+});
 
 // Étapes reprises de la page Vendre : même méthode, formulée à la première
 // personne. Les deux pages doivent rester cohérentes si l'une évolue.
 const ETAPES: [string, string][] = [
-  ["Estimation", "Je visite le bien, j'analyse les ventes réellement signées dans le quartier et je remets un avis de valeur argumenté sous 3 jours."],
+  ["Estimation", "Je visite le bien, j'analyse les ventes réellement signées dans le quartier et je remets un avis de valeur argumenté sous 24 heures maximum après la visite."],
   ["Mise en valeur", "Reportage photo soigné, description travaillée, plans et diagnostics réunis avant la mise en ligne."],
   ["Diffusion", "Grands portails, site de l'agence et fichier d'acquéreurs suivis — ou en off-market si vous préférez la discrétion."],
   ["Visites", "Je fais visiter moi-même, je filtre les candidats et je vous rends compte après chaque passage."],

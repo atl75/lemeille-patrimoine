@@ -1,11 +1,14 @@
 import { eurosEnLettres } from '@/lib/enLettres';
 import { NOVUS_LOGO_BASE64 } from '@/lib/novusLogo';
 import { SIGNATURE_MANDATAIRE_B64 } from '@/lib/signatureMandataire';
+import { archiveMandatImmeuble, erreurMandatImmeuble } from './validationMandatImmeuble';
 
 // Génère le PDF du mandat de vente à partir d'un bien (objet property).
 // Fonction pure : réutilisée par la route admin et par la page de signature
 // publique. Incruste la signature électronique du mandant si présente.
 export async function buildMandatePdf(p: any): Promise<Uint8Array> {
+  const archive=archiveMandatImmeuble(p); if(archive)return archive;
+  const erreur=erreurMandatImmeuble(p); if(erreur)throw new Error(erreur);
   const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
   const pdfDoc = await PDFDocument.create();
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -205,7 +208,7 @@ export async function buildMandatePdf(p: any): Promise<Uint8Array> {
   const owners = Array.isArray(p.owners) ? p.owners : [];
   const owner = owners.length ? owners[0] : null;
   const isCompany = owner?.type === 'COMPANY';
-  const typeLabel = ((p.type || 'APPARTEMENT') === 'MAISON' ? 'Maison' : 'Appartement') + (p.rooms ? ` T${p.rooms}` : '');
+  const typeLabel = p.type === 'IMMEUBLE' ? 'Immeuble' : ((p.type || 'APPARTEMENT') === 'MAISON' ? 'Maison' : 'Appartement') + (p.rooms ? ` T${p.rooms}` : '');
   const address = p.map?.query || [p.city, String(p.region || '').replaceAll('_', ' ')].filter(Boolean).join(', ');
   const netVendeur = Number(p.netSellerAmount ?? p.price ?? 0);
   const honoraires = Number(p.commissionAmount ?? Math.max(0, (Number(p.price) || 0) - netVendeur));
@@ -303,6 +306,11 @@ export async function buildMandatePdf(p: any): Promise<Uint8Array> {
   // Descriptif sommaire = la « Désignation du bien » saisie dans le registre,
   // sinon un résumé du texte de l'annonce.
   kv('Descriptif sommaire', p.designation || sommaire(p.description));
+  if(p.type==='IMMEUBLE') {
+    const {ligneLotImmeuble}=await import('./immeuble');
+    para('Composition déclarée de l’immeuble vendu en bloc — désignations et droits à vérifier.',{justify:false});
+    for(const lot of p.buildingLots || []) kv('Lot',ligneLotImmeuble(lot));
+  }
 
   sec('I - Prix de vente et honoraires');
   para('Prix net vendeur (Euros)', { justify: false, after: 2 });

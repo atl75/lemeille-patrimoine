@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { readJSON } from '@/lib/utils';
 import { isAdmin } from '@/lib/adminGuard';
 import { buildMandatePdf } from '@/lib/mandatPdf';
+import { erreurPdfMandatImmeuble } from '@/lib/validationMandatImmeuble';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -11,6 +12,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const data = await readJSON('mandats.json');
     const m = (Array.isArray(data) ? data : []).find((x: any) => x.id === id);
     if (!m) return NextResponse.json({ error: 'Mandat non trouvé' }, { status: 404 });
+    const erreur=erreurPdfMandatImmeuble(m);if(erreur)return NextResponse.json({error:erreur},{status:409});
     const bytes = await buildMandatePdf(m);
     return new NextResponse(Buffer.from(bytes), {
       status: 200,

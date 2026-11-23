@@ -4,10 +4,10 @@ import { createInsertSchema } from "drizzle-zod";
 
 // DPE (Diagnostic de Performance Énergétique) type
 export const dpeSchema = z.object({
-  classEnergy: z.enum(['A', 'B', 'C', 'D', 'E', 'F', 'G']),
-  classGES: z.enum(['A', 'B', 'C', 'D', 'E', 'F', 'G']),
-  consumptionKwh: z.number(),
-  emissionsKg: z.number(),
+  classEnergy: z.enum(['', 'A', 'B', 'C', 'D', 'E', 'F', 'G']),
+  classGES: z.enum(['', 'A', 'B', 'C', 'D', 'E', 'F', 'G']),
+  consumptionKwh: z.number().nonnegative().optional(),
+  emissionsKg: z.number().nonnegative().optional(),
   date: z.string(),
   ref: z.string()
 });
@@ -138,7 +138,7 @@ export const properties = pgTable("properties", {
 });
 
 export const insertPropertySchema = createInsertSchema(properties, {
-  type: z.enum(['APPARTEMENT', 'MAISON']).default('APPARTEMENT'),
+  type: z.enum(['APPARTEMENT', 'MAISON', 'IMMEUBLE']).default('APPARTEMENT'),
   images: z.array(z.string()),
   features: z.array(z.string()),
   map: mapConfigSchema,
@@ -203,6 +203,12 @@ export const insertPropertySchema = createInsertSchema(properties, {
   propertyRules: z.string().optional(),
   agMinutes: z.array(z.string()).optional(),
   chargesStatement: z.string().optional()
+}).extend({
+  buildingLots:z.array(z.object({id:z.string().min(1).max(100),label:z.string().trim().min(1).max(100),
+    type:z.enum(['APPARTEMENT','LOCAL_COMMERCIAL','BUREAU','ANNEXE','AUTRE']),surface:z.number().finite().positive().max(1000000).optional(),
+    occupancy:z.enum(['INCONNU','LIBRE','OCCUPE'])}).strict()).max(50)
+    .refine(lots=>new Set(lots.map(l=>l.id)).size===lots.length,'Identifiants de lots dupliqués')
+    .refine(lots=>new Set(lots.map(l=>l.label.toLocaleLowerCase('fr'))).size===lots.length,'Désignations de lots dupliquées').optional(),
 });
 
 export type InsertProperty = z.infer<typeof insertPropertySchema>;

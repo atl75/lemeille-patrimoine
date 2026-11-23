@@ -5,6 +5,8 @@ import { readJSON, updateJSON, SANS_ECRITURE } from '@/lib/utils';
 import { buildMandatePdf } from '@/lib/mandatPdf';
 import { buildAvenantPdf } from '@/lib/avenantPdf';
 import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
+import { erreurMandatImmeuble } from '@/lib/validationMandatImmeuble';
+import {versionDocumentSignature,versionSignatureValide,erreurImageSignature} from '@/lib/signatureIntegrity';
 
 // Intègre le PDF du mandat signé dans les documents du bien concerné (champ
 // « mandate » de la fiche), une fois le mandat autonome entièrement signé.
@@ -101,7 +103,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
   const r = await resolveByToken(token);
   if (!r) return NextResponse.json({ error: 'Lien de signature invalide ou expiré.' }, { status: 404 });
   const p = r.data[r.idx];
-  const typeLabel = ((p.type || 'APPARTEMENT') === 'MAISON' ? 'Maison' : 'Appartement') + (p.rooms ? ` T${p.rooms}` : '');
+  if(r.avenantIdx===undefined && p.mandateSignStatus!=='SIGNED' && erreurMandatImmeuble(p))return NextResponse.json({error:'Les informations de ce mandat doivent être vérifiées par l’agence avant signature.'},{status:409});
+  const typeLabel = p.type === 'IMMEUBLE' ? 'Immeuble' : ((p.type || 'APPARTEMENT') === 'MAISON' ? 'Maison' : 'Appartement') + (p.rooms ? ` T${p.rooms}` : '');
   const address = p.map?.query || [p.city, String(p.region || '').replaceAll('_', ' ')].filter(Boolean).join(', ');
 
   if (r.avenantIdx !== undefined) {
@@ -109,6 +112,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
     const s = av.signers[r.signerIndex];
     return NextResponse.json({
       document: 'AVENANT',
+      documentVersion:versionDocumentSignature(p,av),
       status: s.dataUrl ? 'SIGNED' : 'PENDING',
       signed: !!s.dataUrl,
       signerName: s.name || '',
@@ -136,6 +140,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
     const total = p.signers.length;
     const signedCount = p.signers.filter((x: any) => !!x.dataUrl).length;
     return NextResponse.json({
+      documentVersion:versionDocumentSignature(p),
       status: s.dataUrl ? 'SIGNED' : 'PENDING',
       signed: !!s.dataUrl,
       signerName: s.name || '',
@@ -151,6 +156,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
 
   // Héritage : signature unique portée par l'enregistrement.
   return NextResponse.json({
+    documentVersion:versionDocumentSignature(p),
     status: p.mandateSignStatus || 'PENDING',
     signed: p.mandateSignStatus === 'SIGNED',
     signerName: p.mandateSignerName || '',
@@ -166,7 +172,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   let body: any;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'Requête invalide.' }, { status: 400 }); }
 
-  if (!body?.consent) return NextResponse.json({ error: 'Vous devez accepter les conditions pour signer.' }, { status: 400 });
+  if (body?.consent!==true) return NextResponse.json({ error: 'Vous devez accepter les conditions pour signer.' }, { status: 400 });
+  if(typeof body.signerName!=='string' || !body.signerName.trim() || body.signerName.length>200)return NextResponse.json({error:'Renseignez vos nom et prénom (200 caractères maximum).'},{status:400});
   if (typeof body.dataUrl !== 'string' || !/^data:image\/png;base64,/.test(body.dataUrl)) {
     return NextResponse.json({ error: 'Signature manquante. Veuillez tracer votre signature.' }, { status: 400 });
   }
@@ -174,6 +181,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
 
   const r = await resolveByToken(token);
   if (!r) return NextResponse.json({ error: 'Lien de signature invalide ou expiré.' }, { status: 404 });
+
+  const imageError=await erreurImageSignature(body.dataUrl);if(imageError)return NextResponse.json({error:imageError},{status:400});
 
   const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || req.headers.get('x-real-ip') || '';
   const userAgent = (req.headers.get('user-agent') || '').slice(0, 400);
@@ -193,14 +202,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     // writeJSON perdrait la signature de l'un des deux.
     let issue: any = null;
     await updateJSON('mandats.json', (data: any[]) => {
+      issue=null;
       const liste = Array.isArray(data) ? data : [];
       const i = liste.findIndex((x: any) => x.id === rec.id);
       if (i < 0) { issue = { error: 'Mandat introuvable' }; return data; }
       const avenants = [...(liste[i].avenants || [])];
       const av = { ...avenants[ai] };
       const signers = [...(av.signers || [])];
+      if(signers[si]?.token!==token || signers[si]?.dataUrl){issue={error:'Lien expiré ou avenant déjà signé.',status:409};return SANS_ECRITURE;}
+      if(!versionSignatureValide(body,liste[i],av)){issue={error:'Le document a changé. Rechargez la page et relisez-le avant de signer.',status:409};return SANS_ECRITURE;}
       signers[si] = {
         ...signers[si],
+        documentVersion:body.documentVersion,
         name: (body.signerName || signers[si]?.name || '').toString().slice(0, 200),
         dataUrl: body.dataUrl,
         mention: (body.mention || 'Bon pour avenant').toString().slice(0, 120),
@@ -229,7 +242,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       return liste;
     });
 
-    if (issue?.error) return NextResponse.json({ error: issue.error }, { status: 404 });
+    if (issue?.error) return NextResponse.json({ error: issue.error }, { status: issue.status || 404 });
     if (issue.tousSignes) await emailSignedAvenant(issue.mandat, issue.avenant);
     return NextResponse.json({ ok: true, allSigned: issue.tousSignes });
   }
@@ -249,9 +262,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     const si = r.signerIndex;
     let issue: any = null;
     await updateJSON(r.file, (data: any[]) => {
+      issue=null;
       const liste = Array.isArray(data) ? data : [];
       const i = liste.findIndex((x: any) => x.id === rec.id);
       if (i < 0) { issue = { error: 'Mandat introuvable' }; return data; }
+
+      if(liste[i].signers?.[si]?.token!==token){issue={error:'Lien de signature invalide ou expiré.',status:409};return SANS_ECRITURE;}
+      if(!versionSignatureValide(body,liste[i])){issue={error:'Le document a changé. Rechargez la page et relisez-le avant de signer.',status:409};return SANS_ECRITURE;}
+      if(erreurMandatImmeuble(liste[i])){issue={error:'Les informations de ce mandat doivent être vérifiées par l’agence avant signature.',status:409};return SANS_ECRITURE;}
 
       const signers = [...(liste[i].signers || [])];
       // Relu SOUS VERROU : entre la lecture d'ouverture et ici, l'autre mandant
@@ -260,6 +278,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
 
       signers[si] = {
         ...signers[si],
+        documentVersion:body.documentVersion,
         name: (body.signerName || signers[si]?.name || '').toString().slice(0, 200),
         dataUrl: body.dataUrl,
         mention: (body.mention || 'Bon pour mandat').toString().slice(0, 120),
@@ -272,7 +291,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       return liste;
     });
 
-    if (issue?.error) return NextResponse.json({ error: issue.error }, { status: 404 });
+    if (issue?.error) return NextResponse.json({ error: issue.error }, { status: issue.status || 404 });
     if (issue?.deja) return NextResponse.json({ error: 'Vous avez déjà signé ce mandat.' }, { status: 409 });
 
     const allSigned = !!issue.tousSignes;
@@ -308,21 +327,25 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
 
   let signe: any = null;
   await updateJSON(r.file, (data: any[]) => {
+    signe=null;
     const liste = Array.isArray(data) ? data : [];
     const i = liste.findIndex((x: any) => x.id === rec.id);
     if (i < 0) { signe = { error: 'Mandat introuvable' }; return data; }
     if (liste[i].mandateSignStatus === 'SIGNED') { signe = { deja: true }; return data; }
+    if(liste[i].mandateSignToken!==token){signe={error:'Lien de signature invalide ou expiré.',status:409};return SANS_ECRITURE;}
+    if(!versionSignatureValide(body,liste[i])){signe={error:'Le document a changé. Rechargez la page et relisez-le avant de signer.',status:409};return SANS_ECRITURE;}
+    if(erreurMandatImmeuble(liste[i])){signe={error:'Les informations de ce mandat doivent être vérifiées par l’agence avant signature.',status:409};return SANS_ECRITURE;}
     liste[i] = {
       ...liste[i],
       mandateSignStatus: 'SIGNED',
       mandateSignerName: (body.signerName || liste[i].mandateSignerName || '').toString().slice(0, 200),
-      mandateSignature: { dataUrl: body.dataUrl, mention: (body.mention || 'Bon pour mandat').toString().slice(0, 120), signedAt: new Date().toISOString(), ip, userAgent },
+      mandateSignature: { dataUrl: body.dataUrl, documentVersion:body.documentVersion, mention: (body.mention || 'Bon pour mandat').toString().slice(0, 120), signedAt: new Date().toISOString(), ip, userAgent },
     };
     signe = { mandat: liste[i] };
     return liste;
   });
 
-  if (signe?.error) return NextResponse.json({ error: signe.error }, { status: 404 });
+  if (signe?.error) return NextResponse.json({ error: signe.error }, { status: signe.status || 404 });
   if (signe?.deja) return NextResponse.json({ error: 'Ce mandat a déjà été signé.' }, { status: 409 });
 
   try {

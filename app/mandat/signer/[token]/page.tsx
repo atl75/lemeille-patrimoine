@@ -17,6 +17,7 @@ type Info = {
   address: string;
   signedAt: string | null;
   error?: string;
+  documentVersion?: string;
   // Renseigné quand le jeton désigne un AVENANT : même circuit de signature,
   // mais le document et le vocabulaire diffèrent.
   document?: "AVENANT";
@@ -40,7 +41,7 @@ const eur = (n: number | null | undefined) =>
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <main style={{ minHeight: "100vh", background: "#F4F1EB", padding: "24px 16px" }}>
-      <div style={{ maxWidth: 640, margin: "0 auto" }}>
+      <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 20 }}>
           <div style={{ fontFamily: "Georgia, serif", fontSize: 26, color: "#1F3B2C", letterSpacing: 1 }}>Lemeille Patrimoine</div>
           <div style={{ color: "#B89C6D", fontSize: 13, marginTop: 2 }}>Signature électronique du mandat de vente</div>
@@ -71,8 +72,8 @@ export default function SignMandatPage() {
   const [error, setError] = useState<string | null>(null);
   const [hasDrawn, setHasDrawn] = useState(false);
   // La signature n'est délivrée qu'après lecture complète et validation du mandat.
-  const [reading, setReading] = useState(false);
   const [mandateRead, setMandateRead] = useState(false);
+  const submissionLock = useRef(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawing = useRef(false);
@@ -80,14 +81,14 @@ export default function SignMandatPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`/api/mandat/sign/${token}`)
+    fetch(`/api/mandat/sign/${token}`,{cache:'no-store',signal:AbortSignal.timeout(20000)})
       .then(r => r.json())
       .then((d: Info) => {
         setInfo(d);
         setSignerName(d.signerName || "");
         setLoading(false);
       })
-      .catch(() => { setInfo({ error: "Lien invalide" } as Info); setLoading(false); });
+      .catch(() => { setInfo({ error: "Chargement impossible. Vérifiez votre connexion et rechargez la page. Aucune signature n’a été envoyée." } as Info); setLoading(false); });
   }, [token]);
 
   // ---- Canvas de signature ----
@@ -103,7 +104,7 @@ export default function SignMandatPage() {
   useEffect(() => {
     const c = canvasRef.current;
     if (c) setupCanvas(c);
-  }, [info, done]);
+  }, [info, done, mandateRead]);
 
   const pos = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const c = canvasRef.current!;
@@ -115,6 +116,7 @@ export default function SignMandatPage() {
   };
 
   const start = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if(submitting || !mandateRead)return;
     e.preventDefault();
     drawing.current = true;
     last.current = pos(e);
@@ -135,6 +137,7 @@ export default function SignMandatPage() {
   const end = () => { drawing.current = false; last.current = null; };
 
   const clearCanvas = () => {
+    if(submitting)return;
     const c = canvasRef.current;
     if (!c) return;
     c.getContext("2d")!.clearRect(0, 0, c.width, c.height);
@@ -142,31 +145,37 @@ export default function SignMandatPage() {
   };
 
   const submit = async () => {
+    if(submissionLock.current)return;
     setError(null);
+    if(!mandateRead || !info?.documentVersion){setError("Veuillez lire et valider le document avant de signer.");return;}
     if (!hasDrawn) { setError("Veuillez tracer votre signature dans le cadre."); return; }
     if (!consent) { setError("Veuillez cocher la case de consentement."); return; }
     if (!signerName.trim()) { setError("Veuillez indiquer votre nom."); return; }
     const dataUrl = canvasRef.current!.toDataURL("image/png");
     setSubmitting(true);
+    submissionLock.current=true;
     try {
       const res = await fetch(`/api/mandat/sign/${token}`, {
         method: "POST",
+        signal:AbortSignal.timeout(30000),
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          dataUrl, consent: true, signerName: signerName.trim(),
+          dataUrl, consent: true, signerName: signerName.trim(), documentVersion:info.documentVersion,
           mention: estAvenant ? "Bon pour avenant" : "Bon pour mandat",
         }),
       });
       const d = await res.json();
       if (!res.ok) { setError(d.error || "Une erreur est survenue."); setSubmitting(false); return; }
+      if(d.ok!==true)throw new Error('Réponse non confirmée');
       setDone(true);
     } catch {
-      setError("Une erreur réseau est survenue. Réessayez.");
+      setError("Résultat non confirmé. Rechargez la page pour vérifier si votre signature a été enregistrée avant de réessayer.");
       setSubmitting(false);
-    }
+    } finally {submissionLock.current=false;}
   };
 
-  if (loading) return <Shell><p>Chargement…</p></Shell>;
+  const canSign=!submitting && mandateRead && hasDrawn && consent && !!signerName.trim();
+  if (loading) return <Shell><p role="status">Chargement…</p></Shell>;
   if (!info || info.error) return <Shell><p style={{ color: "#b00" }}>{info?.error || "Lien de signature invalide ou expiré."}</p></Shell>;
 
   if (done || info.signed) {
@@ -181,7 +190,7 @@ export default function SignMandatPage() {
             Merci. {estAvenant ? "L'avenant à votre mandat de vente" : "Votre mandat de vente"} {info.mandateNumber ? `N° ${info.mandateNumber} ` : ""}a bien été signé électroniquement.
             {info.signedAt && !done ? ` Le ${new Date(info.signedAt).toLocaleString("fr-FR")}.` : ""}
           </p>
-          <p style={{ color: "#666", fontSize: 13, marginTop: 12 }}>Un exemplaire signé vous sera transmis par votre conseiller.</p>
+          <p style={{ color: "#666", fontSize: 13, marginTop: 12 }}>Votre signature est enregistrée. Si d’autres signataires sont attendus, le document sera finalisé après leurs signatures. Arthur reste votre interlocuteur.</p>
         </div>
       </Shell>
     );
@@ -228,15 +237,15 @@ export default function SignMandatPage() {
         </div>
       )}
 
-      <button type="button" onClick={() => setReading(true)}
-        style={{ display: "block", width: "100%", marginBottom: 18, padding: "12px", background: "#fff",
-                 border: "2px solid #1F3B2C", color: "#1F3B2C", borderRadius: 10, fontWeight: 600,
-                 fontSize: 14, cursor: "pointer" }}
-        data-testid="button-read-mandate">
-        📄 {mandateRead
-          ? (estAvenant ? "Relire l'avenant" : "Relire le mandat")
-          : (estAvenant ? "Lire l'avenant avant de signer" : "Lire le mandat complet avant de signer")}
-      </button>
+      <p className="text-sm text-gray-600">1. Lisez le document ci-dessous. 2. Confirmez votre lecture. 3. Signez au bas de cette page.</p>
+      <DocumentReader inline
+        url={`/api/mandat/sign/${token}/pdf?version=${encodeURIComponent(info.documentVersion || '')}`}
+        title={`${estAvenant ? 'Avenant' : 'Mandat de vente'}${info.mandateNumber ? ` — N° ${info.mandateNumber}` : ''}`}
+        onClose={()=>{}}
+        onAcknowledge={()=>{setMandateRead(true);setTimeout(()=>document.getElementById('signer-name')?.focus(),0);}}
+        acknowledgeLabel={`Je confirme avoir lu l’intégralité ${estAvenant ? 'de l’avenant' : 'du mandat'}.`}
+      />
+      <h2 className="text-xl font-semibold mb-4" id="signature-title">Votre signature</h2>
 
       {!mandateRead && (
         <p style={{ fontSize: 13, color: "#777", textAlign: "center", marginBottom: 4 }} data-testid="text-signature-locked">
@@ -246,8 +255,8 @@ export default function SignMandatPage() {
 
       {mandateRead && (
         <>
-        <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Votre nom et prénom</label>
-        <input aria-label="Vos nom et prénom" value={signerName} onChange={e => setSignerName(e.target.value)}
+        <label htmlFor="signer-name" style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Votre nom et prénom</label>
+        <input id="signer-name" maxLength={200} disabled={submitting} aria-label="Vos nom et prénom" value={signerName} onChange={e => setSignerName(e.target.value)}
           autoComplete="name" autoCapitalize="words"
           placeholder="Prénom NOM"
           style={{ width: "100%", padding: "9px 12px", border: "1px solid #ccc", borderRadius: 8, marginBottom: 16, fontSize: 14 }} />
@@ -264,6 +273,9 @@ export default function SignMandatPage() {
             onPointerMove={move}
             onPointerUp={end}
             onPointerLeave={end}
+            onPointerCancel={end}
+            aria-label="Cadre de signature manuscrite"
+            data-testid="signature-canvas"
             style={{ width: "100%", height: 200, touchAction: "none", cursor: "crosshair", display: "block" }}
           />
           {!hasDrawn && (
@@ -273,32 +285,24 @@ export default function SignMandatPage() {
           )}
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, marginBottom: 16 }}>
-          <span style={{ fontSize: 12, color: "#777" }}>Mention : « Bon pour mandat »</span>
+          <span style={{ fontSize: 12, color: "#777" }}>Mention : « {estAvenant ? 'Bon pour avenant' : 'Bon pour mandat'} »</span>
           <button type="button" onClick={clearCanvas} style={{ fontSize: 13, color: "#B89C6D", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>Effacer</button>
         </div>
 
         <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: "#444", marginBottom: 18 }}>
-          <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} style={{ marginTop: 3 }} />
-          <span>{"Je reconnais avoir pris connaissance de l'intégralité du mandat de vente et j'accepte ses termes. Je consens à le signer par voie électronique (signature électronique simple, eIDAS). Ma signature, la date, l'heure et mon adresse IP seront conservées comme preuve."}</span>
+          <input type="checkbox" data-testid="consent-signature" disabled={submitting} checked={consent} onChange={e => setConsent(e.target.checked)} style={{ marginTop: 3 }} />
+          <span>J’accepte les termes {estAvenant ? 'de cet avenant' : 'de ce mandat'} et consens à le signer électroniquement. Ma signature, la version du document, la date, l’heure et mon adresse IP seront conservées dans le dossier de signature.</span>
         </label>
         </>
       )}
 
-      {error && <p style={{ color: "#b00", fontSize: 13, marginBottom: 12 }}>{error}</p>}
+      {error && <div role="alert" style={{ color: "#b00", fontSize: 13, marginBottom: 12 }}><p>{error}</p><button type="button" className="underline mt-2" onClick={()=>window.location.reload()}>Recharger et vérifier le statut</button></div>}
 
-      <button type="button" onClick={submit} disabled={submitting || !mandateRead}
-        style={{ width: "100%", padding: "12px", background: "#B89C6D", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: submitting || !mandateRead ? "default" : "pointer", opacity: submitting || !mandateRead ? 0.45 : 1 }}>
-        {submitting ? "Signature en cours…" : "Signer le mandat"}
+      <button type="button" data-testid="submit-signature" onClick={submit} disabled={!canSign}
+        style={{ width: "100%", padding: "12px", background: "#1F3B2C", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: canSign ? "pointer" : "default", opacity: canSign ? 1 : 0.45 }}>
+        {submitting ? "Signature en cours…" : estAvenant ? "Signer l’avenant" : "Signer le mandat"}
       </button>
-      {reading && (
-        <DocumentReader
-          url={`/api/mandat/sign/${token}/pdf`}
-          title={`Mandat de vente${info.mandateNumber ? ` — N° ${info.mandateNumber}` : ""}`}
-          onClose={() => setReading(false)}
-          onAcknowledge={() => { setMandateRead(true); setReading(false); }}
-          acknowledgeLabel="Je reconnais avoir lu et pris connaissance de l'intégralité du mandat de vente."
-        />
-      )}
+      <p className="text-sm text-gray-600 mt-4">Une difficulté pour lire ou tracer votre signature ? Contactez Arthur au <a href="tel:+33687157259" className="underline">06 87 15 72 59</a>. Ne transmettez pas votre lien de signature.</p>
     </Shell>
   );
 }

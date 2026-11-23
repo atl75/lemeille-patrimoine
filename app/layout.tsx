@@ -1,7 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
-import Script from 'next/script';
 import RevealOnScroll from '@/components/RevealOnScroll';
 import { SiteChrome } from '@/components/SiteChrome';
 import { OrganizationSchema } from '@/components/OrganizationSchema';
@@ -29,10 +28,8 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'fr_FR',
-    url: process.env.NEXT_PUBLIC_SITE_URL || 'https://lemeillepatrimoine.com',
+    // Pas d'URL globale : elle ferait passer les pages internes pour l'accueil.
     siteName: 'Lemeille Patrimoine',
-    title: 'Lemeille Patrimoine — Agence immobilière à Rouen & Plateau Nord',
-    description: "Agence immobilière de caractère à Rouen, Mont-Saint-Aignan, Bois-Guillaume et Plateau Nord.",
     images: [{
       url: '/og-image.jpg?v=5',
       width: 1200,
@@ -42,14 +39,12 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Lemeille Patrimoine — Immobilier & défiscalisation',
-    description: "Agence immobilière à Rouen — maisons et appartements de caractère",
     images: ['/og-image.jpg?v=5'],
   },
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://lemeillepatrimoine.com'),
-  // PWA installable (écran d'accueil iPhone/Android) pour la webapp /terrain.
-  manifest: '/manifest.webmanifest',
-  appleWebApp: { capable: true, title: 'LP Terrain', statusBarStyle: 'black-translucent' },
+  // La vitrine s'ouvre sur l'accueil ; app/terrain/layout conserve le manifest historique.
+  manifest: '/site.webmanifest',
+  appleWebApp: { capable: true, title: 'Lemeille Patrimoine', statusBarStyle: 'black-translucent' },
   icons: { apple: '/logo.png' },
 };
 
@@ -96,24 +91,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         <OrganizationSchema />
-        {gaId && (
-          <>
-            <Script
-              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
-              strategy="lazyOnload"
-            />
-            <Script id="google-analytics" strategy="lazyOnload">
-              {`
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', '${gaId}');
-              `}
-            </Script>
-          </>
-        )}
         <RevealOnScroll />
-        <Providers>
+        <Providers measurementId={gaId}>
           <SiteChrome>{children}</SiteChrome>
         </Providers>
       </body>

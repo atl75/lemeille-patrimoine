@@ -23,6 +23,7 @@ export async function PATCH(
       leads[leadIndex] = {
         ...leads[leadIndex],
         ...updates,
+        notificationSuivi: leads[leadIndex].notificationSuivi, // Suivi serveur, jamais une saisie CRM.
         id, // S'assurer que l'ID ne change pas
         createdAt: leads[leadIndex].createdAt, // Conserver la date de création
         lastActivityAt: new Date().toISOString(), // Horodatage de dernière action (relances)

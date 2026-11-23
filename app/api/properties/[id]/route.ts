@@ -7,19 +7,22 @@ import { toPublicProperty } from '@/lib/publicProperty';
 import type { NextRequest } from 'next/server';
 import { insertPropertySchema } from '@/shared/schema';
 import { fusionneBien } from '@/lib/fusionBien';
+import { findProperty } from '@/lib/propertyData';
+import { erreurPublicationBien } from '@/lib/publicationBien';
 
 const FILE = 'properties.json';
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const data = await readJSON(FILE);
-  const item = data.find((p: any) => p.id === id);
-  if (!item) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  const data = await readJSON(FILE, { fresh: true });
+  const item = findProperty(data, id);
+  const headers = { 'Cache-Control': 'private, no-store', Vary: 'Cookie' };
+  if (!item) return NextResponse.json({ error: 'Not found' }, { status: 404, headers });
   // Admin authentifié : objet complet. Public : projection sûre (sans
   // données sensibles ; adresse réduite à la ville en mode zone) et biens
   // non visibles masqués.
-  if (isAdmin(req)) return NextResponse.json(item);
-  if (item.visible === false) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  return NextResponse.json(toPublicProperty(item));
+  if (isAdmin(req)) return NextResponse.json(item, { headers });
+  if (item.visible === false) return NextResponse.json({ error: 'Not found' }, { status: 404, headers });
+  return NextResponse.json(toPublicProperty(item), { headers });
 }
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -30,6 +33,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: 'Validation failed', details: validation.error }, { status: 400 });
   }
   // Écriture en compare-et-échange : lire puis écrire séparément perdait la
+  const erreur = erreurPublicationBien(validation.data);
+  if (erreur) return NextResponse.json({ error: erreur }, { status: 400 });
   // modification concurrente — et c'est une autre voie vers la même perte de
   // données que celle corrigée ici.
   let enregistre: any = null;

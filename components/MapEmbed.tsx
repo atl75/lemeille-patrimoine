@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
 type MapEmbedProps = {
   query: string;
@@ -17,23 +17,8 @@ export default function MapEmbed({
   height = '280px',
   hl = 'fr'
 }: MapEmbedProps) {
-  // Google Maps représente ~400 Ko de JavaScript tiers. L'attribut loading="lazy"
-  // ne suffit pas : les navigateurs le déclenchent très en amont. On n'insère
-  // l'iframe qu'à l'approche réelle du viewport, à hauteur réservée (aucun
-  // décalage de mise en page).
-  const holder = useRef<HTMLDivElement>(null);
+  // Aucune connexion à Google Maps avant le clic explicite du visiteur.
   const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (visible || !holder.current) return;
-    if (typeof IntersectionObserver === 'undefined') { setVisible(true); return; }
-    const io = new IntersectionObserver(
-      (entries) => { if (entries.some((e) => e.isIntersecting)) { setVisible(true); io.disconnect(); } },
-      { rootMargin: '200px' }
-    );
-    io.observe(holder.current);
-    return () => io.disconnect();
-  }, [visible]);
 
   if (!query) return null;
 
@@ -46,20 +31,25 @@ export default function MapEmbed({
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 
   return (
-    <div ref={holder} className="card p-0 overflow-hidden relative group">
+    <div className="card p-0 overflow-hidden relative group">
+      <div className="relative">
       {visible ? (
         <iframe
           title={`Secteur — ${query}`}
           src={embedSrc}
           style={{ border: 0, width: '100%', height }}
           loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
+          referrerPolicy="no-referrer"
         />
       ) : (
-        <div style={{ width: '100%', height }} className="bg-[#EEF1EC]" aria-hidden />
+        <div style={{ width: '100%', minHeight: height }} className="bg-[#EEF1EC] flex flex-col items-center justify-center p-6 text-center gap-3">
+          <p className="font-medium text-luxe">{isArea ? 'Secteur approximatif' : 'Localisation'} — {query}</p>
+          <p className="text-sm max-w-md">Afficher cette carte autorise une connexion à Google Maps, qui peut utiliser des cookies et traiter des données de navigation. <a href="https://policies.google.com/privacy?hl=fr" className="underline" target="_blank" rel="noopener noreferrer">Confidentialité Google</a></p>
+          <button type="button" className="btn min-h-11" onClick={() => setVisible(true)}>Afficher la carte Google Maps</button>
+        </div>
       )}
 
-      {isArea && (
+      {visible && isArea && (
         <>
           {/* Cercle de secteur : matérialise une zone, masque le point exact */}
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -79,17 +69,19 @@ export default function MapEmbed({
         </>
       )}
 
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 bg-white text-sm">
       <a
         href={mapsUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/20 transition-colors"
+        className="inline-flex items-center min-h-11 underline underline-offset-2"
         data-testid="link-open-google-maps"
       >
-        <span className="opacity-0 group-hover:opacity-100 bg-white px-4 py-2 rounded-2xl shadow-lg text-sm font-medium transition-opacity">
-          Ouvrir dans Google Maps
-        </span>
+        Ouvrir Google Maps dans un nouvel onglet
       </a>
+      {visible && <button type="button" className="min-h-11 underline" onClick={() => setVisible(false)}>Masquer la carte</button>}
+      </div>
     </div>
   );
 }

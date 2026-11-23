@@ -5,6 +5,7 @@ import { surfaceFr } from './formatFr';
 // - surface, ville, prix (ou « Nous consulter »)
 
 export const propertyTypology = (p: any): string => {
+  if(p?.type==='IMMEUBLE') { const n=p.buildingLotCount ?? p.buildingLots?.length; return n ? `Immeuble · ${n} lot${n>1?'s':''}` : 'Immeuble'; }
   const isMaison = (p?.type || 'APPARTEMENT') === 'MAISON';
   if (p?.rooms) return `${isMaison ? 'Maison ' : ''}T${p.rooms}`;
   return isMaison ? 'Maison' : 'Appartement';

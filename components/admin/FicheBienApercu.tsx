@@ -162,7 +162,7 @@ const openDocument = (url: string) => {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Type :</span>
-                      <span className="font-medium">{bien.type === 'APPARTEMENT' ? 'Appartement' : 'Maison'}</span>
+                      <span className="font-medium">{bien.type === 'IMMEUBLE' ? 'Immeuble' : bien.type === 'APPARTEMENT' ? 'Appartement' : 'Maison'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Ville :</span>

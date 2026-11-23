@@ -9,9 +9,9 @@ Retourne un objet JSON avec UNIQUEMENT les champs que tu peux identifier avec ce
 Format attendu:
 {
   "title": "Titre du bien (ex: Appartement 3 pièces centre-ville, Maison de charme avec jardin)",
-  "type": "APPARTEMENT ou MAISON",
+  "type": "APPARTEMENT, MAISON ou IMMEUBLE (immeuble vendu en bloc)",
   "city": "Ville exacte",
-  "region": "PARIS, NORMANDIE ou COTE_D_AZUR (déduis selon la ville)",
+  "region": "PARIS, NORMANDIE, EST ou COTE_D_AZUR (uniquement si identifiable avec certitude)",
   "price": nombre (prix en euros, sans centimes),
   "surface": nombre (surface habitable en m²),
   "rooms": nombre (nombre de pièces principales),
@@ -32,6 +32,7 @@ IMPORTANT:
 - Si le document est un DPE, extrais toutes les données énergétiques
 - Si des informations manquent, omets simplement ces champs du JSON
 - Pour la région: Paris et Île-de-France = PARIS, Normandie = NORMANDIE, Côte d'Azur/PACA/Var = COTE_D_AZUR
+- Si la région Grand Est est identifiée avec certitude, utiliser EST. Ne pas étendre arbitrairement cette catégorie aux régions voisines.
 
 Ne retourne QUE le JSON, sans texte supplémentaire, sans bloc de code markdown.`;
 

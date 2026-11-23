@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { contactProgramme } from "@/lib/programContact";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/Breadcrumb";
@@ -7,29 +8,12 @@ import { cldImg } from "@/lib/cldImg";
 import { dispositifsOf } from "@/lib/dispositifs";
 import { MapPin, Home, Calculator } from "lucide-react";
 import type { Metadata } from "next";
+import { pageMetadata } from '@/lib/pageMetadata';
+
+import { getProgram } from "@/lib/programPageData";
+import { findProgramLot as findLot } from "@/lib/programsData";
 
 export const dynamic = "force-dynamic";
-
-function base() {
-  return process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT || "3000"}`;
-}
-
-async function getProgram(slug: string): Promise<any | null> {
-  try {
-    const r = await fetch(`${base()}/api/programs`, { cache: "no-store" });
-    if (!r.ok) return null;
-    const all = await r.json();
-    if (!Array.isArray(all)) return null;
-    return all.find((p: any) => p.slug === slug || p.id === slug) || null;
-  } catch {
-    return null;
-  }
-}
-
-function findLot(p: any, numero: string) {
-  const lots = Array.isArray(p?.lots) ? p.lots : [];
-  return lots.find((l: any, i: number) => String(l.numero ?? i + 1) === String(numero));
-}
 
 const STATUT: Record<string, { label: string; cls: string }> = {
   DISPONIBLE: { label: "Disponible", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
@@ -50,7 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const lot = p && findLot(p, numero);
   if (!p || p.visible === false || !lot) notFound();
   const title = `Lot ${lot.numero ?? numero}${lot.type ? " – " + lot.type : ""} — ${p.title} | Lemeille Patrimoine`;
-  return { title, description: `Lot ${lot.numero ?? numero} du programme ${p.title} à ${p.city}.`, alternates: { canonical: `/programmes/${p.slug || p.id}/lots/${numero}` } };
+  return pageMetadata({ title, description: `Lot ${lot.numero ?? numero} du programme ${p.title} à ${p.city}.`, alternates: { canonical: `/programmes/${p.slug || p.id}/lots/${numero}` } });
 }
 
 export default async function Page({ params }: { params: Promise<{ slug: string; numero: string }> }) {
@@ -67,7 +51,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string;
   const livraison = p.livraison || calendrier.find((e: any) => /livraison/i.test(e.etape || ""))?.date || "Nous consulter";
   const dpeCible = lot.dpeCible || p.dpe?.classEnergy;
   const fiscalite = lot.dispositif || dispositifs.map(d => d.nom).join(" / ");
-  const contactHref = `/contact?topic=${encodeURIComponent(`${p.title} — Lot ${lot.numero ?? numero}`)}`;
+  const contactHref = contactProgramme(p.id, lot.numero ?? numero);
 
   const progDocs: any[] = (Array.isArray(p.documents) ? p.documents : []).filter((d: any) => d && d.url);
   const lotDocs: any[] = (Array.isArray(lot.documents) ? lot.documents : []).filter((d: any) => d && d.url);

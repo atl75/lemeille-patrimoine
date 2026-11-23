@@ -3,12 +3,14 @@ import Breadcrumb from "@/components/Breadcrumb";
 import Link from "next/link";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
+import { pageMetadata } from '@/lib/pageMetadata';
+
+export const metadata: Metadata = pageMetadata({
   title: "Nos partenaires | Lemeille Patrimoine",
   description:
     "Notaire, architecte, courtier : découvrez le réseau de partenaires de confiance qui sécurise et optimise chaque étape de votre projet immobilier et patrimonial.",
   alternates: { canonical: "/partenaires" },
-};
+});
 
 type Partner = {
   name: string;

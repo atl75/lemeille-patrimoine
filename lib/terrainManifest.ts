@@ -1,11 +1,11 @@
 import type { MetadataRoute } from 'next';
 
-// Manifest PWA — permet d'installer la webapp « Documents terrain » sur l'écran
-// d'accueil (iPhone/Android). Point d'entrée : /app.
+// Contrat historique conservé pour l'outil terrain déjà installé : même URL
+// de manifest, même start_url (identité implicite), même portée et mêmes icônes.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Lemeille Patrimoine — Terrain',
-    short_name: 'LP Terrain',
+    name: 'Lemeille Patrimoine',
+    short_name: 'Lemeille',
     description: "Bons de visite et offres d'achat signés sur le terrain.",
     start_url: '/terrain',
     scope: '/',

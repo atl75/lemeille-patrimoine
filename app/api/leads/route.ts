@@ -1,311 +1,75 @@
 import { NextResponse } from 'next/server';
 import { envoyerEmail } from '@/lib/envoiEmail';
-import { readJSON, uid, updateJSON } from '@/lib/utils';
-import { Resend } from 'resend';
+import { readJSON, uid, updateJSON, SANS_ECRITURE } from '@/lib/utils';
 import { isAdmin } from '@/lib/adminGuard';
 import { rateLimit, getClientIp } from '@/lib/rateLimit';
-import { leadJoignable, tronqueLead } from '@/lib/validationLead';
 import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
+import { cleIdempotenceValide, ErreurDemande, lireCorpsPublic, preparerLead, enregistrerDemande } from '@/lib/leadIntake';
+import { notifierLead } from '@/lib/leadNotifications';
+import { sauvegarderLeadUnique } from '@/lib/leadIdempotency';
+import { initialiserSuiviNotification, noterNotification } from '@/lib/suiviNotificationLead';
 
-// Accusé de réception envoyé au prospect (s'il a laissé un email), avec la
-// signature officielle. Silencieux si pas d'email ou Resend non configuré.
-//
-// NE PAS APPELER SUR UNE SAISIE ADMIN. Cet accusé répond à quelqu'un qui vient
-// de remplir un formulaire du site. Il partait aussi quand un lead était créé à
-// la main dans le CRM : la personne recevait « votre demande a bien été reçue,
-// un conseiller vous recontactera sous 48 heures » alors qu'elle n'avait rien
-// demandé. Le CRM est un carnet de notes, pas un formulaire.
-async function sendClientAck(payload: any) {
-  const to = (payload?.email || '').toString().trim();
-  if (!/.+@.+\..+/.test(to) || !process.env.RESEND_API_KEY) return;
-  try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const prenom = payload.firstName ? ` ${payload.firstName}` : '';
-    console.info('Accusé de réception client — envoi à', to);
-    // Resend RENVOIE l'erreur, il ne la lève pas : le catch ci-dessous ne
-    // voyait donc jamais un refus de l'API (clé invalide, domaine non vérifié,
-    // quota). Un accusé pouvait échouer sans laisser la moindre trace.
-    const { error } = await resend.emails.send({
-      from: process.env.RESEND_FROM || 'Lemeille Patrimoine <onboarding@resend.dev>',
-      to,
-      subject: 'Votre demande a bien été reçue — Lemeille Patrimoine',
-      html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#222;font-size:14px;line-height:1.55"><p>Bonjour${prenom},</p><p>Merci pour votre message. Nous avons bien reçu votre demande et un conseiller vous recontactera <strong>sous 48 heures</strong>.</p><p>Pour toute urgence, vous pouvez nous joindre directement au +33 6 87 15 72 59.</p><p>À très bientôt,</p>${EMAIL_SIGNATURE_HTML}</div>`,
-    });
-    if (error) console.error('Accusé de réception client refusé par Resend:', error);
-  } catch (e) {
-    console.error('Erreur accusé de réception client:', e);
-  }
-}
-
-export async function GET(req: Request){
+export async function GET(req: Request) {
   if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const data = await readJSON('leads.json');
-  return NextResponse.json(data);
+  return NextResponse.json(await readJSON('leads.json'));
 }
 
-function formatEstimationEmail(payload: any): string {
-  const prop = payload.meta?.property || {};
-  const estimation = payload.meta?.estimation || {};
-  
-  const atouts = [];
-  if (prop.parking) atouts.push('Parking');
-  if (prop.seaView) atouts.push('Vue mer');
-  if (prop.pool) atouts.push('Piscine');
-  if (prop.lumineux) atouts.push('Lumineux');
-  if (prop.calme) atouts.push('Calme');
-  if (prop.cuisineEquipee) atouts.push('Cuisine équipée');
-  if (prop.cuisineRecente) atouts.push('Cuisine récente');
-  if (prop.parquet) atouts.push('Parquet');
-  if (prop.dressing) atouts.push('Dressing');
-  if (prop.extTerrasse) atouts.push('Terrasse');
-  if (prop.extJardin) atouts.push('Jardin');
-  
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #1F3B2C; color: white; padding: 20px; text-align: center; }
-        .section { margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 5px; }
-        .section-title { font-size: 18px; font-weight: bold; color: #1F3B2C; margin-bottom: 10px; }
-        .info-row { margin: 8px 0; }
-        .label { font-weight: bold; color: #666; }
-        .atouts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-        .atout { background: #B89C6D; color: white; padding: 4px 12px; border-radius: 15px; font-size: 14px; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>📋 Nouvelle demande d'estimation</h1>
-        </div>
-        
-        <div class="section">
-          <div class="section-title">👤 Informations de contact</div>
-          <div class="info-row"><span class="label">Nom :</span> ${payload.firstName} ${payload.lastName}</div>
-          <div class="info-row"><span class="label">Téléphone :</span> ${payload.phone}</div>
-          ${payload.email ? `<div class="info-row"><span class="label">Email :</span> ${payload.email}</div>` : ''}
-        </div>
-        
-        <div class="section">
-          <div class="section-title">🏡 Informations du bien</div>
-          <div class="info-row"><span class="label">Adresse :</span> ${prop.city || 'Non renseignée'}</div>
-          <div class="info-row"><span class="label">Type :</span> ${prop.type || 'Non renseigné'}</div>
-          <div class="info-row"><span class="label">Surface :</span> ${prop.surface || 0} m²</div>
-          <div class="info-row"><span class="label">Nombre de pièces :</span> ${prop.rooms || 0}</div>
-          <div class="info-row"><span class="label">État :</span> ${prop.condition || 'Non renseigné'}</div>
-          <div class="info-row"><span class="label">DPE :</span> ${prop.dpe || 'Non renseigné'}</div>
-          ${prop.type === 'Appartement' && prop.floor ? `<div class="info-row"><span class="label">Étage :</span> ${prop.floor}${prop.elevator ? ' (avec ascenseur)' : ' (sans ascenseur)'}</div>` : ''}
-          ${prop.extBalcon ? `<div class="info-row"><span class="label">Balcon :</span> ${prop.extBalcon} m²</div>` : ''}
-        </div>
-        
-        ${atouts.length > 0 ? `
-        <div class="section">
-          <div class="section-title">✨ Atouts du bien</div>
-          <div class="atouts">
-            ${atouts.map(a => `<span class="atout">${a}</span>`).join('')}
-          </div>
-        </div>
-        ` : ''}
-        
-        <div class="section">
-          <div class="section-title">📊 Informations complémentaires</div>
-          <div class="info-row"><span class="label">Date :</span> ${new Date(payload.createdAt).toLocaleString('fr-FR')}</div>
-          <div class="info-row"><span class="label">ID Lead :</span> ${payload.id}</div>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
-}
-
-function formatDefiscEmail(payload: any): string {
-  const m = payload.meta || {};
-  const eur = (n: any) => (Number(n) || 0).toLocaleString('fr-FR') + ' €';
-  return `
-    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1F3B2C">
-      <h2 style="color:#B89C6D">💶 Nouvelle simulation de défiscalisation</h2>
-      <p><strong>${payload.firstName || ''} ${payload.lastName || ''}</strong></p>
-      <p>Email : <a href="mailto:${payload.email || ''}">${payload.email || '—'}</a><br/>
-         Téléphone : ${payload.phone || '—'}</p>
-      <table style="border-collapse:collapse;width:100%;margin-top:12px">
-        <tr><td style="padding:6px;border-bottom:1px solid #eee">Dispositif</td><td style="padding:6px;border-bottom:1px solid #eee"><strong>${m.dispositif || '—'}</strong></td></tr>
-        <tr><td style="padding:6px;border-bottom:1px solid #eee">Montant des travaux</td><td style="padding:6px;border-bottom:1px solid #eee">${eur(m.travaux)}</td></tr>
-        <tr><td style="padding:6px;border-bottom:1px solid #eee">TMI</td><td style="padding:6px;border-bottom:1px solid #eee">${m.tmi != null ? Math.round(m.tmi * 100) + ' %' : '—'}</td></tr>
-        <tr><td style="padding:6px;border-bottom:1px solid #eee">Gain fiscal estimé</td><td style="padding:6px;border-bottom:1px solid #eee"><strong>${eur(m.estimation)}</strong></td></tr>
-      </table>
-      <p style="font-size:12px;color:#888;margin-top:16px">Lead généré par le simulateur de défiscalisation du site.</p>
-    </div>
-  `;
-}
-
-function formatContactEmail(payload: any): string {
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #1F3B2C; color: white; padding: 20px; text-align: center; }
-        .section { margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 5px; }
-        .section-title { font-size: 18px; font-weight: bold; color: #1F3B2C; margin-bottom: 10px; }
-        .info-row { margin: 8px 0; }
-        .label { font-weight: bold; color: #666; }
-        .message-box { background: white; padding: 15px; border-left: 4px solid #B89C6D; margin-top: 10px; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>📧 Nouveau message de contact</h1>
-        </div>
-        
-        <div class="section">
-          <div class="section-title">👤 Informations de contact</div>
-          <div class="info-row"><span class="label">Nom :</span> ${payload.firstName} ${payload.lastName}</div>
-          <div class="info-row"><span class="label">Email :</span> ${payload.email || 'Non renseigné'}</div>
-          <div class="info-row"><span class="label">Téléphone :</span> ${payload.phone || 'Non renseigné'}</div>
-          ${payload.topic ? `<div class="info-row"><span class="label">Sujet :</span> ${payload.topic}</div>` : ''}
-        </div>
-        
-        ${payload.message ? `
-        <div class="section">
-          <div class="section-title">💬 Message</div>
-          <div class="message-box">${payload.message.replace(/\n/g, '<br>')}</div>
-        </div>
-        ` : ''}
-        
-        <div class="section">
-          <div class="section-title">📊 Informations complémentaires</div>
-          <div class="info-row"><span class="label">Date :</span> ${new Date(payload.createdAt).toLocaleString('fr-FR')}</div>
-          <div class="info-row"><span class="label">ID Lead :</span> ${payload.id}</div>
-          <div class="info-row"><span class="label">Source :</span> Formulaire de contact</div>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
-}
-
-// Déduit le rôle (Acheteur/Vendeur) et la catégorie d'un lead entrant à partir
-// de sa source et de son sujet, sauf s'ils sont déjà renseignés (saisie manuelle).
-function applyRole(payload: any) {
-  if (payload.role) return;
-  const t = String(payload.topic || '').toLowerCase();
-  const s = String(payload.source || '').toLowerCase();
-  if (s === 'estimation-immobilier' || /vente|estimation|vendre|vendeur/.test(t)) {
-    payload.role = 'VENDEUR';
-    if (!payload.category) payload.category = 'immobilier';
-  } else if (/achat|acqu|acheteur/.test(t)) {
-    payload.role = 'ACHETEUR';
-    if (!payload.category) payload.category = 'immobilier';
-  }
-}
-
-export async function POST(req: Request){
+export async function POST(req: Request) {
   const ip = getClientIp(req);
   const { allowed, retryAfterSeconds } = rateLimit(`leads:${ip}`, 8, 10 * 60 * 1000);
   if (!allowed) {
-    return NextResponse.json({ error: 'Trop de demandes, réessayez dans quelques minutes.' }, { status: 429, headers: { 'Retry-After': String(retryAfterSeconds) } });
+    return NextResponse.json({ error: 'Trop de demandes, réessayez dans quelques minutes.' },
+      { status: 429, headers: { 'Retry-After': String(retryAfterSeconds) } });
   }
-
-  const contentType = req.headers.get('content-type') || '';
-
-  let payload: any;
-
-  // Une saisie faite depuis le CRM n'est pas une demande entrante : personne
-  // n'attend d'accusé de réception à l'autre bout. Calculé une fois, il sert
-  // aussi bien à alléger la validation qu'à taire l'email — voir sendClientAck.
-  const saisieAdmin = isAdmin(req);
-
-  if (contentType.includes('application/json')) {
-    // JSON from simulator/estimation
-    const brut = await req.json();
-    if (!saisieAdmin) {
-      const souci = leadJoignable(brut);
-      if (souci) return NextResponse.json({ error: souci }, { status: 400 });
+  const admin = isAdmin(req);
+  const json = (req.headers.get('content-type') || '').split(';', 1)[0].trim().toLowerCase() === 'application/json';
+  try {
+    let brut: unknown;
+    if (admin && json) {
+      // La saisie authentifiée conserve ses pièces jointes et ses champs métier.
+      try { brut = await req.json(); }
+      catch { throw new ErreurDemande('La demande est illisible.'); }
+    } else {
+      brut = await lireCorpsPublic(req);
     }
-    const body = tronqueLead(brut);
-    payload = {
-      id: uid('L'),
-      createdAt: new Date().toISOString(),
-      status: 'new',
-      ...body
-    };
-    applyRole(payload);
-    await updateJSON('leads.json', (data) => { data.push(payload); return data; });
-    
-    // Notifier par email selon la source du lead
-    const notifySources = ['estimation-immobilier', 'simulateur-defiscalisation', 'guide-defiscalisation'];
-    if (notifySources.includes(body.source) && process.env.RESEND_API_KEY) {
-      try {
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        let subject: string, html: string;
-        if (body.source === 'simulateur-defiscalisation') {
-          subject = `💶 Simulation défiscalisation — ${payload.firstName} ${payload.lastName}`;
-          html = formatDefiscEmail(payload);
-        } else if (body.source === 'guide-defiscalisation') {
-          subject = `📥 Téléchargement guide — ${payload.firstName} ${payload.lastName}`;
-          html = formatContactEmail(payload);
-        } else {
-          subject = `📋 Nouvelle estimation — ${payload.firstName} ${payload.lastName}`;
-          html = formatEstimationEmail(payload);
-        }
-        // `copie: false` : le destinataire EST déjà l'agent, une copie cachée
-        // vers la même boîte ferait doublon.
-        await envoyerEmail({
-          to: process.env.LEADS_TO_EMAIL || 'arthur@lemeillepatrimoine.com',
-          subject, html, copie: false,
+    const rawKey = req.headers.get('idempotency-key');
+    if (!admin && rawKey !== null && !cleIdempotenceValide(rawKey)) {
+      throw new ErreurDemande('La référence de votre demande est invalide. Rechargez le formulaire.');
+    }
+    const idempotencyKey = !admin && cleIdempotenceValide(rawKey) ? rawKey : undefined;
+    const payload = preparerLead(brut, admin, uid('L'), new Date().toISOString(), idempotencyKey);
+    if (!admin) payload.notificationSuivi = initialiserSuiviNotification(payload.email, payload.createdAt);
+    let duplicateId: string | undefined;
+    await enregistrerDemande(payload, admin,
+      async lead => {
+        const saved = await sauvegarderLeadUnique(lead, mutate => updateJSON('leads.json', mutate), SANS_ECRITURE);
+        duplicateId = saved.cree ? undefined : saved.id;
+      },
+      async lead => {
+        if (duplicateId) return;
+        const resultats = await notifierLead(lead, {
+          envoyer: envoyerEmail,
+          agence: process.env.LEADS_TO_EMAIL || 'arthur@lemeillepatrimoine.com',
+          signature: EMAIL_SIGNATURE_HTML,
+          noter: async (canal,resultat) => {
+            await updateJSON('leads.json', leads => noterNotification(leads,lead.id,lead.createdAt,canal,resultat,new Date().toISOString(),SANS_ECRITURE));
+          },
         });
-      } catch (error) {
-        console.error('Erreur envoi email:', error);
-        // Le lead est DÉJÀ enregistré : un email raté ne doit pas le perdre.
-      }
-    }
-    if (!saisieAdmin) await sendClientAck(payload);
-    return NextResponse.json({ success: true, id: payload.id });
-  } else {
-    // FormData from contact form
-    const formData = await req.formData();
-    // Le formulaire de contact passe par la MÊME règle que la voie JSON :
-    // sans elle, il suffisait de poster un formulaire vide pour créer un lead.
-    const contact = {
-      email: String(formData.get('email') || ''),
-      phone: String(formData.get('phone') || ''),
-    };
-    if (!saisieAdmin) {
-      const souci = leadJoignable(contact);
-      if (souci) return NextResponse.json({ error: souci }, { status: 400 });
-    }
-    payload = {
-      id: uid('L'),
-      createdAt: new Date().toISOString(),
-      status: 'new',
-      firstName: formData.get('firstName') || '',
-      lastName: formData.get('lastName') || '',
-      email: formData.get('email') || '',
-      phone: formData.get('phone') || '',
-      topic: formData.get('topic') || '',
-      message: formData.get('message') || '',
-      consent: !!formData.get('consent'),
-      source: 'contact-form'
-    };
-    applyRole(payload);
-    await updateJSON('leads.json', (data) => { data.push(payload); return data; });
-    
-    // Envoyer l'email pour le formulaire de contact
-    if (process.env.RESEND_API_KEY) {
-      await envoyerEmail({
-        to: process.env.LEADS_TO_EMAIL || 'arthur@lemeillepatrimoine.com',
-        subject: `📧 Nouveau contact — ${payload.firstName} ${payload.lastName}${payload.topic ? ` — ${payload.topic}` : ''}`,
-        html: formatContactEmail(payload),
-        copie: false,
+        for (const [destinataire, resultat] of Object.entries(resultats)) {
+          if (resultat && !resultat.ok) {
+            console.error('[leads] notification non envoyée', { leadId: lead.id, destinataire, configuration: !!resultat.configuration });
+          }
+        }
       });
+    // Les emails répondent aux demandes publiques, jamais à une saisie manuelle du CRM.
+    // Un refus email ne transforme pas un lead déjà sauvegardé en échec de saisie.
+    return json ? NextResponse.json({ success: true, id: duplicateId || payload.id })
+      : NextResponse.redirect(new URL('/contact?ok=1', req.url), 303);
+  } catch (error) {
+    if (error instanceof ErreurDemande) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
     }
-    if (!saisieAdmin) await sendClientAck(payload);
-    return NextResponse.redirect(new URL('/contact?ok=1', req.url));
+    console.error('[leads] enregistrement impossible');
+    return NextResponse.json({ error: 'Votre demande n’a pas pu être enregistrée. Réessayez ou appelez le 06 87 15 72 59.' }, { status: 500 });
   }
 }

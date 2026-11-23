@@ -10,7 +10,7 @@ import crypto from "crypto";
 // et servis par /api/document/[file]. Indépendant de Cloudinary (dont la
 // diffusion des PDF est bloquée par défaut) et sans base64 dans la donnée.
 const UPLOAD_DIR = path.join(process.cwd(), "data", "uploads");
-const MAX_BYTES = 22 * 1024 * 1024;
+const MAX_BYTES = 20 * 1024 * 1024;
 const EXT: Record<string, string> = {
   "application/pdf": "pdf",
   "image/jpeg": "jpg",
@@ -47,6 +47,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: `/api/document/${id}.${ext}` });
   } catch (error: any) {
     console.error("Erreur upload document:", error);
-    return NextResponse.json({ error: "Erreur lors de l'envoi du document", details: error?.message }, { status: 500 });
+    return NextResponse.json({ error: "Erreur lors de l'envoi du document" }, { status: 500 });
   }
 }

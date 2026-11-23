@@ -8,7 +8,7 @@ export default function CtaBand() {
   // Lien de prise de RDV (Calendly…) configurable via env ; sinon page contact.
   const rdvUrl = process.env.NEXT_PUBLIC_RDV_URL || "";
   return (
-    <section className="relative isolate overflow-hidden mt-20">
+    <section className="relative isolate overflow-hidden mt-20" role="region" aria-label="Prendre rendez-vous">
       <Image
         src="/hero-accueil.jpg"
         alt=""

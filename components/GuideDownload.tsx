@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { GUIDES } from "@/lib/guides";
+import { creerEnvoiDemandePublique } from "@/lib/publicLeadRequest";
 
 export default function GuideDownload() {
   const [openSlug, setOpenSlug] = useState<string | null>(null);
@@ -10,16 +11,19 @@ export default function GuideDownload() {
   const [consent, setConsent] = useState(false);
   const [sending, setSending] = useState(false);
   const [doneSlug, setDoneSlug] = useState<string | null>(null);
+  const [envoyerDemande] = useState(() => creerEnvoiDemandePublique());
+  const envoiEnCours = useRef(false);
+  const [erreur, setErreur] = useState('');
 
   async function submit(e: React.FormEvent, guide: (typeof GUIDES)[number]) {
     e.preventDefault();
+    if (envoiEnCours.current) return;
     if (!firstName || !lastName || !email || !consent) return;
+    envoiEnCours.current = true;
     setSending(true);
+    setErreur('');
     try {
-      await fetch("/api/leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      await envoyerDemande({
           firstName, lastName, email,
           category: "defiscalisation",
           source: "guide-defiscalisation",
@@ -27,14 +31,14 @@ export default function GuideDownload() {
           message: `Téléchargement du guide « ${guide.title} ».`,
           consent: true,
           meta: { guide: guide.slug, guideTitle: guide.title },
-        }),
       });
-    } catch { /* on télécharge quand même le guide */ }
+      setFirstName(""); setLastName(""); setEmail(""); setConsent(false);
+    } catch (error) {
+      setErreur(error instanceof Error ? error.message : 'Votre demande de contact n’a pas pu être confirmée.');
+    } finally { envoiEnCours.current = false; setSending(false); }
     // Déclenche le téléchargement du PDF
     window.open(`/api/guides/${guide.slug}/pdf`, "_blank", "noopener");
     setDoneSlug(guide.slug);
-    setSending(false);
-    setFirstName(""); setLastName(""); setEmail(""); setConsent(false);
   }
 
   return (
@@ -56,6 +60,10 @@ export default function GuideDownload() {
           <div className="mt-auto">
             {doneSlug === g.slug ? (
               <div className="text-sm text-green-700">
+                {erreur && <div className="text-[#8C3F2B] mb-3" role="alert">
+                  <p>{erreur} Le guide reste accessible ci-dessous.</p>
+                  <button type="button" className="underline min-h-11" onClick={() => setDoneSlug(null)}>Réessayer ma demande de contact</button>
+                </div>}
                 Merci ! Votre guide se télécharge.{" "}
                 <a href={`/api/guides/${g.slug}/pdf`} target="_blank" rel="noopener noreferrer" className="underline">
                   Relancer le téléchargement
@@ -79,6 +87,7 @@ export default function GuideDownload() {
             ) : (
               <button
                 type="button"
+                disabled={sending}
                 onClick={() => { setOpenSlug(g.slug); setDoneSlug(null); }}
                 className="btn btn-gold w-full"
                 data-testid={`open-guide-${g.slug}`}

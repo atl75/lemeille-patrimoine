@@ -22,6 +22,7 @@ type Vente = {
 };
 
 function libelleType(v: Vente): string {
+  if(v.type === 'IMMEUBLE') return 'Immeuble';
   const base = v.type === "MAISON" ? "Maison" : "Appartement";
   return v.rooms ? `${base} T${v.rooms}` : base;
 }

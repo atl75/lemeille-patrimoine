@@ -16,7 +16,7 @@ export default async function Page(){
   // Biens réellement en vente : ni vendus, ni sous promesse (cohérent avec
   // la vue « Biens en vente »)
   const activeProperties = properties.filter(
-    (p: any) => !p.sold && p.status !== 'UNDER_OFFER' && p.status !== 'SOLD'
+    (p: any) => p.visible !== false && !p.sold && p.status !== 'UNDER_OFFER' && p.status !== 'SOLD'
   );
   const totalProperties = activeProperties.length;
   
@@ -26,8 +26,10 @@ export default async function Page(){
   }, 0);
   
   // Calculate commission (assuming 5% average if no commission field)
-  const totalCommission = activeProperties.reduce((sum: number, p: any) => {
-    const commission = p.commission || (p.price * 0.05);
+  const sousPromesse = properties.filter((p: any) => !p.sold && p.status === 'UNDER_OFFER');
+  const manquants = sousPromesse.filter((p: any) => p.negotiatedCommission == null && p.commissionAmount == null).length;
+  const totalCommission = sousPromesse.reduce((sum: number, p: any) => {
+    const commission = Number(p.negotiatedCommission ?? p.commissionAmount ?? 0);
     return sum + commission;
   }, 0);
   
@@ -39,7 +41,7 @@ export default async function Page(){
         {/* Quick Action Button */}
         <div className="mb-6">
           <Link
-            href="/admin/contenu/biens?action=new"
+            href="/admin/contenu/biens/nouveau"
             className="inline-flex items-center gap-2 px-6 py-3 bg-[#B89C6D] text-white rounded-md hover:bg-[#A68B5E] transition-colors"
             data-testid="button-add-property"
           >
@@ -68,7 +70,7 @@ export default async function Page(){
               <div className="p-2 rounded-lg bg-[#B89C6D]/10">
                 <Euro className="h-6 w-6 text-[#B89C6D]" />
               </div>
-              <h3 className="luxe text-lg text-[#1F3B2C]">CA potentiel</h3>
+              <h3 className="luxe text-lg text-[#1F3B2C]">Valeur du portefeuille</h3>
             </div>
             <p className="text-3xl font-bold text-[#1F3B2C]" data-testid="stat-potential-revenue">
               {(totalValue / 1000000).toFixed(1)}M€
@@ -86,7 +88,7 @@ export default async function Page(){
             <p className="text-3xl font-bold text-[#1F3B2C]" data-testid="stat-commission">
               {(totalCommission / 1000).toFixed(0)}K€
             </p>
-            <p className="text-sm opacity-75 mt-1">Estimation 5% moyenne</p>
+            <p className="text-sm opacity-75 mt-1">Honoraires renseignés · {manquants} montant(s) inconnu(s)</p>
           </div>
         </div>
 

@@ -49,6 +49,7 @@ export default function DocumentsSection({ editing, updateField, setEditing, ana
           </div>
           <div>
             <label className="block mb-0.5 text-[10px] font-medium">Plans du bien (plusieurs possibles)</label>
+            <p className="text-[10px] text-gray-600 mb-1">Publics après enregistrement si le bien est visible. Ne pas ajouter de document confidentiel ici.</p>
             <MultiDocumentUploader
               documents={editing.floorPlans && editing.floorPlans.length ? editing.floorPlans : (editing.floorPlan ? [editing.floorPlan] : [])}
               onChange={docs => setEditing((prev: any) => prev ? { ...prev, floorPlans: docs, floorPlan: undefined } : null)}
@@ -70,6 +71,7 @@ export default function DocumentsSection({ editing, updateField, setEditing, ana
               </div>
               <div>
                 <label className="block mb-0.5 text-[10px] font-medium">PV AG</label>
+                <p className="text-[10px] text-gray-600 mb-1">Privés : accès depuis votre back-office connecté.</p>
                 <MultiDocumentUploader documents={editing.agMinutes || []} onChange={docs => updateField('agMinutes', docs)} label="" uploadToCloud />
               </div>
             </>

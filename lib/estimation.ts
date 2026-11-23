@@ -24,9 +24,10 @@
  */
 
 import { BAREME_COURANT } from './baremeEstimation.ts';
+import { ajustementsCaracteristiques, type CaracteristiquesEstimation } from './caracteristiquesEstimation.ts';
 export { BAREME_COURANT };
 
-export type Critere = 'dpe' | 'etat' | 'etage' | 'ascenseur' | 'bruit' | 'ensoleillement';
+export type Critere = 'dpe' | 'etat' | 'etage' | 'ascenseur' | 'bruit' | 'ensoleillement' | 'exposition' | 'visavis';
 
 export const CRITERES: Critere[] = ['dpe', 'etat', 'etage', 'ascenseur', 'bruit', 'ensoleillement'];
 
@@ -69,7 +70,7 @@ export type Bareme = {
   revuLe: string;
   /** Plafond de l'ajustement cumulé, en valeur absolue et en pourcentage. */
   plafond: number;
-  criteres: Record<Critere, Echelle>;
+  criteres: Partial<Record<Critere, Echelle>>;
 };
 
 /** Le choix de l'agent : une clé de modalité par critère renseigné. */
@@ -135,12 +136,14 @@ export function ajustementsDe(
   choix: Choix,
   type: TypeBien,
   corrections: Corrections = {},
+  caracteristiques?: CaracteristiquesEstimation | null,
 ): Ajustement[] {
   const lignes: Ajustement[] = [];
   for (const critere of criteresDe(bareme, type)) {
+    if (caracteristiques?.version === 1 && !['dpe','etat'].includes(critere)) continue;
     const cle = choix[critere];
     if (!cle) continue;
-    const echelle = bareme.criteres[critere];
+    const echelle = bareme.criteres[critere]!;
     const modalite = echelle.modalites.find((m) => m.cle === cle);
     if (!modalite) continue;
 
@@ -161,7 +164,7 @@ export function ajustementsDe(
       note: modalite.note,
     });
   }
-  return lignes;
+  return caracteristiques?.version === 1 ? [...lignes, ...ajustementsCaracteristiques(caracteristiques,type)] : lignes;
 }
 
 export type Composition = {
@@ -193,6 +196,7 @@ export function composer(ajustements: Ajustement[], plafond: number): Compositio
 }
 
 export type Entree = {
+  caracteristiques?: CaracteristiquesEstimation | null;
   /** Prix au m² du secteur, avant correction. */
   baseM2: number;
   surface: number;
@@ -235,7 +239,7 @@ export function estimer(e: Entree): Resultat | null {
   if (!Number.isFinite(surface) || surface <= 0) return null;
 
   const bareme = e.bareme ?? BAREME_COURANT;
-  const ajustements = ajustementsDe(bareme, e.choix, e.type, e.corrections);
+  const ajustements = ajustementsDe(bareme, e.choix, e.type, e.corrections, e.caracteristiques);
   const composition = composer(ajustements, bareme.plafond);
   const m2Ajuste = baseM2 * composition.facteur;
   const valeur = m2Ajuste * surface;
@@ -264,7 +268,7 @@ export type SourceBase = 'DVF' | 'COMPARABLES' | 'REFERENCE' | 'MANUELLE';
 
 export const LIBELLE_SOURCE: Record<SourceBase, string> = {
   DVF: 'Ventes signées (DVF)',
-  COMPARABLES: 'Biens comparables relevés',
+  COMPARABLES: 'Annonces actives — prix affichés',
   REFERENCE: 'Indice de secteur',
   MANUELLE: 'Saisie manuelle',
 };

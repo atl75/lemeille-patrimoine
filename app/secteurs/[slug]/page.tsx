@@ -5,6 +5,7 @@ import PropertyCard from "@/components/PropertyCard";
 import { getPropertyCards } from "@/lib/propertiesData";
 import { notFound } from "next/navigation";
 import { seoTitle } from '@/lib/seoTitle';
+import { pageMetadata, seoText } from '@/lib/pageMetadata';
 import { SECTORS, matchesSector, formatCityWithDistrict, locatifDe, type Sector } from "@/lib/sectors";
 
 // ISR : régénérée au plus toutes les 5 min (+ revalidation immédiate à l'édition d'un bien).
@@ -13,10 +14,10 @@ export const revalidate = 300;
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const s = SECTORS[slug];
-  // Au-delà de 65 caractères Google tronque : on raccourcit le suffixe.
-  const title = s ? seoTitle([s.title]) : seoTitle(["Secteur"]);
-  const description = (s?.description || s?.subtitle || "Biens dans le secteur sélectionné.").slice(0, 155);
-  return { title, description, alternates: { canonical: `/secteurs/${slug}` } };
+  if (!s) notFound();
+  const title = seoTitle([s.title]);
+  const description = seoText(s.description, s.subtitle, 'Biens dans le secteur sélectionné.');
+  return pageMetadata({ title, description, alternates: { canonical: `/secteurs/${slug}` } });
 }
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }){
@@ -134,11 +135,11 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
         <div className="card p-6 md:p-8 text-center">
           <h2 className="luxe text-2xl mb-2">Vous vendez {ou} ?</h2>
           <p className="opacity-80 max-w-2xl mx-auto">
-            Obtenez une estimation indicative immédiate, puis un avis de valeur personnalisé sous 3 jours.
-            Sans engagement.
+            Décrivez votre bien pour préparer notre échange. Je vous remets un avis de valeur
+            personnalisé sous 24 heures maximum après la visite, gratuitement et sans engagement.
           </p>
           <div className="mt-5">
-            <Link href="/immobilier/estimation" className="btn btn-gold">Estimer mon bien</Link>
+            <Link href="/immobilier/estimation#estimation" className="btn btn-gold">Estimer mon bien</Link>
           </div>
         </div>
       </section>

@@ -21,7 +21,7 @@ export default function BandeauReassurance({ soldCount }: { soldCount?: number }
     [`${ventes} ventes réalisées`, "Rouen, Plateau Nord et au-delà"],
     ["8 ans d'expérience", "Master école de commerce"],
     ["Carte T", "CPI 7606 2024 000 000 038"],
-    ["Estimation gratuite", "Avis de valeur sous 3 jours"],
+    ["Estimation gratuite", "Avis sous 24 heures maximum après la visite"],
   ];
   return (
     <section className="border-b border-black/5 bg-white/70" data-testid="bandeau-reassurance">

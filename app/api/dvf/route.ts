@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import { isAdmin } from '@/lib/adminGuard';
 import { rateLimit, getClientIp } from '@/lib/rateLimit';
-import { analyserCsvDvf, statistiquesDvf, urlDvf, anneesDvf, type VenteDvf } from '@/lib/dvf';
+import { analyserCsvDvf, statistiquesDvf, anneesDvf, type VenteDvf } from '@/lib/dvf';
+import { geocodeAddress } from '@/lib/geocoding';
+import { createDvfSource } from '@/lib/dvfSource';
+import { DvfSearchInterrupted, withDvfBudget } from '@/lib/dvfBudget';
 
 /**
  * Les ventes réellement signées autour d'une adresse.
  *
- * Deux services publics, gratuits, sans jeton : l'API Adresse (BAN) pour
+ * Deux services publics, gratuits, sans jeton : la Géoplateforme IGN (BAN) pour
  * situer l'adresse exacte, puis les fichiers geo-dvf de data.gouv.fr pour les
  * mutations. Aucun hôte n'est fourni par l'utilisateur — ils sont en dur —
  * donc pas de question de requête sortante détournée ici.
@@ -17,31 +20,7 @@ import { analyserCsvDvf, statistiquesDvf, urlDvf, anneesDvf, type VenteDvf } fro
  * tourne qu'en un exemplaire : on garde les huit derniers fichiers, pas plus,
  * et six heures — DVF ne bouge que deux fois l'an.
  */
-const CACHE = new Map<string, { csv: string; a: number }>();
-const CACHE_MAX = 8;
-const CACHE_MS = 6 * 60 * 60 * 1000;
-
-async function csvCommune(insee: string, annee: number): Promise<string | null> {
-  const cle = `${insee}:${annee}`;
-  const vu = CACHE.get(cle);
-  if (vu && Date.now() - vu.a < CACHE_MS) return vu.csv;
-
-  try {
-    const r = await fetch(urlDvf(insee, annee), {
-      signal: AbortSignal.timeout(20000),
-      headers: { 'User-Agent': 'LemeillePatrimoine/1.0 (+https://lemeillepatrimoine.com)' },
-    });
-    // Une année non encore publiée répond 404 : ce n'est pas une erreur.
-    if (!r.ok) return null;
-    const csv = await r.text();
-    CACHE.set(cle, { csv, a: Date.now() });
-    // Éviction du plus ancien : une Map conserve l'ordre d'insertion.
-    while (CACHE.size > CACHE_MAX) CACHE.delete(CACHE.keys().next().value as string);
-    return csv;
-  } catch {
-    return null;
-  }
-}
+const csvCommune = createDvfSource();
 
 export async function POST(req: Request) {
   if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -59,7 +38,8 @@ export async function POST(req: Request) {
   try { corps = await req.json(); }
   catch { return NextResponse.json({ error: 'Requête illisible.' }, { status: 400 }); }
 
-  const adresse = String(corps?.adresse ?? '').trim().slice(0, 200);
+  if (typeof corps?.adresse !== 'string') return NextResponse.json({ error: 'Adresse manquante ou invalide.' }, { status: 400 });
+  const adresse = corps.adresse.trim().slice(0, 200);
   if (!adresse) return NextResponse.json({ error: 'Adresse manquante.' }, { status: 400 });
 
   const rayon = Math.min(Math.max(Number(corps?.rayon) || 300, 50), 2000);
@@ -74,61 +54,76 @@ export async function POST(req: Request) {
   const terrainMin = Number(corps?.terrainMin) > 0 ? Number(corps.terrainMin) : null;
   const terrainMax = Number(corps?.terrainMax) > 0 ? Number(corps.terrainMax) : null;
 
-  // 1. Situer l'adresse. Le score et le type disent au lecteur si l'on est au
-  //    numéro près ou seulement dans la rue.
-  let point: { lat: number; lon: number; insee: string; label: string; precision: string; score: number };
   try {
-    const g = await fetch(
-      'https://api-adresse.data.gouv.fr/search/?limit=1&q=' + encodeURIComponent(adresse),
-      { signal: AbortSignal.timeout(10000) },
-    );
-    const d = await g.json();
-    const f = d?.features?.[0];
-    if (!f) return NextResponse.json({ error: 'Adresse introuvable.' }, { status: 404 });
-    point = {
-      lon: f.geometry.coordinates[0],
-      lat: f.geometry.coordinates[1],
-      insee: f.properties.citycode,
-      label: f.properties.label,
-      precision: f.properties.type,
-      score: f.properties.score,
-    };
-  } catch {
-    return NextResponse.json({ error: "Le service d'adresses n'a pas répondu." }, { status: 502 });
+    return await withDvfBudget(async ({ signal, check }) => {
+      // 1. Situer l'adresse. Le score et le type disent au lecteur si l'on est au
+      //    numéro près ou seulement dans la rue.
+      let point: { lat: number; lon: number; insee: string; label: string; precision: string; score: number };
+      try {
+        const result = await geocodeAddress(adresse, { signal });
+        check();
+        if (!result) return NextResponse.json({ error: 'Adresse introuvable.' }, { status: 404 });
+        point = result;
+      } catch {
+        check();
+        return NextResponse.json({ error: "Le service d'adresses est indisponible. Réessayez dans un instant." }, { status: 502 });
+      }
+
+      // 2. Cinq millésimes, filtrés au fil de l'eau : on ne garde jamais plus d'un
+      //    CSV en mémoire vive au-delà du cache.
+      const toutes: VenteDvf[] = [];
+      const anneesTrouvees: number[] = [];
+      const anneesAbsentes: number[] = [];
+      const anneesDemandees = anneesDvf();
+      for (const annee of anneesDemandees) {
+        check();
+        const source = await csvCommune(point.insee, annee, signal);
+        check();
+        if (source.status === 'error') return NextResponse.json({
+          error: `Les données DVF de ${annee} n’ont pas pu être chargées. Aucun résultat partiel n’est présenté. Réessayez dans un instant.`,
+        }, { status: 502 });
+        if (source.status === 'absent') { anneesAbsentes.push(annee); continue; }
+        anneesTrouvees.push(annee);
+        toutes.push(...analyserCsvDvf(source.csv, {
+          lat: point.lat, lon: point.lon, rayon, type,
+          surfaceRef, toleranceSurface: surfaceRef ? 0.5 : undefined,
+          depuis, pieces, surfaceMin, surfaceMax, terrainMin, terrainMax,
+        }));
+        check();
+      }
+      if (!anneesTrouvees.length) return NextResponse.json({
+        error: 'Aucun fichier DVF n’est disponible pour cette commune sur les années recherchées. Cela ne signifie pas qu’aucune vente n’a eu lieu.',
+      }, { status: 404 });
+
+      // La plus récente d'abord : c'est celle qui pèse dans une négociation.
+      toutes.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.distance - b.distance));
+      check();
+
+      return NextResponse.json({
+        adresse: point.label,
+        // Le centre sert à cadrer la carte des ventes.
+        lat: point.lat,
+        lon: point.lon,
+        precision: point.precision,
+        score: point.score,
+        rayon,
+        depuis, pieces, surfaceMin, surfaceMax, terrainMin, terrainMax,
+        annees: anneesTrouvees,
+        anneesAbsentes,
+        information: `Millésimes consultés : ${anneesTrouvees.join(', ')}.${anneesAbsentes.length ? ` Fichiers non disponibles : ${anneesAbsentes.join(', ')}. Les résultats ne couvrent que les fichiers consultés.` : ''}`,
+        // Assez de points pour que le graphique montre le MÊME effectif que le
+        // constat : un lecteur qui compte « 200 » sous un titre annonçant 568
+        // a raison de douter du reste.
+        ventes: toutes.slice(0, 900),
+        stats: statistiquesDvf(toutes),
+      });
+    }, { signal: req.signal });
+  } catch (error) {
+    if (error instanceof DvfSearchInterrupted) return NextResponse.json({
+      error: error.reason === 'deadline'
+        ? 'La recherche DVF a dépassé son délai global. Aucun résultat partiel n’est présenté. Réessayez dans un instant.'
+        : 'La recherche DVF a été interrompue. Aucun résultat partiel n’est présenté.',
+    }, { status: 504 });
+    throw error;
   }
-
-  // 2. Cinq millésimes, filtrés au fil de l'eau : on ne garde jamais plus d'un
-  //    CSV en mémoire vive au-delà du cache.
-  const toutes: VenteDvf[] = [];
-  const anneesTrouvees: number[] = [];
-  for (const annee of anneesDvf()) {
-    const csv = await csvCommune(point.insee, annee);
-    if (!csv) continue;
-    anneesTrouvees.push(annee);
-    toutes.push(...analyserCsvDvf(csv, {
-      lat: point.lat, lon: point.lon, rayon, type,
-      surfaceRef, toleranceSurface: surfaceRef ? 0.5 : undefined,
-      depuis, pieces, surfaceMin, surfaceMax, terrainMin, terrainMax,
-    }));
-  }
-
-  // La plus récente d'abord : c'est celle qui pèse dans une négociation.
-  toutes.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.distance - b.distance));
-
-  return NextResponse.json({
-    adresse: point.label,
-    // Le centre sert à cadrer la carte des ventes.
-    lat: point.lat,
-    lon: point.lon,
-    precision: point.precision,
-    score: point.score,
-    rayon,
-    depuis, pieces, surfaceMin, surfaceMax, terrainMin, terrainMax,
-    annees: anneesTrouvees,
-    // Assez de points pour que le graphique montre le MÊME effectif que le
-    // constat : un lecteur qui compte « 200 » sous un titre annonçant 568
-    // a raison de douter du reste.
-    ventes: toutes.slice(0, 900),
-    stats: statistiquesDvf(toutes),
-  });
 }

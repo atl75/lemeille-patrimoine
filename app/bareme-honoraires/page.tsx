@@ -3,13 +3,15 @@ import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = { 
+import { pageMetadata } from '@/lib/pageMetadata';
+
+export const metadata: Metadata = pageMetadata({
   title: "Barème d'honoraires immobiliers | Lemeille Patrimoine",
   description: "Découvrez notre barème d'honoraires transparent pour l'achat et la vente de biens immobiliers de prestige. Tarification claire et simple.",
   alternates: {
     canonical: '/bareme-honoraires'
   }
-};
+});
 
 export default function Page(){
   return (

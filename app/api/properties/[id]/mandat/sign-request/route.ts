@@ -5,6 +5,7 @@ import { isAdmin } from '@/lib/adminGuard';
 import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
 import { envoyerEmail } from '@/lib/envoiEmail';
 import crypto from 'crypto';
+import { erreurMandatImmeuble } from '@/lib/validationMandatImmeuble';
 
 // Envoie au mandant l'invitation à signer le mandat en ligne. Rend la raison
 // de l'échec le cas échéant : le lien reste utilisable à la main, mais l'agent
@@ -38,15 +39,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // Le jeton de signature est posé sous verrou : deux régénérations simultanées
   // laissaient un jeton actif que l'autre réponse ne connaissait pas.
   let trouve = false;
+  let erreur: string | null = null;
   let signerName = '';
   let signerEmail = '';
   let mandateNumber = '';
   await updateJSON('properties.json', (data: any[]) => {
+    erreur=null;trouve=false;
     const idx = data.findIndex((x: any) => x.id === id);
     if (idx < 0) return SANS_ECRITURE;
     trouve = true;
 
     const p = data[idx];
+    if(p.mandateSignStatus==='SIGNED' || p.mandateSignature?.dataUrl) {erreur='Ce mandat est déjà signé : son lien ne peut pas être régénéré.';return SANS_ECRITURE;}
+    erreur=erreurMandatImmeuble(p);if(erreur)return SANS_ECRITURE;
     const owner = Array.isArray(p.owners) && p.owners[0] ? p.owners[0] : null;
     signerName = owner
       ? (owner.type === 'COMPANY' ? (owner.name || '') : [owner.firstName, owner.lastName].filter(Boolean).join(' '))
@@ -65,6 +70,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return data;
   });
 
+  if(erreur)return NextResponse.json({error:erreur},{status:409});
   if (!trouve) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const base = process.env.NEXT_PUBLIC_SITE_URL || 'https://lemeillepatrimoine.com';

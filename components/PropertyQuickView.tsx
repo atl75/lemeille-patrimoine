@@ -100,7 +100,7 @@ export default function PropertyQuickView({
               Voir la fiche complète
             </Link>
             <Link href={`/contact?ref=${encodeURIComponent(property.id)}`} className="btn">
-              Contacter un conseiller
+              Contacter Arthur Lemeille
             </Link>
           </div>
         </div>

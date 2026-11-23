@@ -16,7 +16,8 @@
  */
 
 import GraphiquePositionnement, { type PointGraphique } from './GraphiquePositionnement';
-import { m2Retenu, prixM2, ancienneteAnnonce, type Comparable, type Positionnement } from '@/lib/ajustementPrix';
+import { libelleNatureComparable } from '@/lib/estimationRapport';
+import { annoncesActives, m2Retenu, prixM2, ancienneteAnnonce, type Comparable, type Positionnement } from '@/lib/ajustementPrix';
 import { surfaceFr } from '@/lib/formatFr';
 import type { VenteDvf, StatsDvf } from '@/lib/dvf';
 import type { ReferenceM2 } from '@/lib/annonceConcurrente';
@@ -73,7 +74,7 @@ export default function DocumentPositionnement({
   const bienM2 = prixM2(bien.price, bien.surface) ?? position?.prixM2Bien ?? null;
   // Moyenne des biens EN VENTE : calculée sur les comparables retenus, pas sur
   // les statistiques du portefeuille — c'est ce tableau-là que le vendeur voit.
-  const m2EnVente = comparables.map(m2Retenu).filter((x): x is number => x !== null);
+  const m2EnVente = annoncesActives(comparables).map(m2Retenu).filter((x): x is number => x !== null);
   const moyenneEnVente = m2EnVente.length
     ? m2EnVente.reduce((a, b) => a + b, 0) / m2EnVente.length : null;
 
@@ -81,7 +82,7 @@ export default function DocumentPositionnement({
     m2: v.prixM2,
     libelle: `${jour(v.date)} · ${v.type} ${surfaceFr(v.surface)} · ${eur(v.prix)} · ${Math.round(v.distance)} m`,
   }));
-  const pointsEnVente: PointGraphique[] = comparables
+  const pointsEnVente: PointGraphique[] = annoncesActives(comparables)
     .map(c => ({ c, m: m2Retenu(c) }))
     .filter((x): x is { c: Comparable; m: number } => x.m !== null)
     .map(({ c, m }) => ({ m2: m, libelle: `${c.titre} · ${surfaceFr(c.surface)} · ${eur(c.prix)}` }));
@@ -248,10 +249,10 @@ export default function DocumentPositionnement({
       {/* ————— 3. Les biens en vente ————— */}
       {comparables.length > 0 && (
         <div className="doc-bloc" style={{ marginBottom: 18 }}>
-          <h2>Ce qui est en vente aujourd&apos;hui</h2>
+          <h2>Références relevées : annonces et ventes déclarées</h2>
           <p className="doc-source" style={{ margin: '0 0 6px' }}>
-            {comparables.length} biens relevés sur les portails. Ce sont des prix DEMANDÉS : ils
-            disent ce que les vendeurs espèrent, pas ce que les acquéreurs signent.
+            {comparables.length} références. Les agrégats de concurrence ne retiennent que les annonces actives.
+            Les prix de vente saisis sont déclaratifs et ne deviennent pas des actes DVF.
             {/* L'ancienneté N'EST PAS UN DÉTAIL D'ARCHIVAGE. Un bien affiché depuis
                 des mois au même prix démontre à lui seul que ce prix ne trouve
                 pas preneur — souvent l'argument qui porte le plus. */}
@@ -262,7 +263,7 @@ export default function DocumentPositionnement({
                 return j >= 90;
               }).length;
               return anciens > 0
-                ? ` ${anciens} d'entre eux ${anciens > 1 ? 'sont affichés' : 'est affiché'} depuis plus de trois mois sans trouver preneur.`
+                ? ` ${anciens} référence(s) portent une date de parution de plus de trois mois, à vérifier (republication possible).`
                 : '';
             })()}
           </p>
@@ -296,7 +297,7 @@ export default function DocumentPositionnement({
                     <td className="num">{eur(c.prixVente ?? c.prix)}</td>
                     <td className="num"><strong>{m ? eurM2(m) : '—'}</strong></td>
                     <td className="num">{ancienneteAnnonce(c.dateParution) ?? '—'}</td>
-                    <td>{c.statut === 'VENDU' ? 'vendu' : 'en vente'}</td>
+                    <td>{libelleNatureComparable(c)}</td>
                   </tr>
                 );
               })}
@@ -324,7 +325,7 @@ export default function DocumentPositionnement({
               </p>
               {fourchette && (
                 <p style={{ margin: '2px 0', fontSize: '10pt', color: 'var(--encre-2)' }}>
-                  Le marché constaté situe ce bien entre {eur(fourchette.bas)} et {eur(fourchette.haut)}
+                  Repère commercial Q1–médiane, sans ajustement des caractéristiques : entre {eur(fourchette.bas)} et {eur(fourchette.haut)}
                   {/* ON SITUE LE PRIX CONSEILLÉ DANS CETTE FOURCHETTE. Sans cela le
                       document affichait « conseillé 629 000 € » juste après
                       « le marché situe entre 525 620 et 610 323 € » : deux nombres
@@ -340,7 +341,7 @@ export default function DocumentPositionnement({
             </>
           ) : fourchette ? (
             <p style={{ margin: '4px 0', fontSize: '11pt' }}>
-              Un prix compris entre <strong>{eur(fourchette.bas)}</strong> et <strong>{eur(fourchette.haut)}</strong> place
+              Un prix compris entre <strong>{eur(fourchette.bas)}</strong> et <strong>{eur(fourchette.haut)}</strong> situe
               le bien dans le marché constaté.
             </p>
           ) : null}

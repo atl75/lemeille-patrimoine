@@ -9,7 +9,9 @@ import { dispositifsOf } from "@/lib/dispositifs";
 import type { Metadata } from 'next';
 import { OG_IMAGE } from '@/lib/ogImage';
 
-export const metadata: Metadata = {
+import { pageMetadata } from '@/lib/pageMetadata';
+
+export const metadata: Metadata = pageMetadata({
   title: 'Défiscalisation immobilière | Lemeille Patrimoine',
   description: "Réduisez votre imposition grâce à l'immobilier de caractère : Loi Malraux, Monument Historique, Déficit Foncier. Opérations à Rouen et en Normandie.",
   alternates: {
@@ -22,7 +24,7 @@ export const metadata: Metadata = {
     url: '/programmes',
     type: 'website',
   }
-};
+});
 
 async function getPrograms(){
   const base = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT||'3000'}`;
@@ -149,7 +151,7 @@ export default async function Page(){
 
       <Section
         title="Simulateur de défiscalisation"
-        subtitle="Estimez en quelques secondes votre gain fiscal selon le dispositif. Estimation indicative — un conseiller affine ensuite selon votre situation."
+        subtitle="Estimez en quelques secondes votre gain fiscal selon le dispositif. Estimation indicative — Arthur Lemeille vous accompagne pour l’affiner selon votre situation."
       >
         <DefiscalisationSimulator />
       </Section>

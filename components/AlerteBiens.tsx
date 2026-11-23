@@ -61,12 +61,14 @@ export default function AlerteBiens() {
                   <option value="">Tous les secteurs</option>
                   <option value="PARIS">Paris</option>
                   <option value="NORMANDIE">Normandie</option>
+                  <option value="EST">Est</option>
                   <option value="COTE_D_AZUR">Côte d&apos;Azur</option>
                 </select>
                 <select className="input text-[#1F3B2C]" value={propertyType} onChange={(e) => setPropertyType(e.target.value)} aria-label="Type de bien">
                   <option value="">Tous les biens</option>
                   <option value="APPARTEMENT">Appartement</option>
                   <option value="MAISON">Maison</option>
+                  <option value="IMMEUBLE">Immeuble</option>
                 </select>
               </div>
               <button className="btn btn-gold" type="submit" disabled={sending} data-testid="button-alerte-submit">

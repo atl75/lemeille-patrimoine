@@ -1,6 +1,7 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { trackEvent } from "@/lib/analytics";
+import { creerEnvoiDemandePublique } from "@/lib/publicLeadRequest";
 
 type Dispositif = "MALRAUX" | "MONUMENT_HISTORIQUE" | "DEFICIT_FONCIER";
 
@@ -31,6 +32,9 @@ export default function DefiscalisationSimulator() {
   const [consent, setConsent] = useState(false);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState<null | boolean>(null);
+  const [envoyerDemande] = useState(() => creerEnvoiDemandePublique());
+  const envoiEnCours = useRef(false);
+  const [erreur, setErreur] = useState('');
 
   const result = useMemo(() => {
     const T = Math.max(0, Number(travaux) || 0);
@@ -76,14 +80,14 @@ export default function DefiscalisationSimulator() {
 
   async function submitLead(e: React.FormEvent) {
     e.preventDefault();
+    if (envoiEnCours.current) return;
     if (!firstName || !lastName || !email || !consent) return;
+    envoiEnCours.current = true;
+    setErreur('');
     setSending(true);
     const dispoLabel = DISPOSITIFS.find((d) => d.key === dispositif)?.label || dispositif;
     try {
-      const r = await fetch("/api/leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      await envoyerDemande({
           firstName, lastName, email, phone,
           category: "defiscalisation",
           source: "simulateur-defiscalisation",
@@ -97,14 +101,16 @@ export default function DefiscalisationSimulator() {
             tauxMalraux: dispositif === "MALRAUX" ? tauxMalraux : undefined,
             estimation: Math.round(result.total),
           },
-        }),
       });
-      setSent(r.ok);
-      if (r.ok) trackEvent('generate_lead', 'simulateur', dispoLabel, Number(travaux) || 0);
-    } catch {
+      setSent(true);
+      try { trackEvent('generate_lead', 'simulateur'); } catch { /* La mesure ne bloque pas la confirmation. */ }
+    } catch (error) {
       setSent(false);
+      setErreur(error instanceof Error ? error.message : 'Votre demande n’a pas pu être confirmée. Appelez Arthur au 06 87 15 72 59.');
+    } finally {
+      envoiEnCours.current = false;
+      setSending(false);
     }
-    setSending(false);
   }
 
   return (
@@ -200,13 +206,13 @@ export default function DefiscalisationSimulator() {
       <div className="mt-8 border-t pt-6">
         {sent === true ? (
           <div className="text-green-700 font-medium">
-            Merci — votre demande est bien reçue. Un conseiller vous adresse une étude personnalisée sous 48h.
+            Merci — votre demande est bien reçue. Je vous recontacte sous 48h pour étudier votre projet. — Arthur Lemeille
           </div>
         ) : (
           <form onSubmit={submitLead} className="grid sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2">
               <h3 className="luxe text-xl">Recevez une étude personnalisée</h3>
-              <p className="text-sm opacity-70">Un conseiller affine cette estimation selon votre situation réelle.</p>
+              <p className="text-sm opacity-70">Je vous accompagne pour affiner cette estimation selon votre situation réelle. — Arthur Lemeille</p>
             </div>
             <input className="input" aria-label="Prénom" placeholder="Prénom" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
             <input className="input" aria-label="Nom" placeholder="Nom" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
@@ -220,7 +226,7 @@ export default function DefiscalisationSimulator() {
               <button className="btn btn-gold" type="submit" disabled={sending} data-testid="button-submit-lead">
                 {sending ? "Envoi…" : "Recevoir mon étude"}
               </button>
-              {sent === false && <span className="text-red-700 text-sm ml-3">Un problème est survenu. Réessayez.</span>}
+              {erreur && <p className="text-red-700 text-sm mt-3" role="alert">{erreur}</p>}
             </div>
           </form>
         )}

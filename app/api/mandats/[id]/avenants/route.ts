@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { envoyerEmail } from '@/lib/envoiEmail';
 import type { NextRequest } from 'next/server';
-import { updateJSON } from '@/lib/utils';
+import { readJSON, updateJSON, SANS_ECRITURE } from '@/lib/utils';
+import { erreurCreationAvenant } from '@/lib/validationAvenant';
 import { isAdmin } from '@/lib/adminGuard';
 import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
 import crypto from 'crypto';
@@ -40,14 +41,11 @@ const nombre = (v: any): number | null => {
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { id } = await params;
-  let sortie: any = null;
-  await updateJSON('mandats.json', (data) => {
-    const m = (Array.isArray(data) ? data : []).find((x: any) => x.id === id);
-    sortie = m ? { avenants: Array.isArray(m.avenants) ? m.avenants : [] } : { error: 'Mandat non trouvé' };
-    return data; // lecture seule : rien n'est écrit
-  });
-  if (sortie?.error) return NextResponse.json(sortie, { status: 404 });
-  return NextResponse.json(sortie);
+  const data = await readJSON('mandats.json', { fresh: true });
+  const m = (Array.isArray(data) ? data : []).find((x: any) => x.id === id);
+  const headers = { 'Cache-Control': 'private, no-store' };
+  if (!m) return NextResponse.json({ error: 'Mandat non trouvé' }, { status: 404, headers });
+  return NextResponse.json({ avenants: Array.isArray(m.avenants) ? m.avenants : [] }, { headers });
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -68,10 +66,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   let resultat: any = null;
   await updateJSON('mandats.json', (data) => {
+    resultat = null;
     const liste = Array.isArray(data) ? data : [];
     const i = liste.findIndex((x: any) => x.id === id);
-    if (i < 0) { resultat = { error: 'Mandat non trouvé', code: 404 }; return data; }
+    if (i < 0) { resultat = { error: 'Mandat non trouvé', code: 404 }; return SANS_ECRITURE; }
     const m = liste[i];
+    const erreur = erreurCreationAvenant(m);
+    if (erreur) { resultat = { error: erreur, code: 409 }; return SANS_ECRITURE; }
 
     const ancien = {
       price: m.price ?? null,
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     if (ancien.price != null && Number(ancien.price) === nouveauPrix && pctDemande === null) {
       resultat = { error: 'Le nouveau prix est identique au prix en vigueur.', code: 400 };
-      return data;
+      return SANS_ECRITURE;
     }
 
     // Le taux d'honoraires est conservé sauf renégociation explicite ; les

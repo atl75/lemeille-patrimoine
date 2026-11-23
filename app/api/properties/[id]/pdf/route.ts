@@ -256,10 +256,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
     // ---- Caractéristiques ----
     heading('CARACTÉRISTIQUES');
-    const typeLabel = (p.type || 'APPARTEMENT') === 'MAISON' ? 'Maison' : 'Appartement';
+    const typeLabel = p.type === 'IMMEUBLE' ? 'Immeuble' : (p.type || 'APPARTEMENT') === 'MAISON' ? 'Maison' : 'Appartement';
     keyVal('Type de bien', typeLabel);
     keyVal('Surface habitable', `${p.surface ?? '—'} m²`);
     keyVal('Nombre de pièces', `${p.rooms ?? '—'}`);
+    if(p.type==='IMMEUBLE') {
+      const {lotsImmeublePublics,ligneLotImmeuble}=await import('@/lib/immeuble');
+      keyVal('Mode de vente','Immeuble vendu en bloc');
+      for(const lot of lotsImmeublePublics(p) || []) paragraph(ligneLotImmeuble(lot));
+    }
     if (p.type === 'MAISON' && p.landSize) keyVal('Surface du terrain', `${p.landSize} m²`);
     if (p.annexSurface) keyVal('Surface hors Carrez', `${p.annexSurface} m²`);
     if (p.surface && p.price && !p.priceOnRequest) keyVal('Prix au m²', `${Math.round(Number(p.price) / Number(p.surface)).toLocaleString('fr-FR')} €/m²`);

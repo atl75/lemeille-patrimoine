@@ -88,7 +88,7 @@ export async function buildDocumentPdf(d: DocData): Promise<Uint8Array> {
 
   // ---- Le bien ----
   const p = d.property || {};
-  const typeLabel = ((p.type || 'APPARTEMENT') === 'MAISON' ? 'Maison' : 'Appartement') + (p.rooms ? ` T${p.rooms}` : '');
+  const typeLabel = p.type === 'IMMEUBLE' ? 'Immeuble' : ((p.type || 'APPARTEMENT') === 'MAISON' ? 'Maison' : 'Appartement') + (p.rooms ? ` T${p.rooms}` : '');
   const address = p.address || [p.city, String(p.region || '').replaceAll('_', ' ')].filter(Boolean).join(', ');
   y -= 4; kv('Bien concerné', `${typeLabel}${p.surface ? ` - ${p.surface} m²` : ''}`);
   kv('Adresse du bien', address);

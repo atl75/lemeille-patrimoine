@@ -298,7 +298,7 @@ export default function Page() {
                   <option value="">Tous les types</option>
                   {types.map(([t, n]) => (
                     <option key={t} value={t}>
-                      {t === 'MAISON' ? 'Maison' : t === 'APPARTEMENT' ? 'Appartement' : t} ({n})
+                      {t === 'IMMEUBLE' ? 'Immeuble' : t === 'MAISON' ? 'Maison' : t === 'APPARTEMENT' ? 'Appartement' : t} ({n})
                     </option>
                   ))}
                 </select>

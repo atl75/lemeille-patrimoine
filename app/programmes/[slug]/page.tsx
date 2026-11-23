@@ -1,7 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
+import { contactProgramme } from "@/lib/programContact";
 import { notFound } from "next/navigation";
 import DeferredIframe from "@/components/DeferredIframe";
+import MapEmbed from "@/components/MapEmbed";
 import Breadcrumb from "@/components/Breadcrumb";
 import ProgramSeoJsonLd from "@/components/ProgramSeoJsonLd";
 import ProjectionsGallery from "@/components/ProjectionsGallery";
@@ -23,36 +25,23 @@ function DpeLetter({ c, kind }: { c?: string; kind: "energy" | "ges" }) {
   );
 }
 import { seoTitle } from '@/lib/seoTitle';
+import { pageMetadata, seoText } from '@/lib/pageMetadata';
 import type { Metadata } from "next";
 import { cldImg } from "@/lib/cldImg";
 import GalerieRealisation from "@/components/GalerieRealisation";
 
+import { getProgram } from "@/lib/programPageData";
+
 export const dynamic = "force-dynamic";
-
-function base() {
-  return process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT || "3000"}`;
-}
-
-async function getProgram(slug: string): Promise<any | null> {
-  try {
-    const r = await fetch(`${base()}/api/programs`, { cache: "no-store" });
-    if (!r.ok) return null;
-    const all = await r.json();
-    if (!Array.isArray(all)) return null;
-    return all.find((p: any) => p.slug === slug || p.id === slug) || null;
-  } catch {
-    return null;
-  }
-}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const p = await getProgram(slug);
   if (!p || p.visible === false) notFound();
   const dispo = dispositifsOf(p).map(d => d.nom).join(", ");
-  return {
+  return pageMetadata({
     title: seoTitle([`${p.title}`, p.city, dispo ? `Défiscalisation ${dispo}` : null]),
-    description: p.summary || p.accroche || `Programme de défiscalisation à ${p.city}.`,
+    description: seoText(p.summary, p.accroche, `Programme de défiscalisation à ${p.city}.`),
     alternates: { canonical: `/programmes/${p.slug || p.id}` },
     openGraph: {
       title: `${p.title} — ${p.city}`,
@@ -61,7 +50,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       type: "website",
       images: p.heroImage || p.coverImage ? [{ url: p.heroImage || p.coverImage }] : undefined,
     },
-  };
+  });
 }
 
 const eur = (n: any) => (n || n === 0) && !isNaN(Number(n)) ? Number(n).toLocaleString("fr-FR") + " €" : null;
@@ -95,7 +84,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   const hasDpe = p.dpe && (p.dpe.classEnergy || p.dpe.classGES);
   const hero = p.heroImage || p.coverImage || "/hero-accueil.jpg";
   const mapQuery = p.mapQuery || p.address || `${p.title}, ${p.city}`;
-  const contactHref = `/contact?topic=${encodeURIComponent("Programme " + p.title)}`;
+  const contactHref = contactProgramme(p.id);
 
   return (
     <main>
@@ -152,7 +141,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       </section>
 
       {/* LE PROGRAMME */}
-      {(p.intro || (p.caracteristiques || []).length || (p.finitions || []).length || (p.pointsForts || []).length) && (
+      {Boolean(p.intro || (p.caracteristiques || []).length || (p.finitions || []).length || (p.pointsForts || []).length) && (
         <section className="container py-10">
           <h2 className="luxe text-3xl md:text-4xl text-luxe">Le programme</h2>
           <div className="mt-3 h-px w-14 bg-gold/60" />
@@ -259,7 +248,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
               </div>
             ))}
           </div>
-          <p className="mt-6 text-xs text-luxe/70">Informations données à titre indicatif. Un conseiller affine selon votre situation fiscale.</p>
+          <p className="mt-6 text-xs text-luxe/70">Informations données à titre indicatif. Arthur Lemeille vous accompagne pour les préciser selon votre situation fiscale.</p>
         </section>
       )}
 
@@ -463,13 +452,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
               </div>
             )}
           </div>
-          <div className="h-80 rounded-xl overflow-hidden shadow">
-            <DeferredIframe
-              title={`Localisation ${p.title}`}
-              src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`}
-              referrerPolicy="no-referrer-when-downgrade"
-            />
-          </div>
+          <MapEmbed query={mapQuery} precision="EXACT" height="320px" />
         </div>
       </section>
     </main>

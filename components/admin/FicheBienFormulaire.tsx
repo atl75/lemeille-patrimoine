@@ -13,6 +13,8 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import SectionFinances from "@/components/admin/SectionFinances";
 import type { Bien } from "@/lib/typesBien";
+import LotsImmeuble from '@/components/admin/LotsImmeuble';
+import ClientConnuPicker from '@/components/admin/ClientConnuPicker';
 import {
   erreursProprietaires,
   erreurPrix,
@@ -445,18 +447,21 @@ export default function FicheBienFormulaire({
                     >
                       <option value="APPARTEMENT">Appartement</option>
                       <option value="MAISON">Maison</option>
+                      <option value="IMMEUBLE">Immeuble</option>
                     </select>
                   </div>
                 </div>
 
+                {editing.type==='IMMEUBLE' && <LotsImmeuble lots={editing.buildingLots || []} onChange={lots=>updateField('buildingLots',lots)} />}
                 <div>
-                  <label className="block text-xs font-medium mb-1">Occupation</label>
+                  <label className="block text-xs font-medium mb-1">Occupation globale</label>
                   <select
-                    value={editing.occupancy || 'LIBRE'}
-                    onChange={e => updateField('occupancy', e.target.value)}
+                    value={editing.occupancy || (editing.type==='IMMEUBLE' ? '' : 'LIBRE')}
+                    onChange={e => updateField('occupancy', e.target.value || undefined)}
                     className="w-full px-2 py-1.5 text-sm border rounded"
                     data-testid="select-occupancy"
                   >
+                    {editing.type==='IMMEUBLE' && <option value="">À vérifier avant le mandat</option>}
                     <option value="LIBRE">Libre</option>
                     <option value="OCCUPE">Loué (occupé)</option>
                   </select>
@@ -504,6 +509,7 @@ export default function FicheBienFormulaire({
                     >
                       <option value="PARIS">Paris</option>
                       <option value="NORMANDIE">Normandie</option>
+                      <option value="EST">Est</option>
                       <option value="COTE_D_AZUR">Côte d&apos;Azur</option>
                     </select>
                   </div>
@@ -719,6 +725,11 @@ export default function FicheBienFormulaire({
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {editing.owners?.map((owner, index) => (
                     <div key={index} className="p-2 bg-white border rounded text-xs">
+                      <ClientConnuPicker current={owner} onSelect={client => {
+                        const owners = [...(editing.owners || [])];
+                        owners[index] = { ...owner, ...client };
+                        updateField('owners', owners);
+                      }} />
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <label className="flex items-center gap-1">
@@ -880,17 +891,20 @@ export default function FicheBienFormulaire({
                           </div>
                           <div>
                             <label className="block text-xs mb-1">Nom</label>
-                            <input
-                              type="text"
-                              value={owner.lastName || ''}
-                              onChange={(e) => {
+                            <ClientConnuPicker current={owner} onSelect={client => {
+                              const owners = [...(editing.owners || [])];
+                              owners[index] = { ...owner, ...client };
+                              updateField('owners', owners);
+                            }} nameInput={{
+                              value: owner.lastName || '',
+                              onChange: (value) => {
                                 const newOwners = [...(editing.owners || [])];
-                                newOwners[index] = { ...owner, lastName: e.target.value };
+                                newOwners[index] = { ...owner, lastName: value };
                                 updateField('owners', newOwners);
-                              }}
-                              className="w-full px-2 py-1 text-xs border rounded"
-                              data-testid={`input-owner-lastname-${index}`}
-                            />
+                              },
+                              className: 'w-full px-2 py-1 text-xs border rounded',
+                              testId: `input-owner-lastname-${index}`,
+                            }} />
                           </div>
                         </div>
                       )}
@@ -1076,11 +1090,12 @@ export default function FicheBienFormulaire({
                   <div>
                     <label className="block text-xs mb-1">Énergie</label>
                     <select
-                      value={editing.dpe?.classEnergy || 'D'}
+                      value={editing.dpe?.classEnergy || ''}
                       onChange={e => updateNestedField('dpe', 'classEnergy', e.target.value)}
                       className="w-full px-2 py-1 text-xs border rounded"
                       data-testid="select-dpe-energy"
                     >
+                      <option value="">Non renseigné</option>
                       {['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(c => (
                         <option key={c} value={c}>{c}</option>
                       ))}
@@ -1089,11 +1104,12 @@ export default function FicheBienFormulaire({
                   <div>
                     <label className="block text-xs mb-1">GES</label>
                     <select
-                      value={editing.dpe?.classGES || 'D'}
+                      value={editing.dpe?.classGES || ''}
                       onChange={e => updateNestedField('dpe', 'classGES', e.target.value)}
                       className="w-full px-2 py-1 text-xs border rounded"
                       data-testid="select-dpe-ges"
                     >
+                      <option value="">Non renseigné</option>
                       {['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(c => (
                         <option key={c} value={c}>{c}</option>
                       ))}

@@ -1,9 +1,11 @@
+import JsonLd from './JsonLd';
+
 type Article = {
   slug: string;
   title: string;
   excerpt: string;
-  coverImage?: string;
-  author?: string;
+  coverImage?: string | null;
+  author?: string | null;
   publishedAt: string;
 };
 
@@ -23,6 +25,6 @@ export default function ArticleSeoJsonLd({ article }: { article: Article }) {
     mainEntityOfPage: { "@type": "WebPage", "@id": `${base}/actualites/${article.slug}` }
   };
   return (
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+    <JsonLd data={jsonLd} />
   );
 }

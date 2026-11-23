@@ -55,14 +55,14 @@ import {
   LONGUEUR_MAX,
 } from "../lib/commentairesLead.ts";
 
-describe("seoTitle — 62 caractères, marque sacrifiée avant troncature", () => {
+describe("seoTitle — budget des suffixes, sujet principal jamais tronqué", () => {
   test("titre court : la marque est conservée", () => {
     const t = seoTitle(["Maison T4"]);
     assert.equal(t, "Maison T4 | Lemeille Patrimoine");
     assert.ok(t.length <= 62);
   });
 
-  test("jamais plus de 62 caractères, quelle que soit l'entrée", () => {
+  test("le premier élément reste entier, même au-delà du budget éditorial", () => {
     const entrees = [
       ["Appartement T3 de caractère avec terrasse et vue dégagée", "Rouen centre", "Normandie"],
       ["Maison"],
@@ -72,11 +72,13 @@ describe("seoTitle — 62 caractères, marque sacrifiée avant troncature", () =
     ];
     for (const e of entrees) {
       const t = seoTitle(e as any);
-      assert.ok(t.length <= 62, `${t.length} caractères pour ${JSON.stringify(e)} : ${t}`);
+      const principal = e.find(part => typeof part === 'string' && part.trim())?.trim();
+      assert.ok(principal ? t.startsWith(principal) : t === 'Lemeille Patrimoine', t);
+      assert.ok(!t.includes('…'), 'aucune coupe automatique du sujet');
     }
   });
 
-  test("les parties de fin sont abandonnées avant la troncature", () => {
+  test("les parties de fin sont facultatives, le sujet reste intact", () => {
     const t = seoTitle(["Appartement T3 avec terrasse", "Mont-Saint-Aignan", "Plateau Nord"]);
     assert.ok(t.startsWith("Appartement T3 avec terrasse"), t);
     assert.ok(!t.includes("…"), "aucune troncature ne devrait être nécessaire ici");
@@ -650,7 +652,7 @@ describe("ajustementPrix — situer un bien face à ses concurrents", () => {
     const comps = [c("a", 200000, 100), c("b", 300000, 100), c("c", 400000, 100), c("d", 500000, 100)];
     const f = fourchetteConseillee({ surface: 100 }, comps)!;
     assert.equal(f.haut, 350000, "médiane des 4 : 3 500 €/m²");
-    assert.equal(f.bas, 250000, "premier quartile : 2 500 €/m²");
+    assert.equal(f.bas, 275000, "quartile interpolé comme DVF : 2 750 €/m²");
     assert.ok(f.bas < f.haut);
   });
 

@@ -37,6 +37,13 @@ async function verifySession(value: string | undefined): Promise<boolean> {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  if(pathname.startsWith('/mandat/signer/') || pathname.startsWith('/api/mandat/sign/')) {
+    const response=NextResponse.next();
+    response.headers.set('Cache-Control','private, no-store');
+    response.headers.set('Referrer-Policy','no-referrer');
+    response.headers.set('X-Robots-Tag','noindex, nofollow, noarchive');
+    return response;
+  }
 
   // Protéger toutes les routes /admin/* (sauf /admin/login) et la webapp /terrain.
   const needsAuth = (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) || pathname === '/terrain' || pathname.startsWith('/terrain/');
@@ -52,5 +59,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/terrain/:path*', '/terrain'],
+  matcher: ['/admin/:path*', '/terrain/:path*', '/terrain','/mandat/signer/:path*','/api/mandat/sign/:path*'],
 };

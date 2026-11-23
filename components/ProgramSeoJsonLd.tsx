@@ -1,3 +1,5 @@
+import JsonLd from './JsonLd';
+
 type ProgramLd = {
   id: string;
   slug?: string;
@@ -61,9 +63,6 @@ export default function ProgramSeoJsonLd({ program: p }: { program: ProgramLd })
   };
 
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-    />
+    <JsonLd data={jsonLd} />
   );
 }

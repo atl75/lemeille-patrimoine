@@ -1,66 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as turf from '@turf/turf';
 import { isAdmin } from '@/lib/adminGuard';
+import { fetchGeographicJson, geocodeAddress } from '@/lib/geocoding';
+
+const json = (body: unknown, status = 200) => NextResponse.json(body, {
+  status, headers: { 'Cache-Control': 'private, no-store', Vary: 'Cookie' },
+});
 
 // API pour rechercher les parcelles cadastrales à partir d'une adresse
 export async function GET(req: NextRequest) {
-  if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!isAdmin(req)) return json({ error: 'Unauthorized' }, 401);
   try {
     const searchParams = req.nextUrl.searchParams;
-    const address = searchParams.get('address');
+    const address = searchParams.get('address')?.trim();
 
     if (!address) {
-      return NextResponse.json(
+      return json(
         { error: "Adresse manquante" },
-        { status: 400 }
+        400
       );
     }
+    if (address.length > 200) return json({ error: 'Adresse trop longue (200 caractères maximum).' }, 400);
 
     // Étape 1: Géocoder l'adresse pour obtenir les coordonnées et le code INSEE
-    const geocodeResponse = await fetch(
-      `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(address)}&limit=1`
-    );
-    
-    if (!geocodeResponse.ok) {
-      throw new Error("Erreur lors du géocodage de l'adresse");
-    }
-
-    const geocodeData = await geocodeResponse.json();
-    
-    if (!geocodeData.features || geocodeData.features.length === 0) {
-      return NextResponse.json({
+    const point = await geocodeAddress(address);
+    if (!point) {
+      return json({
         success: false,
         message: "Adresse non trouvée"
       });
     }
 
-    const feature = geocodeData.features[0];
-    const coordinates = feature.geometry.coordinates; // [lon, lat]
-    const cityCode = feature.properties.citycode;
-
     // Étape 2: Rechercher la parcelle cadastrale contenant ce point exact
     // L'API IGN permet de filtrer directement par point géographique
-    const lon = coordinates[0];
-    const lat = coordinates[1];
+    const { lon, lat } = point;
     
-    const cadastreResponse = await fetch(
-      `https://apicarto.ign.fr/api/cadastre/parcelle?geom=${encodeURIComponent(`{"type":"Point","coordinates":[${lon},${lat}]}`)}`,
-      {
-        headers: {
-          'Accept': 'application/json'
-        }
-      }
+    const cadastreData = await fetchGeographicJson(
+      `https://apicarto.ign.fr/api/cadastre/parcelle?geom=${encodeURIComponent(JSON.stringify({ type: 'Point', coordinates: [lon, lat] }))}`
     );
-
-    if (!cadastreResponse.ok) {
-      throw new Error("Erreur lors de la récupération des données cadastrales");
+    if (!cadastreData || typeof cadastreData !== 'object' || !('features' in cadastreData) || !Array.isArray(cadastreData.features)) {
+      throw new Error('Réponse cadastrale invalide');
     }
 
-    const cadastreData = await cadastreResponse.json();
-
     // Étape 3: Vérifier qu'une parcelle a été trouvée
-    if (!cadastreData.features || cadastreData.features.length === 0) {
-      return NextResponse.json({
+    if (cadastreData.features.length === 0) {
+      return json({
         success: false,
         message: "Aucune parcelle cadastrale trouvée pour cette adresse précise"
       });
@@ -68,7 +52,10 @@ export async function GET(req: NextRequest) {
 
     // Prendre la première parcelle (celle qui contient le point)
     const parcel = cadastreData.features[0];
-    const props = parcel.properties;
+    const props = parcel?.properties;
+    if (typeof props?.section !== 'string' || !props.section.trim() || typeof props?.numero !== 'string' || !props.numero.trim()) {
+      throw new Error('Référence cadastrale invalide');
+    }
 
     // Formater la référence cadastrale
     const cadastralReference = `${props.section} ${props.numero}`;
@@ -81,13 +68,13 @@ export async function GET(req: NextRequest) {
       try {
         // Utiliser Turf.js pour calculer la surface en m²
         const area = turf.area(parcel.geometry);
-        surface = Math.round(area); // Arrondir à l'entier le plus proche
-      } catch (error) {
-        console.error('Erreur calcul surface:', error);
+        if (Number.isFinite(area) && area > 0) surface = Math.round(area);
+      } catch {
+        // Une géométrie inexploitable ne doit pas inventer une surface.
       }
     }
 
-    return NextResponse.json({
+    return json({
       success: true,
       cadastralReference,
       details: {
@@ -101,15 +88,14 @@ export async function GET(req: NextRequest) {
       }
     });
 
-  } catch (error: any) {
-    console.error("Erreur cadastre:", error);
-    return NextResponse.json(
+  } catch {
+    console.error('Recherche cadastrale : service géographique indisponible ou réponse invalide.');
+    return json(
       { 
         success: false,
-        error: "Erreur lors de la recherche cadastrale",
-        details: error.message 
+        error: "Le service géographique est indisponible. Réessayez dans un instant."
       },
-      { status: 500 }
+      502
     );
   }
 }

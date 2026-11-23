@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { updateJSON, SANS_ECRITURE } from '@/lib/utils';
+import { verifierEcriture, revisionCourante, erreurDonneesEstimation } from '@/lib/estimationDossier';
 import { isAdmin } from '@/lib/adminGuard';
 
 /**
@@ -15,7 +16,11 @@ export async function PUT(
   if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const { id } = await params;
-    const body = await req.json().catch(() => ({}));
+    let body: any;
+    try { body = await req.json(); } catch { return NextResponse.json({ error: 'Requête illisible.' }, { status: 400 }); }
+    if (verifierEcriture({}, body) === 'invalide') return NextResponse.json({ error: 'Version requise. Rechargez le dossier.' }, { status: 400 });
+    const erreur = erreurDonneesEstimation({ ...body, prixRetenu: body.prixCible });
+    if (erreur) return NextResponse.json({ error: erreur }, { status: 400 });
 
     const ajustement = {
       comparables: Array.isArray(body?.comparables) ? body.comparables.slice(0, 40) : [],
@@ -40,17 +45,27 @@ export async function PUT(
       majAt: new Date().toISOString(),
     };
 
-    let trouve = false;
+    let trouve = false, conflit = false, revision = 0;
+    let enregistre: any;
     await updateJSON('properties.json', (biens: any[]) => {
+      trouve = false; conflit = false;
       const i = biens.findIndex((b: any) => String(b.id) === String(id));
       if (i === -1) return SANS_ECRITURE;
       trouve = true;
-      biens[i].ajustementPrix = ajustement;
+      enregistre = biens[i].ajustementPrix || {};
+      revision = revisionCourante(enregistre);
+      const controle = verifierEcriture(enregistre, body);
+      if (controle === 'rejoue') return SANS_ECRITURE;
+      if (controle !== 'ok') { conflit = true; return SANS_ECRITURE; }
+      revision += 1;
+      enregistre = { ...ajustement, revision, lastRequestId: body.requestId };
+      biens[i].ajustementPrix = enregistre;
       return biens;
     });
 
     if (!trouve) return NextResponse.json({ error: 'Bien non trouvé' }, { status: 404 });
-    return NextResponse.json({ success: true, ajustement });
+    if (conflit) return NextResponse.json({ error: 'Une autre version a été enregistrée. Téléchargez votre saisie avant de recharger.' }, { status: 409 });
+    return NextResponse.json({ success: true, ajustement: enregistre, revision });
   } catch {
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }

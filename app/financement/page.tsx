@@ -1,4 +1,5 @@
 import Link from "next/link";
+import JsonLd from '@/components/JsonLd';
 import Hero from "@/components/Hero";
 import CapaciteEmpruntSimulator from "@/components/CapaciteEmpruntSimulator";
 import Breadcrumb from "@/components/Breadcrumb";
@@ -6,7 +7,9 @@ import Section from "@/components/Section";
 import type { Metadata } from "next";
 import { OG_IMAGE } from '@/lib/ogImage';
 
-export const metadata: Metadata = {
+import { pageMetadata } from '@/lib/pageMetadata';
+
+export const metadata: Metadata = pageMetadata({
   title: "Capacité d'emprunt à Rouen | Lemeille Patrimoine",
   description: "Calculez votre capacité d'emprunt pour un achat immobilier à Rouen : mensualité, budget maximal et apport nécessaire, selon la règle des 35 %.",
   alternates: { canonical: "/financement" },
@@ -16,7 +19,7 @@ export const metadata: Metadata = {
     description: "Estimez votre budget d'achat immobilier à Rouen en quelques secondes.",
     url: "/financement",
   },
-};
+});
 
 const FAQ: [string, string][] = [
   ["Comment se calcule la capacité d'emprunt ?", "Les banques appliquent un taux d'endettement maximal de 35 % des revenus nets, assurance emprunteur comprise, conformément aux recommandations du Haut Conseil de stabilité financière. On soustrait de cette mensualité maximale les crédits déjà en cours, puis on convertit le solde en capital selon la durée et le taux du prêt."],
@@ -35,7 +38,7 @@ export default function Page() {
 
   return (
     <main>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      <JsonLd data={faqJsonLd} />
 
       <Hero
         title="Quel budget pour votre achat ?"

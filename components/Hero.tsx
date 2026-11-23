@@ -12,12 +12,14 @@ export default function Hero({
   primary,
   secondary,
   image,
+  compact = false,
 }: {
   title: string;
   subtitle?: React.ReactNode;
   primary?: Btn;
   secondary?: Btn;
   image?: string;
+  compact?: boolean;
 }) {
   // Certaines cibles (routes /api, liens externes, ouverture nouvel onglet) ne
   // sont pas des pages Next : un <Link> déclencherait un prefetch RSC inutile —
@@ -47,7 +49,7 @@ export default function Hero({
 
   if (image) {
     return (
-      <section className="relative isolate flex min-h-[var(--hero-h)] items-center overflow-hidden">
+      <section className={`relative isolate flex ${compact ? 'min-h-[260px]' : 'min-h-[var(--hero-h)]'} items-center overflow-hidden`}>
         {/* Le bandeau est décoratif : il vit sous un dégradé opaque à 65-90 %
             (juste en dessous), et aucun détail n'y est lisible. On déclare donc
             volontairement un emplacement plus petit que la largeur réelle, ce
@@ -75,7 +77,7 @@ export default function Hero({
   }
 
   return (
-    <section className="flex min-h-[var(--hero-h)] items-center border-b border-gold/20 bg-white/50">
+    <section className={`flex ${compact ? 'min-h-[260px]' : 'min-h-[var(--hero-h)]'} items-center border-b border-gold/20 bg-white/50`}>
       <div className="container w-full py-12">
         <h1 className="text-4xl md:text-5xl luxe text-luxe leading-tight">{title}</h1>
         <div className="mt-4 h-px w-14 bg-gold/60" />

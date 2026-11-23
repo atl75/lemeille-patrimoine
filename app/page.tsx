@@ -10,9 +10,11 @@ import BandeauReassurance from "@/components/BandeauReassurance";
 import PreuveVentes from "@/components/PreuveVentes";
 import { OG_IMAGE } from '@/lib/ogImage';
 
-export const metadata: Metadata = {
+import { pageMetadata } from '@/lib/pageMetadata';
+
+export const metadata: Metadata = pageMetadata({
   title: "Agence immobilière à Rouen | Lemeille Patrimoine",
-  description: "Agence immobilière à Rouen, Mont-Saint-Aignan et Bois-Guillaume. Vente de maisons et appartements de caractère, estimation gratuite sous 3 jours.",
+  description: "Vous vendez à Rouen, Mont-Saint-Aignan ou Bois-Guillaume ? Estimation gratuite, avis de valeur après visite et accompagnement jusqu’à la signature.",
   alternates: { canonical: "/" },
   openGraph: {
       images: OG_IMAGE,
@@ -21,7 +23,7 @@ export const metadata: Metadata = {
       "Maisons et appartements de caractère à Rouen, Mont-Saint-Aignan, Bois-Guillaume. Estimation gratuite et conseil en défiscalisation.",
     url: "/",
   },
-};
+});
 
 // Rendu à la requête : les biens sont lus depuis le volume monté au démarrage
 // (bucket GCS). En prérendu statique, ce volume n'existe pas encore au build et
@@ -123,23 +125,26 @@ export default async function Home() {
           </h1>
           <div className="mt-5 h-px w-16 bg-gold/70" />
           <p className="mt-6 max-w-xl text-base md:text-lg text-cream/90 leading-relaxed">
-            Lemeille Patrimoine — votre agence immobilière à Rouen, Mont-Saint-Aignan, Bois-Guillaume et sur
-            l&apos;ensemble du Plateau Nord. Vente de maisons et appartements de caractère, estimation gratuite
-            et défiscalisation sur mesure.
+            Vous vendez une maison ou un appartement à Rouen, Mont-Saint-Aignan ou Bois-Guillaume ?
+            Je vous accompagne du premier avis de valeur jusqu&apos;à la signature, avec une estimation
+            gratuite et une connaissance concrète de votre quartier.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-x-7 gap-y-4">
-            <Link href="/immobilier" className="btn btn-gold" data-testid="button-immobilier">
-              Découvrir nos biens
+            <Link href="/immobilier/estimation#estimation" className="btn btn-gold" data-testid="button-estimation">
+              Estimer mon bien
             </Link>
             <Link
-              href="/programmes"
+              href="/immobilier"
               className="group inline-flex items-center gap-1.5 font-medium text-cream/90 hover:text-cream transition-colors"
-              data-testid="button-defiscalisation"
+              data-testid="button-immobilier"
             >
-              Explorer la défiscalisation
+              Découvrir nos biens
               <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
             </Link>
           </div>
+          <p className="mt-4 max-w-xl text-sm text-cream/85">
+            Gratuit et sans engagement. Votre avis de valeur argumenté sous 24 heures maximum après la visite.
+          </p>
         </div>
       </section>
 
@@ -309,7 +314,7 @@ export default async function Home() {
       <Section title="Nos secteurs à Rouen et alentours" subtitle="Une connaissance quartier par quartier du marché rouennais.">
         <div className="grid md:grid-cols-3 gap-6">
           {[
-            ["Rouen centre & rive droite","Vieux-Marché, Cathédrale, Jardin des Plantes • Appartements de caractère, immeubles anciens, hôtels particuliers.","/secteurs/rouen-centre"],
+            ["Rouen centre & rive droite","Vieux-Marché, Cathédrale, quartier Pasteur • Appartements de caractère, immeubles anciens, hôtels particuliers.","/secteurs/rouen-centre"],
             ["Plateau Nord","Mont-Saint-Aignan, Bois-Guillaume, Bihorel, Isneauville • Maisons familiales, terrains arborés, secteurs prisés.","/secteurs/mont-saint-aignan-bois-guillaume"],
             ["Rive gauche & Plateau Est","Saint-Sever, Grammont, Le Mesnil-Esnard, Franqueville • Prix d'entrée accessibles et bons rendements locatifs.","/secteurs/rouen-rive-gauche"]
           ].map(([t,s,href],i)=>(
@@ -331,8 +336,8 @@ export default async function Home() {
       <PreuveVentes ventes={preuves.ventes} total={preuves.total} />
 
       {/* Estimation gratuite — demande client */}
-      <div id="estimation">
-        <Section title="Estimez votre bien gratuitement" subtitle="Vous vendez à Rouen, Mont-Saint-Aignan ou Bois-Guillaume ? Obtenez une estimation indicative immédiate et un avis de valeur personnalisé, sans engagement.">
+      <div id="estimation" className="scroll-mt-24">
+        <Section title="Estimez votre bien gratuitement" subtitle="Décrivez votre bien : je vous rappelle pour préparer la visite, puis vous remets un avis de valeur argumenté sous 24 heures maximum après la visite. Gratuit et sans engagement.">
           <div className="max-w-3xl mx-auto">
             <EstimationForm />
           </div>

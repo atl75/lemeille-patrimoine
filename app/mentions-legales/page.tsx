@@ -3,13 +3,15 @@ import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
+import { pageMetadata } from '@/lib/pageMetadata';
+
+export const metadata: Metadata = pageMetadata({
   title: "Mentions légales | Lemeille Patrimoine",
   description: "Mentions légales de Lemeille Patrimoine : éditeur, hébergement, responsabilité et propriété intellectuelle.",
   alternates: {
     canonical: '/mentions-legales'
   }
-};
+});
 
 export default function Page(){
   return (

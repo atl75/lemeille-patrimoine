@@ -11,7 +11,9 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+# Build isolé : ne jamais lire le bucket de production depuis Cloud Build.
+# Variable limitée à cette commande, absente du conteneur d'exécution.
+RUN LP_SANS_GCS=1 npm run build
 
 FROM node:22-alpine AS runner
 WORKDIR /app

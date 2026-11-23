@@ -223,11 +223,7 @@ export type StatsDvf = {
   derniereVente: string;
 };
 
-const quantile = (tries: number[], p: number) => {
-  const i = (tries.length - 1) * p;
-  const bas = Math.floor(i), haut = Math.ceil(i);
-  return bas === haut ? tries[bas] : tries[bas] + (tries[haut] - tries[bas]) * (i - bas);
-};
+import { quantile } from './prixStatistiques.ts';
 
 export function statistiquesDvf(ventes: VenteDvf[]): StatsDvf | null {
   if (!ventes.length) return null;

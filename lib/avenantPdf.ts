@@ -117,7 +117,7 @@ export async function buildAvenantPdf(mandat: any, avenant: any): Promise<Uint8A
   titre('LE MANDAT MODIFIE');
   ligne('Mandat de vente :', `${typeMandat} ${num}`.trim(), { gras: true });
   ligne('En date du :', dateMandat);
-  const typeBien = (mandat.type === 'MAISON' ? 'Maison' : 'Appartement') + (mandat.rooms ? ` T${mandat.rooms}` : '');
+  const typeBien = mandat.type === 'IMMEUBLE' ? 'Immeuble' : (mandat.type === 'MAISON' ? 'Maison' : 'Appartement') + (mandat.rooms ? ` T${mandat.rooms}` : '');
   ligne('Bien :', `${typeBien}${mandat.surface ? ` - ${mandat.surface} m2` : ''}`);
   ligne('Situé :', mandat.map?.query || [mandat.city, String(mandat.region || '').replaceAll('_', ' ')].filter(Boolean).join(', '));
   if (mandat.designation) ligne('Désignation :', mandat.designation);

@@ -1,9 +1,6 @@
-// Construction des balises <title>.
-//
-// Google tronque autour de 60-65 caractères : au-delà, la fin du titre — donc
-// souvent le nom de l'agence — n'est jamais affichée. On assemble donc le titre
-// en ajoutant la marque seulement si elle tient, et en retirant au besoin les
-// éléments les moins porteurs (région, surface) plutôt que de laisser couper.
+// Budget éditorial pour les suffixes facultatifs, pas une limite Google.
+// Le sujet principal reste entier : une coupe aveugle peut retirer le lieu,
+// l'année ou le qualificatif qui distingue deux pages.
 const BRAND = 'Lemeille Patrimoine';
 const MAX = 62;
 
@@ -13,8 +10,10 @@ const MAX = 62;
  * @param sep   Séparateur entre les éléments conservés.
  */
 export function seoTitle(parts: (string | null | undefined)[], sep = ' · '): string {
-  const items = parts.map(p => (p || '').trim()).filter(Boolean);
+  const items = parts.map(p => (p || '').replace(/\s+/g, ' ').trim()).filter(Boolean);
   if (!items.length) return BRAND;
+  // Un titre éditorial peut déjà porter la marque.
+  if (items[0].includes(BRAND)) return items[0];
 
   // On retire les éléments de queue tant que « titre | marque » dépasse.
   for (let n = items.length; n > 0; n--) {
@@ -22,8 +21,6 @@ export function seoTitle(parts: (string | null | undefined)[], sep = ' · '): st
     if (`${base} | ${BRAND}`.length <= MAX) return `${base} | ${BRAND}`;
   }
 
-  // Même seul, le premier élément ne laisse pas de place à la marque : on la
-  // sacrifie (Google affiche le nom du site à côté du titre de toute façon).
-  const seul = items[0];
-  return seul.length <= MAX ? seul : seul.slice(0, MAX - 1).trimEnd() + '…';
+  // Omettre le suffixe de marque, jamais une partie du titre principal.
+  return items[0];
 }

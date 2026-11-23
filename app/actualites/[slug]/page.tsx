@@ -3,30 +3,24 @@ import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import Img from "@/components/Img";
 import ArticleSeoJsonLd from "@/components/ArticleSeoJsonLd";
+import ArticleInline from '@/components/ArticleInline';
 import { notFound } from "next/navigation";
 import type { Metadata } from 'next';
 import { seoTitle } from '@/lib/seoTitle';
 import { OG_IMAGE } from '@/lib/ogImage';
+import { pageMetadata, seoText } from '@/lib/pageMetadata';
+import { getArticle } from '@/lib/articlePageData';
 
-async function getArticle(slug: string) {
-  const base = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT || '3000'}`;
-  const r = await fetch(`${base}/api/articles`, { cache: 'no-store' });
-  if (!r.ok) return null;
-  const data = await r.json();
-  return Array.isArray(data) ? data.find((a: any) => a.slug === slug) || null : null;
-}
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await props.params;
   const a = await getArticle(slug);
-  if (!a) return { title: "Article introuvable | Lemeille Patrimoine" };
-  // Un titre d'article est long par nature : seoTitle sacrifie la marque
-  // plutôt que de laisser Google couper la fin de la phrase.
-  // Le titre SEO saisi en base passe par le même plafonnement : rien ne sert
-  // d'écrire un titre que Google tronquera.
-  const title = seoTitle([a.seoTitle || a.title]);
-  const description = String(a.seoDescription || a.excerpt || '').slice(0, 158);
-  return {
+  if (!a) notFound();
+  // Respecter les textes éditoriaux complets et ignorer les champs vides.
+  const title = seoTitle([seoText(a.seoTitle, a.title, 'Actualités immobilières')]);
+  const description = seoText(a.seoDescription, a.excerpt, a.title, 'Actualités immobilières de Lemeille Patrimoine.');
+  return pageMetadata({
     title,
     description,
     alternates: { canonical: `/actualites/${a.slug}` },
@@ -40,7 +34,7 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
       // article n'ayant de couverture propre.
       images: a.coverImage ? [{ url: a.coverImage }] : OG_IMAGE,
     }
-  };
+  });
 }
 
 export default async function Page(props: { params: Promise<{ slug: string }> }) {
@@ -49,11 +43,8 @@ export default async function Page(props: { params: Promise<{ slug: string }> })
   if (!a) notFound();
 
   // Rendu enrichi : "## " → H2, "### " → H3, "- " → liste à puces, sinon paragraphe.
-  // Le gras **texte** est également interprété à l'intérieur des lignes.
-  const inline = (text: string): React.ReactNode => {
-    const parts = text.split(/\*\*([^*]+)\*\*/g);
-    return parts.map((part, i) => (i % 2 === 1 ? <strong key={i}>{part}</strong> : part));
-  };
+  // Gras et liens explicites, sans HTML brut ni protocole exécutable.
+  const inline = (text: string): React.ReactNode => <ArticleInline text={text} />;
   const lines = String(a.content || '').split('\n');
   const blocks: React.ReactNode[] = [];
   let bullets: string[] = [];
@@ -107,7 +98,7 @@ export default async function Page(props: { params: Promise<{ slug: string }> })
         <div className="mt-8 card p-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="luxe text-lg">Un projet immobilier ou patrimonial ?</div>
-            <div className="text-sm opacity-80">Nos conseillers vous répondent sous 48h.</div>
+            <div className="text-sm opacity-80">Je vous réponds personnellement sous 48h. — Arthur Lemeille</div>
           </div>
           <Link href="/contact" className="btn btn-gold">Nous contacter</Link>
         </div>

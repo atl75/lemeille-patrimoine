@@ -7,13 +7,21 @@ import CollapsibleSection from "@/components/CollapsibleSection";
 import ChampNombre from "@/components/ChampNombre";
 import DeposePdf from "@/components/DeposePdf";
 import DocumentEstimation from "@/components/DocumentEstimation";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
+import { CHAMPS_RAPPORT } from "@/lib/rapportComplet";
 import CriteresEstimation from "@/components/CriteresEstimation";
+import CaracteristiquesEstimation from "@/components/CaracteristiquesEstimation";
 import { useToast } from "@/components/Toast";
 import { surfaceFr } from "@/lib/formatFr";
 import { estimer, ajustementsDe, BAREME_COURANT, LIBELLE_SOURCE,
          type Choix, type Corrections, type Critere, type SourceBase, type TypeBien } from "@/lib/estimation";
 import { mediane, prixM2, type Comparable } from "@/lib/ajustementPrix";
+import { useVersionedSave } from "@/lib/useVersionedSave";
+import EtatSauvegarde from "@/components/EtatSauvegarde";
+import { champsEstimation, cleRechercheDvf } from "@/lib/estimationDossier";
+import { annoncesActives } from "@/lib/ajustementPrix";
 import type { VenteDvf, StatsDvf } from "@/lib/dvf";
+import { selectionDvf, ventesEligibles } from "@/lib/selectionDvf";
 
 /**
  * Estimation d'un bien, à remettre au vendeur.
@@ -43,7 +51,12 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [mode, setMode] = useState<"preparer" | "presenter">("preparer");
   const [dvf, setDvf] = useState<{ ventes: VenteDvf[]; stats: StatsDvf | null; adresse: string; precision: string; lat?: number; lon?: number } | null>(null);
   const [chargeDvf, setChargeDvf] = useState(false);
-  const [enregistrement, setEnregistrement] = useState<"repos" | "encours" | "fait">("repos");
+  const [messageDvf, setMessageDvf] = useState('');
+  const [archive, setArchive] = useState<any>(null);
+  const [figeEnCours, setFigeEnCours] = useState(false);
+  const snapshotRequest = useRef<string | null>(null);
+  const sauvegarde = useVersionedSave({ url: `/api/estimations/${id}`, method: "PATCH",
+    payload: champsEstimation(e || {}), enabled: etat === "ok" && e?.id === id, initialRevision: e?.revision || 0 });
   const [collageRef, setCollageRef] = useState("");
   /** Saisie d'un bien concurrent, avant ajout au tableau. */
   const CONCURRENT_VIERGE = { titre: "", ville: "", prix: "", surface: "", dateParution: "", source: "SeLoger", lien: "" };
@@ -58,7 +71,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     let annule = false;
     fetch(`/api/estimations/${id}`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => { if (!annule) { setE(d); setEtat("ok"); } })
+      .then((d) => { if (!annule) { setE(d); setDvf(d.dvfObservation?.cle === cleRechercheDvf(d) ? selectionDvf(d.dvfObservation, d.type === 'Maison' ? 'Maison' : 'Appartement') : null); setEtat("ok"); } })
       .catch(() => { if (!annule) setEtat("introuvable"); });
     return () => { annule = true; };
   }, [id]);
@@ -67,36 +80,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const set = useCallback((champ: string, valeur: any) => {
     setE((p: any) => (p ? { ...p, [champ]: valeur } : p));
   }, []);
-
-  /**
-   * Enregistrement automatique, 1,5 s après la dernière frappe.
-   *
-   * Une estimation se remplit en une trentaine de champs pendant un rendez-vous.
-   * Rien ne justifie de faire porter à l'agent le risque de tout perdre parce
-   * qu'il n'a pas pensé à cliquer.
-   */
-  const premierRendu = useRef(true);
-  useEffect(() => {
-    if (etat !== "ok" || !e) return;
-    if (premierRendu.current) { premierRendu.current = false; return; }
-    const t = setTimeout(async () => {
-      setEnregistrement("encours");
-      try {
-        const { id: _i, createdAt: _c, majAt: _m, ...corps } = e;
-        const r = await fetch(`/api/estimations/${id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(corps),
-        });
-        setEnregistrement(r.ok ? "fait" : "repos");
-        if (!r.ok) toast("❌ L'enregistrement a échoué.");
-      } catch {
-        setEnregistrement("repos");
-        toast("❌ L'enregistrement a échoué.");
-      }
-    }, 1500);
-    return () => clearTimeout(t);
-  }, [e, etat, id, toast]);
 
   const type: TypeBien = e?.type === "Maison" ? "Maison" : "Appartement";
   const surface = Number(e?.surface) || 0;
@@ -118,7 +101,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
    */
   const basesDisponibles = useMemo(() => {
     const m2Comparables = mediane(
-      comparables.map((c) => prixM2(c.prixVente ?? c.prix, c.surface)).filter((x): x is number => x !== null),
+      annoncesActives(comparables).map((c) => prixM2(c.prix, c.surface)).filter((x): x is number => x !== null),
     );
     return {
       DVF: dvf?.stats?.medianeM2 ?? null,
@@ -132,13 +115,13 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const baseM2 = basesDisponibles[sourceBase] ?? 0;
 
   const ajustements = useMemo(
-    () => ajustementsDe(BAREME_COURANT, choix, type, corrections),
-    [choix, type, corrections],
+    () => ajustementsDe(BAREME_COURANT, choix, type, corrections, e?.caracteristiques),
+    [choix, type, corrections, e?.caracteristiques],
   );
 
   const resultat = useMemo(
-    () => estimer({ baseM2, surface, type, choix, corrections }),
-    [baseM2, surface, type, choix, corrections],
+    () => estimer({ baseM2, surface, type, choix, corrections, caracteristiques: e?.caracteristiques }),
+    [baseM2, surface, type, choix, corrections, e?.caracteristiques],
   );
 
   /** Recherche des ventes signées autour de l'adresse saisie. */
@@ -146,6 +129,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     const adresse = String(e?.adresse ?? "").trim();
     if (!adresse) { toast("❌ Renseignez l'adresse pour chercher les ventes autour."); return; }
     setChargeDvf(true);
+    setDvf(null);
+    setMessageDvf('');
     try {
       const r = await fetch("/api/dvf", {
         method: "POST",
@@ -158,14 +143,45 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         }),
       });
       const d = await r.json();
-      if (!r.ok) { toast(d?.error ?? "❌ Recherche impossible."); return; }
-      setDvf({ ventes: d.ventes ?? [], stats: d.stats ?? null, adresse: d.adresse, precision: d.precision, lat: d.lat, lon: d.lon });
-      if (!d.ventes?.length) toast("Aucune vente comparable dans ce rayon.");
+      if (!r.ok) { const message = d?.error ?? "Recherche impossible."; setMessageDvf(message); toast(message); return; }
+      const data = { ventes: d.ventes ?? [], stats: d.stats ?? null, adresse: d.adresse, precision: d.precision, lat: d.lat, lon: d.lon };
+      const cle = cleRechercheDvf(e);
+      setE((current: any) => {
+        if (cleRechercheDvf(current) !== cle) return current;
+        return { ...current, dvfObservation: { cle, observedAt: new Date().toISOString(), data } };
+      });
+      setMessageDvf(`${d.information || ''}${!d.ventes?.length ? ' Aucune vente comparable dans les fichiers consultés avec ces filtres.' : ''}`.trim());
     } catch {
+      setMessageDvf('Recherche impossible. Vérifiez votre connexion puis réessayez.');
       toast("❌ Recherche impossible.");
     } finally {
       setChargeDvf(false);
     }
+  };
+
+  // Un changement d'adresse ou de filtre rend l'ancienne recherche inutilisable.
+  useEffect(() => {
+    setDvf(e?.dvfObservation?.cle === cleRechercheDvf(e || {}) ? selectionDvf(e.dvfObservation, e.type === 'Maison' ? 'Maison' : 'Appartement') : null);
+  }, [e]);
+
+  const ventesDisponibles = dvf ? ventesEligibles(e?.dvfObservation, type) : [];
+  const choisirVentes = (ids: string[]) => setE((p: any) => ({ ...p,
+    dvfObservation: { ...p.dvfObservation, selectedIds: ids } }));
+
+  const figer = async () => {
+    setFigeEnCours(true);
+    try {
+      if (!await sauvegarde.flush()) { toast("Enregistrez le brouillon avant de figer."); return; }
+      snapshotRequest.current ||= crypto.randomUUID();
+      const r = await fetch(`/api/estimations/${id}/snapshots`, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expectedRevision: sauvegarde.revision.current, requestId: snapshotRequest.current }) });
+      const d = await r.json();
+      if (!r.ok) { snapshotRequest.current = null; throw new Error(d.error); }
+      setE((p: any) => ({ ...p, snapshots: [...(p.snapshots || []).filter((s: any) => s.id !== d.snapshot.id), d.snapshot] }));
+      setArchive(d.snapshot); setMode("presenter"); snapshotRequest.current = null;
+      toast("Avis figé. Aucun document n’a été envoyé.");
+    } catch (err) { toast((err as Error).message || "Impossible de figer cet avis. Réessayez."); }
+    finally { setFigeEnCours(false); }
   };
 
   /** Relance la recherche au chargement, comme sur l'argumentaire. */
@@ -288,23 +304,36 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             <h1 className="text-lg font-semibold">{e.titre || "Estimation"}</h1>
             <p className="text-xs text-stone-500">
               {e.adresse || "adresse à renseigner"}
+              {e.propertyId && <Link className="underline" href={`/admin/contenu/biens/${encodeURIComponent(e.propertyId)}/ajustement`}> · fiche du bien et repositionnement</Link>}
               {e.leadId && (
                 <> · <Link href="/admin/crm/vendeurs" className="underline">lead vendeur relié</Link></>
               )}
               {" · "}
-              {enregistrement === "encours" ? "enregistrement…" : enregistrement === "fait" ? "enregistré" : "enregistrement automatique"}
+              Brouillon privé — aucun envoi automatique
             </p>
           </div>
           <div className="flex gap-1 rounded-lg border p-0.5">
-            <button onClick={() => setMode("preparer")} data-testid="onglet-preparer"
+            <button onClick={() => { setArchive(null); setMode("preparer"); }} data-testid="onglet-preparer"
               className={`rounded-md px-3 py-1.5 text-sm ${mode === "preparer" ? "bg-[#1F3B2C] text-white" : "hover:bg-stone-50"}`}>Préparer</button>
             <button onClick={() => setMode("presenter")} data-testid="onglet-presenter"
               className={`rounded-md px-3 py-1.5 text-sm ${mode === "presenter" ? "bg-[#1F3B2C] text-white" : "hover:bg-stone-50"}`}>Présenter</button>
           </div>
-          <button onClick={() => window.print()} className="btn rounded-lg px-3 py-1.5 text-sm">Imprimer</button>
+          <button disabled={figeEnCours || chargeDvf} onClick={figer} className="btn rounded-lg px-3 py-1.5 text-sm">{figeEnCours ? "Validation…" : "Figer un avis"}</button>
+          <button disabled={mode !== "presenter" || !archive} onClick={() => window.print()} className="btn rounded-lg px-3 py-1.5 text-sm disabled:opacity-40">Imprimer l’avis figé</button>
         </div>
       </div>
 
+      <EtatSauvegarde save={sauvegarde} />
+      <div className="no-print mb-4 flex flex-wrap items-center gap-2 text-sm">
+        <label htmlFor="avis-version">Version présentée</label>
+        <select id="avis-version" value={archive?.id || ""} onChange={event => {
+          setArchive(e.snapshots?.find((s: any) => s.id === event.target.value) || null); setMode("presenter");
+        }} className="rounded border p-2">
+          <option value="">Aperçu du brouillon (non figé)</option>
+          {(e.snapshots || []).map((s: any, i: number) => <option key={s.id} value={s.id}>Avis {i + 1} — {new Date(s.createdAt).toLocaleString("fr-FR")}</option>)}
+        </select>
+        <span>Les avis figés restent inchangés lorsque vous modifiez le brouillon.</span>
+      </div>
       {mode === "preparer" ? (
         <div className="no-print space-y-1">
           <CollapsibleSection title="Le bien" subtitle="Ce que l'on estime" defaultOpen>
@@ -315,11 +344,18 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               <label className="text-sm">À la demande de
                 <input className="input mt-0.5 w-full" placeholder="Mme Constant" value={e.demandeur ?? ""} onChange={(ev) => set("demandeur", ev.target.value)} />
               </label>
-              <label className="text-sm md:col-span-2">Adresse
-                <input className="input mt-0.5 w-full" data-testid="champ-adresse" value={e.adresse ?? ""} onChange={(ev) => set("adresse", ev.target.value)} />
+              <div className="text-sm md:col-span-2" data-testid="champ-adresse">Adresse du bien
+                <AddressAutocomplete className="input mt-0.5 w-full" value={e.adresse ?? ""}
+                  inputAria={{'aria-label':'Adresse du bien'}} placeholder="Commencez à saisir la rue et la commune"
+                  onTextChange={(adresse) => setE((p: any) => ({...p, adresse, ville:'', dvfObservation:null}))}
+                  onChange={({address, city}) => setE((p: any) => ({...p, adresse:address, ville:city, dvfObservation:null}))} />
+                <p className="mt-1 text-xs text-stone-600">Choisissez une suggestion pour compléter l’adresse et la ville. La saisie libre reste possible ; les ventes DVF devront être recherchées à nouveau après un changement.</p>
+              </div>
+              <label className="text-sm">Ville
+                <input className="input mt-0.5 w-full" data-testid="champ-ville" value={e.ville ?? ''} onChange={ev=>set('ville',ev.target.value)} />
               </label>
               <label className="text-sm">Type
-                <select className="input mt-0.5 w-full" value={type} onChange={(ev) => set("type", ev.target.value)}>
+                <select className="input mt-0.5 w-full" data-testid="type-bien" value={type} onChange={(ev) => set("type", ev.target.value)}>
                   <option>Appartement</option><option>Maison</option>
                 </select>
               </label>
@@ -388,12 +424,35 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             <button onClick={chercherDvf} disabled={chargeDvf} className="btn mt-2 rounded-lg px-3 py-1.5 text-sm" data-testid="chercher-dvf">
               {chargeDvf ? "Recherche…" : "Chercher les ventes signées"}
             </button>
+            <p className="mt-2 text-sm" data-testid="dvf-type">Ventes recherchées : <strong>{type === 'Maison' ? 'maisons uniquement' : 'appartements uniquement'}</strong>. Le type suit celui du bien renseigné plus haut ; le changer impose une nouvelle recherche.</p>
+            {messageDvf && <p role="status" className="mt-2 text-sm text-stone-700" data-testid="dvf-source-status">{messageDvf}</p>}
             {dvf?.stats && (
               <p className="mt-2 text-xs text-stone-600">
                 {dvf.ventes.length} ventes retenues autour de {dvf.adresse}
                 {dvf.precision !== "housenumber" && " (rue seulement, pas le numéro)"} —
                 médiane {eurM2(dvf.stats.medianeM2)}.
               </p>
+            )}
+            {dvf && (
+              <div className="mt-3" data-testid="selection-dvf">
+                <p className="text-sm" role="status" data-testid="dvf-selection-compteur">{dvf.ventes.length} vente(s) sélectionnée(s) sur {ventesDisponibles.length} références exploitables de type {type.toLowerCase()}.</p>
+                <p className="mt-1 text-xs text-stone-600">Seules les ventes cochées alimentent la médiane, l’estimation si sa base est DVF, et le rapport. Vérifiez leur comparabilité, pas seulement leur prix. Une nouvelle recherche réinitialise le choix.</p>
+                {Number(e.dvfObservation?.data?.stats?.nombre) > (e.dvfObservation?.data?.ventes?.length || 0) && <p className="mt-1 text-sm text-amber-900">Résultats limités aux références retournées : resserrez les filtres. Les statistiques ci-dessous ne représentent pas toutes les ventes de la recherche.</p>}
+                <div className="my-2 flex gap-3">
+                  <button type="button" disabled={chargeDvf} className="text-sm underline" onClick={()=>choisirVentes(ventesDisponibles.map(v=>v.id))}>Tout sélectionner</button>
+                  <button type="button" disabled={chargeDvf} className="text-sm underline" onClick={()=>choisirVentes([])}>Tout désélectionner</button>
+                </div>
+                {!dvf.ventes.length && <p className="text-sm text-amber-900">Aucune vente retenue : la base DVF est indisponible. Sélectionnez des références ou choisissez explicitement une autre source.</p>}
+                <div className="max-h-96 overflow-auto rounded border">
+                  <table className="w-full text-left text-sm"><caption className="sr-only">Choisir les ventes signées utilisées dans l’avis</caption>
+                    <thead><tr>{['Retenir','Date','Adresse','Type','Surface','Prix','€/m²','Distance'].map(label=><th key={label} scope="col" className="p-2">{label}</th>)}</tr></thead>
+                    <tbody>{ventesDisponibles.map(v=><tr key={v.id} className="border-t">
+                      <td className="p-2"><input type="checkbox" data-testid="dvf-vente" aria-label={`Retenir ${v.type} ${v.adresse}, vente du ${v.date}`} disabled={chargeDvf} checked={dvf.ventes.some(s=>s.id===v.id)} onChange={ev=>choisirVentes(ev.target.checked ? [...dvf.ventes.map(s=>s.id),v.id] : dvf.ventes.filter(s=>s.id!==v.id).map(s=>s.id))} /></td>
+                      <td className="p-2 whitespace-nowrap">{v.date}</td><td className="p-2">{v.adresse}</td><td className="p-2">{v.type}</td><td className="p-2 whitespace-nowrap">{surfaceFr(v.surface)}</td><td className="p-2 whitespace-nowrap">{eur(v.prix)}</td><td className="p-2 whitespace-nowrap">{eurM2(v.prixM2)}</td><td className="p-2">{Math.round(v.distance)} m</td>
+                    </tr>)}</tbody>
+                  </table>
+                </div>
+              </div>
             )}
 
             <div className="mt-3 border-t pt-3">
@@ -538,6 +597,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
             defaultOpen
           >
             <CriteresEstimation
+              seulementDpeEtat={e?.caracteristiques?.version === 1}
               type={type} choix={choix} corrections={corrections} ajustements={ajustements}
               onChoix={(c: Critere, cle: string) => set("criteres", { ...choix, [c]: cle || undefined })}
               onCorrection={(c: Critere, v: number | null) => {
@@ -546,6 +606,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                 set("corrections", suite);
               }}
             />
+            <CaracteristiquesEstimation valeur={e.caracteristiques || null} type={type} onChange={v=>set('caracteristiques',v)} />
           </CollapsibleSection>
 
           <CollapsibleSection title="Honoraires et net vendeur" subtitle="Ce que le vendeur touche">
@@ -573,6 +634,19 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               Le taux sert à traduire le prix en revenu mensuel nécessaire pour l’acquéreur. Aucune
               source ne le fournit automatiquement : reportez celui que vous constatez.
             </p>
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Compléter le rapport" subtitle="Justificatifs, réserves et stratégie">
+            <p className="text-sm mb-3">Ces informations figureront dans le nouvel avis. Décrivez les éléments vérifiés et les inconnues ; aucune pièce ni caractéristique n’est déduite automatiquement.</p>
+            <div className="grid gap-3 md:grid-cols-2">
+              {Object.entries(CHAMPS_RAPPORT).map(([cle, libelle])=><label key={cle} className="text-sm">{libelle}
+                <textarea className="input mt-1 w-full" rows={3} maxLength={4000} data-testid={`rapport-${cle}`} value={e.rapport?.[cle] || ''}
+                  onChange={ev=>set('rapport',{...e.rapport,[cle]:ev.target.value})} />
+              </label>)}
+              <label className="text-sm md:col-span-2">Conclusion de l’avis
+                <textarea className="input mt-1 w-full" rows={3} value={e.conclusion || ''} onChange={ev=>set('conclusion',ev.target.value)} />
+              </label>
+            </div>
           </CollapsibleSection>
 
           <CollapsibleSection title="Prix retenu" subtitle={e.prixRetenu ? eur(Number(e.prixRetenu)) : "à arrêter"} defaultOpen>
@@ -607,10 +681,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           </CollapsibleSection>
         </div>
       ) : (
-        <DocumentEstimation
-          estimation={e} resultat={resultat} ajustements={ajustements}
-          dvf={dvf} comparables={comparables} type={type}
-        />
+        <DocumentEstimation rendererVersion={archive?.rendererVersion || 4} {...(archive?.props || { estimation: e, resultat, ajustements, dvf, comparables, type })} />
       )}
     </AdminShell>
   );

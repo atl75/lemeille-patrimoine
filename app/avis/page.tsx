@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
+import { pageMetadata } from '@/lib/pageMetadata';
+
+export const metadata: Metadata = pageMetadata({
   title: 'Avis clients - Témoignages | Lemeille Patrimoine',
   description: 'Découvrez les avis et témoignages de nos clients.',
   alternates: {
@@ -8,7 +10,7 @@ export const metadata: Metadata = {
   },
   // Page désactivée pour l'instant (retirée de la navigation et du sitemap).
   robots: { index: false, follow: false }
-};
+});
 
 async function getReviews(){
   const base = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT||'3000'}`;

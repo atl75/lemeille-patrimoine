@@ -1,4 +1,5 @@
-import { codePostalDe } from '@/lib/sectors';
+import { codePostalDe } from './sectors.ts';
+import { lotsImmeublePublics } from './immeuble.ts';
 
 // Projection « publique » d'un bien : ne renvoie que les champs destinés
 // aux visiteurs. Retire les données sensibles jamais destinées au public —
@@ -20,6 +21,7 @@ export function toPublicPropertyCard(p: any) {
     id: p.id,
     title: p.title,
     type: p.type,
+    ...(p.type==='IMMEUBLE' ? {buildingLotCount:lotsImmeublePublics(p)?.length || 0} : {}),
     city: p.city,
     region: p.region,
     price: p.price,
@@ -62,6 +64,7 @@ export function toPublicProperty(p: any) {
     id: p.id,
     title: p.title,
     type: p.type,
+    ...(p.type==='IMMEUBLE' ? {buildingLots:lotsImmeublePublics(p)} : {}),
     city: p.city,
     region: p.region,
     price: p.price,

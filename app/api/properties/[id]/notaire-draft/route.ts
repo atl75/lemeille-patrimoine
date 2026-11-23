@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { readJSON } from '@/lib/utils';
 import { isAdmin } from '@/lib/adminGuard';
+import { documentFileFromUrl } from '@/lib/documentAccess';
+import { readStoredDocument } from '@/lib/documentStore';
 import { createDraft, isConnected } from '@/lib/googleMail';
 import { EMAIL_SIGNATURE_HTML_CID, EMAIL_SEPARATOR, EMAIL_SIGNATURE_LOGO_B64, EMAIL_SIGNATURE_LOGO_MIME, EMAIL_LOGO_CID } from '@/lib/emailSignature';
 
@@ -28,6 +30,13 @@ function notaryBlock(n: any): string {
 // Résout un document (data URL base64 ou URL Cloudinary) en pièce jointe.
 async function toAttachment(value: string | undefined, filename: string) {
   if (!value) return null;
+  // Cette route est déjà réservée à l'admin. Lire directement le document
+  // évite un appel HTTP anonyme désormais interdit pour les pièces privées.
+  const localFile = documentFileFromUrl(value, process.env.NEXT_PUBLIC_SITE_URL);
+  if (localFile) {
+    const { buffer, mime } = await readStoredDocument(localFile);
+    return { filename, mime, base64: buffer.toString('base64') };
+  }
   try {
     if (value.startsWith('data:')) {
       const m = value.match(/^data:([^;]+);base64,(.*)$/s);
@@ -65,7 +74,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       .map((e: any) => (e || '').trim()).filter(Boolean)
   ));
 
-  const typeLabel = ((p.type || 'APPARTEMENT') === 'MAISON' ? 'Maison' : 'Appartement') + (p.rooms ? ` T${p.rooms}` : '');
+  const typeLabel = p.type === 'IMMEUBLE' ? 'Immeuble' : ((p.type || 'APPARTEMENT') === 'MAISON' ? 'Maison' : 'Appartement') + (p.rooms ? ` T${p.rooms}` : '');
   const address = p.map?.query || [p.city, String(p.region || '').replaceAll('_', ' ')].filter(Boolean).join(', ');
   const owners = Array.isArray(p.owners) ? p.owners : [];
   // Prix issu de la négociation avec l'acquéreur (prix FAI final), avec repli sur le prix affiché.
@@ -138,7 +147,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     ...((Array.isArray(p.floorPlans) ? p.floorPlans : []).map((v: string, i: number) => [v, `Plan-${i + 1}.pdf`] as [string, string])),
     ...((Array.isArray(p.agMinutes) ? p.agMinutes : []).map((v: string, i: number) => [v, `PV-AG-${i + 1}.pdf`] as [string, string])),
   ];
-  const attachments = (await Promise.all(docs.map(([v, name]) => toAttachment(v, name)))).filter(Boolean) as any[];
+  let attachments: any[];
+  try {
+    attachments = (await Promise.all(docs.map(async ([v, name]) => {
+      const attachment = await toAttachment(v, name);
+      if (v && !attachment) throw new Error('Pièce jointe indisponible');
+      return attachment;
+    }))).filter(Boolean);
+  } catch {
+    return NextResponse.json({ error: 'Une pièce jointe est indisponible. Aucun brouillon incomplet n’a été créé.' }, { status: 503 });
+  }
 
   const subject = `Vente ${typeLabel} — ${address} — transmission du dossier`;
   const inlineImages = EMAIL_SIGNATURE_LOGO_B64

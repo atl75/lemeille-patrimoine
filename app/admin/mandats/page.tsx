@@ -2,13 +2,15 @@
 import AdminShell from "@/components/AdminShell";
 import { useToast } from "@/components/Toast";
 import Breadcrumb from "@/components/Breadcrumb";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { EditionMandat, mandatFige } from "@/lib/editionMandat";
 import { Printer, FileText, PenLine, Trash2, Save, Plus, Lock, FilePlus2 } from "lucide-react";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import CompanyAutocomplete from "@/components/CompanyAutocomplete";
+import ClientConnuPicker from '@/components/admin/ClientConnuPicker';
 
 type Owner = { type?: string; firstName?: string; lastName?: string; name?: string; address?: string; email?: string; phone?: string; siren?: string; legalForm?: string; managerFirstName?: string; managerLastName?: string; managerRole?: string };
-type Signer = { ownerIndex?: number; name?: string; email?: string; phone?: string; url?: string; signed?: boolean; emailed?: boolean };
+type Signer = { ownerIndex?: number; name?: string; email?: string; phone?: string; url?: string; signed?: boolean; emailed?: boolean; deliveryUnknown?: boolean };
 type Mandat = {
   id: string;
   createdAt?: string;
@@ -31,7 +33,7 @@ type Mandat = {
   owners?: Owner[];
   signers?: { ownerIndex?: number; name?: string; signedAt?: string; dataUrl?: string }[];
   mandateSignStatus?: 'PENDING' | 'SIGNED';
-  mandateSignature?: { signedAt?: string };
+  mandateSignature?: { signedAt?: string; dataUrl?: string };
   mandateSignerEmail?: string;
   avenants?: Avenant[];
 };
@@ -50,7 +52,7 @@ type Avenant = {
 };
 
 const eur = (n?: number) => (n || n === 0) ? Math.round(n as number).toLocaleString('fr-FR').replace(/[  ]/g, ' ') + ' €' : '—';
-const typeLabel = (m: Mandat) => (m.type === 'MAISON' ? 'Maison' : 'Appartement') + (m.rooms ? ` T${m.rooms}` : '');
+const typeLabel = (m: Mandat) => m.type === 'IMMEUBLE' ? 'Immeuble' : (m.type === 'MAISON' ? 'Maison' : 'Appartement') + (m.rooms ? ` T${m.rooms}` : '');
 function mandantOf(m: Mandat): string {
   const os = m.owners || [];
   if (!os.length) return '—';
@@ -63,8 +65,28 @@ export default function Page() {
   const toast = useToast();
   const [savingId, setSavingId] = useState<string | null>(null);
   const [signingId, setSigningId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const edition = useRef(new EditionMandat());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [signInfo, setSignInfo] = useState<Record<string, Signer[]>>({});
+  const [signInfoLabel, setSignInfoLabel] = useState<Record<string, string>>({});
+  const [readingLinks, setReadingLinks] = useState<string | null>(null);
+  const recoverLinks = async (m: Mandat, avenantId?: string) => {
+    setReadingLinks(m.id);
+    try {
+      const res = await fetch(`/api/mandats/${m.id}/sign-request${avenantId ? `?avenantId=${encodeURIComponent(avenantId)}` : ''}`, { cache: 'no-store', signal: AbortSignal.timeout(15000) });
+      const data = await res.json();
+      if (!res.ok) { toast(data.error || 'Lecture des liens impossible.'); return; }
+      setSignInfo(prev => ({ ...prev, [m.id]: data.signers || [] }));
+      setSignInfoLabel(prev => ({ ...prev, [m.id]: data.documentLabel }));
+      toast('Liens récupérés. Aucun email envoyé.');
+    } catch { toast('Lecture impossible. Aucun email envoyé ; réessayez.'); }
+    finally { setReadingLinks(null); }
+  };
+  const copyLink = async (url: string) => {
+    try { await navigator.clipboard.writeText(url); toast('Lien copié. Ne le partagez qu’avec le signataire concerné.'); }
+    catch { toast('Copie impossible : sélectionnez le lien et copiez-le manuellement.'); }
+  };
   // Avenant en cours de rédaction, par mandat.
   const [avenantId, setAvenantId] = useState<string | null>(null);
   const [avPrix, setAvPrix] = useState<string>('');
@@ -106,6 +128,7 @@ export default function Page() {
       const j = await res.json();
       if (!res.ok) { alert(j?.error || "Création de l'avenant impossible."); return; }
       setSignInfo(prev => ({ ...prev, [m.id]: j.signers || [] }));
+      setSignInfoLabel(prev => ({ ...prev, [m.id]: `Avenant n° ${j.avenant?.numero || ''}` }));
       setAvenantId(null);
       load();
     } catch {
@@ -116,10 +139,10 @@ export default function Page() {
   const load = () => {
     fetch('/api/mandats')
       .then(r => r.json())
-      .then((d) => { setItems(Array.isArray(d) ? d : []); setLoading(false); })
-      .catch(() => { setItems([]); setLoading(false); });
+      .then((d) => { setItems(prev => Array.isArray(d) ? d.map((m: Mandat) => edition.current.nonEnregistre(m.id) ? prev.find(x => x.id === m.id) || m : m) : prev); setLoading(false); })
+      .catch(() => { toast('Chargement impossible. Les saisies déjà affichées sont conservées.'); setLoading(false); });
   };
-  useEffect(load, []);
+  useEffect(load, [toast]);
 
   const mandats = useMemo(() =>
     [...items].sort((a, b) => (a.mandateNumber || '').localeCompare(b.mandateNumber || '', 'fr', { numeric: true })),
@@ -127,24 +150,31 @@ export default function Page() {
   const signed = mandats.filter(m => m.mandateSignStatus === 'SIGNED').length;
   const pending = mandats.filter(m => m.mandateSignStatus === 'PENDING').length;
 
-  const patchLocal = (id: string, patch: Partial<Mandat>) => setItems(prev => prev.map(m => m.id === id ? { ...m, ...patch } : m));
-  const setOwner = (m: Mandat, oi: number, patch: Partial<Owner>) => setItems(prev => prev.map(x => {
+  const patchLocal = (id: string, patch: Partial<Mandat>) => {
+    edition.current.modifier(id);
+    setItems(prev => prev.map(m => m.id === id ? { ...m, ...patch } : m));
+  };
+  const setOwner = (m: Mandat, oi: number, patch: Partial<Owner>) => {
+    edition.current.modifier(m.id);
+    setItems(prev => prev.map(x => {
     if (x.id !== m.id) return x;
     const owners = [...(x.owners || [])];
     owners[oi] = { type: 'INDIVIDUAL', ...(owners[oi] || {}), ...patch };
     return { ...x, owners };
-  }));
+    }));
+  };
 
   // Sélection d'une société : champs depuis l'API entreprise, puis réinjection
   // des infos mémorisées (gérant, courriel, téléphone saisis à la main).
   const onCompanySelect = async (m: Mandat, oi: number, c: any) => {
     setOwner(m, oi, { type: 'COMPANY', name: c.name, siren: c.siren, address: c.address || undefined, legalForm: c.legalForm, managerFirstName: c.managerFirstName, managerLastName: c.managerLastName, managerRole: c.managerRole });
+    const version = edition.current.version(m.id);
     try {
       const q = c.siren ? `siren=${encodeURIComponent(c.siren)}` : `name=${encodeURIComponent(c.name || '')}`;
       const r = await fetch(`/api/company-contacts?${q}`);
       const d = await r.json();
       const s = d?.contact;
-      if (s) setOwner(m, oi, {
+      if (s && edition.current.version(m.id) === version) setOwner(m, oi, {
         email: s.email || undefined, phone: s.phone || undefined,
         managerFirstName: s.managerFirstName || c.managerFirstName || undefined,
         managerLastName: s.managerLastName || c.managerLastName || undefined,
@@ -159,6 +189,8 @@ export default function Page() {
   const fmtNum = (n?: number) => (n || n === 0) ? Number(n).toLocaleString('fr-FR') : '';
 
   const save = async (m: Mandat) => {
+    if (!edition.current.commencer(m.id)) return false;
+    const version = edition.current.version(m.id);
     setSavingId(m.id);
     try {
       const res = await fetch(`/api/mandats/${m.id}`, {
@@ -172,7 +204,7 @@ export default function Page() {
           owners: m.owners,
         }),
       });
-      if (!res.ok) { const d = await res.json().catch(() => ({})); toast(d.error || 'Erreur à l\'enregistrement.'); }
+      if (!res.ok) { const d = await res.json().catch(() => ({})); toast(d.error || 'Erreur à l\'enregistrement.', 'error'); return false; }
       else {
         // Mémorise les infos saisies pour chaque société (réinjectées la fois suivante).
         for (const o of (m.owners || [])) {
@@ -184,21 +216,27 @@ export default function Page() {
           }
         }
       }
-    } catch { toast('Erreur réseau.'); }
-    setSavingId(null);
+      const complete = edition.current.confirmer(m.id, version);
+      toast(complete ? 'Mandat enregistré.' : 'De nouvelles modifications restent à enregistrer.', complete ? 'success' : 'info');
+      return complete;
+    } catch { toast('Enregistrement non confirmé. Votre saisie reste affichée.', 'error'); return false; }
+    finally { edition.current.terminer(m.id); setSavingId(null); }
   };
 
   const handleSign = async (m: Mandat) => {
+    if (edition.current.nonEnregistre(m.id)) { toast('Enregistrez les modifications avant de proposer la signature.'); setEditingId(m.id); return; }
+    if (!edition.current.commencer(m.id)) return;
     setSigningId(m.id);
     try {
       const res = await fetch(`/api/mandats/${m.id}/sign-request`, { method: 'POST' });
       const d = await res.json();
       if (res.ok) {
+        setSignInfoLabel(prev => ({ ...prev, [m.id]: 'Mandat' }));
         setSignInfo(prev => ({ ...prev, [m.id]: Array.isArray(d.signers) ? d.signers : [] }));
-        patchLocal(m.id, { mandateSignStatus: 'PENDING' });
+        setItems(prev => prev.map(x => x.id === m.id ? { ...x, mandateSignStatus: 'PENDING' } : x));
       } else { toast(d.error || 'Erreur lors de la génération des liens.'); }
-    } catch { toast('Erreur réseau.'); }
-    setSigningId(null);
+    } catch { toast('Envoi non confirmé. Consultez les liens existants avant de réessayer.', 'error'); }
+    finally { edition.current.terminer(m.id); setSigningId(null); }
   };
 
   const [creating, setCreating] = useState(false);
@@ -217,12 +255,35 @@ export default function Page() {
   };
 
   const remove = async (m: Mandat) => {
+    if (mandatFige(m)) { toast('Une première signature fige le mandat : suppression impossible.'); return; }
+    if (edition.current.enCours(m.id)) return;
     if (!confirm(`Supprimer le mandat ${m.mandateNumber || ''} ? Cette action est définitive.`)) return;
+    if (!edition.current.commencer(m.id)) return;
+    setDeletingId(m.id);
     try {
       const res = await fetch(`/api/mandats/${m.id}`, { method: 'DELETE' });
       if (res.ok) setItems(prev => prev.filter(x => x.id !== m.id));
-      else toast('Erreur à la suppression.');
-    } catch { toast('Erreur réseau.'); }
+      else { const d = await res.json().catch(() => ({})); toast(d.error || 'Suppression refusée. Le mandat est conservé à l’écran.', 'error'); }
+    } catch { toast('Suppression non confirmée. Rechargez le registre pour vérifier son état.', 'error'); }
+    finally { edition.current.terminer(m.id); setDeletingId(null); }
+  };
+
+  const cancel = async (m: Mandat) => {
+    if (!edition.current.commencer(m.id)) return;
+    setSavingId(m.id);
+    // Invalide également une éventuelle recherche de société encore en vol.
+    edition.current.modifier(m.id);
+    const version = edition.current.version(m.id);
+    try {
+      const res = await fetch(`/api/mandats/${m.id}`, { cache: 'no-store' });
+      const data = await res.json();
+      if (!res.ok || data.id !== m.id) { toast(data.error || 'Rechargement impossible. Votre saisie reste affichée.'); return; }
+      if (edition.current.version(m.id) !== version) return;
+      edition.current.confirmer(m.id, version);
+      setItems(prev => prev.map(x => x.id === m.id ? data : x));
+      setEditingId(current => current === m.id ? null : current);
+    } catch { toast('Rechargement impossible. Votre saisie reste affichée.'); }
+    finally { edition.current.terminer(m.id); setSavingId(null); }
   };
 
   const inputCls = "w-full px-2 py-1 text-sm border rounded";
@@ -334,16 +395,20 @@ export default function Page() {
                                 <FilePlus2 className="w-3 h-3" /> {avenantId === m.id ? 'Fermer' : 'Avenant'}
                               </button>
                             </>
+                          ) : mandatFige(m) ? (
+                            <span className="text-xs px-2 py-1 border rounded" title="Une première signature empêche la modification et la suppression."><Lock className="w-3 h-3 inline" /> Figé dès la première signature</span>
                           ) : (
                             <button onClick={() => setEditingId(editingId === m.id ? null : m.id)} className={`text-xs px-2 py-1 border rounded ${editingId === m.id ? 'bg-[#1F3B2C] text-white border-[#1F3B2C]' : 'hover:bg-black/5'}`} data-testid={`button-edit-${m.id}`}>
                               {editingId === m.id ? 'Fermer' : 'Modifier'}
                             </button>
                           )}
                           {m.mandateSignStatus !== 'SIGNED' && (
-                            <button onClick={() => handleSign(m)} disabled={signingId === m.id} title="Générer le lien de signature" className="p-1 text-[#1F3B2C] hover:opacity-70 disabled:opacity-40"><PenLine className="w-4 h-4" /></button>
+                            <button onClick={() => handleSign(m)} disabled={edition.current.enCours(m.id)} data-testid={`invite-${m.id}`} title="Créer ou renvoyer les invitations par email" className="p-1 text-[#1F3B2C] hover:opacity-70 disabled:opacity-40"><PenLine className="w-4 h-4" /></button>
                           )}
+                          <button type="button" onClick={() => recoverLinks(m)} disabled={readingLinks === m.id} data-testid={`recover-links-${m.id}`} className="text-xs px-2 py-1 border rounded disabled:opacity-40">Liens existants</button>
                           <a href={`/api/mandats/${m.id}/pdf`} target="_blank" rel="noopener noreferrer" title="Mandat PDF" className="p-1 text-[#B89C6D] hover:opacity-70"><FileText className="w-4 h-4" /></a>
-                          <button onClick={() => remove(m)} title="Supprimer" className="p-1 text-red-600 hover:opacity-70"><Trash2 className="w-4 h-4" /></button>
+                          {!mandatFige(m) && <button onClick={() => remove(m)} disabled={edition.current.enCours(m.id)} data-testid={`delete-${m.id}`} title="Supprimer" className="p-1 text-red-600 hover:opacity-70 disabled:opacity-40"><Trash2 className="w-4 h-4" /></button>}
+                          {edition.current.nonEnregistre(m.id) && <span className="text-xs text-amber-800">Modifications non enregistrées</span>}
                         </div>
                       </td>
                     </tr>
@@ -351,7 +416,8 @@ export default function Page() {
                     {signInfo[m.id] && (
                       <tr className="no-print">
                         <td colSpan={10} className="px-3 py-2 bg-amber-50" style={{ borderBottom: '1px solid #eee' }}>
-                          <div className="text-xs font-medium mb-2">✍️ Liens de signature — un par mandant ({signInfo[m.id].length}) :</div>
+                          <div className="text-xs font-medium mb-2">✍️ {signInfoLabel[m.id] || 'Document'} — liens de signature ({signInfo[m.id].length}) :</div>
+                          {!signInfo[m.id].length && <p className="text-xs">Aucun lien créé pour ce document. La consultation n’envoie aucun email.</p>}
                           <div className="space-y-2">
                             {signInfo[m.id].map((s, si) => (
                               <div key={si} className="flex gap-2 items-center flex-wrap">
@@ -360,9 +426,10 @@ export default function Page() {
                                   ? <span className="text-xs text-green-700">Déjà signé</span>
                                   : <>
                                       <input readOnly value={s.url || ''} onFocus={e => e.currentTarget.select()} className="flex-1 min-w-[220px] px-2 py-1 text-xs border rounded bg-white" />
-                                      <button onClick={() => navigator.clipboard?.writeText(s.url || '')} className="px-2 py-1 text-xs border rounded hover:bg-white">Copier</button>
-                                      {s.emailed
-                                        ? <span className="text-xs text-green-700 whitespace-nowrap">✉️ Envoyé à {s.email}</span>
+                                      <button disabled={!s.url} onClick={() => copyLink(s.url || '')} className="px-2 py-1 text-xs border rounded hover:bg-white disabled:opacity-40">Copier</button>
+                                      {!s.url && <span className="text-xs text-amber-700">Lien absent : dossier à vérifier.</span>}
+                                      {s.deliveryUnknown ? <span className="text-xs text-gray-500">Statut d’envoi non confirmé — aucun nouvel email envoyé</span> : s.emailed
+                                        ? <span className="text-xs text-green-700 whitespace-nowrap">✉️ Accepté par le service pour {s.email} — réception non vérifiée</span>
                                         : <span className="text-xs text-gray-500">{s.email ? 'Email non envoyé — copiez le lien' : 'Pas d\'email — copiez le lien'}</span>}
                                     </>}
                               </div>
@@ -394,6 +461,7 @@ export default function Page() {
                                   <a href={`/api/mandats/${m.id}/avenants/${av.id}/pdf`} target="_blank" rel="noopener noreferrer"
                                      className="text-[#B89C6D] hover:underline whitespace-nowrap">PDF</a>
                                   {av.motif && <span className="opacity-60 truncate">{av.motif}</span>}
+                                  <button type="button" onClick={() => recoverLinks(m, av.id)} disabled={readingLinks === m.id} data-testid={`recover-avenant-${av.id}`} className="px-2 py-1 border rounded disabled:opacity-40">Liens existants</button>
                                 </div>
                               );
                             })}
@@ -470,6 +538,7 @@ export default function Page() {
                     {editingId === m.id && (
                       <tr className="no-print">
                         <td colSpan={10} className="px-3 py-3 bg-black/[0.02]" style={{ borderBottom: '1px solid #eee' }}>
+                          <fieldset disabled={edition.current.enCours(m.id)}>
                           <div className="grid md:grid-cols-3 gap-3">
                             <div>
                               <label className="block text-xs opacity-75 mb-1">N° de mandat</label>
@@ -514,6 +583,7 @@ export default function Page() {
                               <div className="space-y-2">
                                 {(m.owners && m.owners.length ? m.owners : [{ type: 'INDIVIDUAL' } as Owner]).map((o, oi) => (
                                   <div key={oi} className="border rounded p-2 bg-white">
+                                    <ClientConnuPicker current={o} onSelect={client => setOwner(m, oi, client)} />
                                     <div className="flex items-center gap-3 mb-1 text-xs">
                                       <label className="flex items-center gap-1"><input type="radio" checked={o.type !== 'COMPANY'} onChange={() => setOwner(m, oi, { type: 'INDIVIDUAL', name: undefined })} /> Particulier</label>
                                       <label className="flex items-center gap-1"><input type="radio" checked={o.type === 'COMPANY'} onChange={() => setOwner(m, oi, { type: 'COMPANY' })} /> Société</label>
@@ -540,7 +610,7 @@ export default function Page() {
                                     ) : (
                                       <div className="grid grid-cols-2 gap-1">
                                         <input placeholder="Prénom" value={o.firstName || ''} onChange={e => setOwner(m, oi, { firstName: e.target.value })} className={inputCls} />
-                                        <input placeholder="Nom" value={o.lastName || ''} onChange={e => setOwner(m, oi, { lastName: e.target.value })} className={inputCls} />
+                                        <ClientConnuPicker current={o} onSelect={client => setOwner(m, oi, client)} nameInput={{ value: o.lastName || '', onChange: value => setOwner(m, oi, { lastName: value }), className: inputCls }} />
                                       </div>
                                     )}
                                     <div className="mt-1">
@@ -585,11 +655,12 @@ export default function Page() {
                             </div>
                           </div>
                           <div className="mt-3 flex gap-2">
-                            <button onClick={async () => { await save(m); setEditingId(null); }} disabled={savingId === m.id} className="btn-luxe text-sm flex items-center gap-1 disabled:opacity-60">
+                            <button data-testid={`save-${m.id}`} onClick={async () => { if (await save(m)) setEditingId(current => current === m.id ? null : current); }} disabled={edition.current.enCours(m.id)} className="btn-luxe text-sm flex items-center gap-1 disabled:opacity-60">
                               <Save className="w-3.5 h-3.5" /> {savingId === m.id ? 'Enregistrement…' : 'Enregistrer'}
                             </button>
-                            <button onClick={() => { load(); setEditingId(null); }} className="text-sm px-3 py-1.5 border rounded hover:bg-black/5">Annuler</button>
+                            <button data-testid={`cancel-${m.id}`} onClick={() => cancel(m)} className="text-sm px-3 py-1.5 border rounded hover:bg-black/5">Annuler</button>
                           </div>
+                          </fieldset>
                         </td>
                       </tr>
                     )}

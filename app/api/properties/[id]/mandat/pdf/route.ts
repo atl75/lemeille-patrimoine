@@ -3,6 +3,7 @@ import { readJSON } from '@/lib/utils';
 import { isAdmin } from '@/lib/adminGuard';
 import type { NextRequest } from 'next/server';
 import { buildMandatePdf } from '@/lib/mandatPdf';
+import { erreurPdfMandatImmeuble } from '@/lib/validationMandatImmeuble';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -11,6 +12,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const data = await readJSON('properties.json');
     const p = data.find((x: any) => x.id === id);
     if (!p) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    const erreur=erreurPdfMandatImmeuble(p);if(erreur)return NextResponse.json({error:erreur},{status:409});
 
     const bytes = await buildMandatePdf(p);
     return new NextResponse(Buffer.from(bytes), {

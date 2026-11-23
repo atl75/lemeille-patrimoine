@@ -58,7 +58,7 @@ export default function Page() {
     const p = d.propertyId ? biens[d.propertyId] : null;
     if (!p) return d.propertyTitle || "—";
     const typo = propertyTypology(p);
-    const tete = p.type === "MAISON" ? typo : `Appartement ${typo}`;
+    const tete = p.type === "IMMEUBLE" || p.type === "MAISON" ? typo : `Appartement ${typo}`;
     return [tete, p.surface ? `${p.surface} m²` : null].filter(Boolean).join(" · ");
   };
 

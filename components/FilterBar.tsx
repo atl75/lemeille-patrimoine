@@ -144,6 +144,7 @@ export default function FilterBar({
           <option value="all">Tous les biens</option>
           <option value="APPARTEMENT">Appartements</option>
           <option value="MAISON">Maisons</option>
+          <option value="IMMEUBLE">Immeubles</option>
         </select>
 
         <button

@@ -17,7 +17,18 @@
  * concurrent » alors qu'il y en avait trois.
  */
 
+import { quantile } from './prixStatistiques.ts';
 export type StatutComparable = 'EN_VENTE' | 'VENDU';
+
+/** Sans pièce justificative, un prix de vente saisi reste une déclaration. */
+export function natureComparable(c: Comparable): 'VENTE_DECLAREE' | 'VENDU_SANS_PRIX' | 'ANNONCE' {
+  if (prixM2(c.prixVente, c.surface) !== null) return 'VENTE_DECLAREE';
+  return c.statut === 'VENDU' ? 'VENDU_SANS_PRIX' : 'ANNONCE';
+}
+
+export function annoncesActives(cs: Comparable[]): Comparable[] {
+  return cs.filter(c => natureComparable(c) === 'ANNONCE');
+}
 
 export type Comparable = {
   id: string;
@@ -80,7 +91,7 @@ export type Statistiques = {
   moyenneM2: number;
   minM2: number;
   maxM2: number;
-  /** Combien de comparables sont déjà vendus : ils pèsent plus lourd. */
+  /** Effectif informatif, aucune pondération implicite. */
   nombreVendus: number;
 };
 
@@ -154,7 +165,7 @@ export function fourchetteConseillee(
   const surface = Number(bien.surface);
   if (!m2.length || !Number.isFinite(surface) || surface <= 0) return null;
   const med = mediane(m2) as number;
-  const q1 = mediane(m2.slice(0, Math.ceil(m2.length / 2))) as number;
+  const q1 = quantile(m2, 0.25);
   return { bas: q1 * surface, haut: med * surface };
 }
 
@@ -202,6 +213,7 @@ export function comparablesDuPortefeuille(
   const norme = (v: unknown) => String(v ?? '').trim().toLowerCase();
   return (tous || [])
     .filter((p) => p && p.id !== bien.id)
+    .filter((p) => p.visible !== false || p.status === 'SOLD' || p.sold)
     .filter((p) => norme(p.type) === norme(bien.type) && norme(p.city) === norme(bien.city))
     .filter((p) => {
       if (!surface) return true;
@@ -217,6 +229,7 @@ export function comparablesDuPortefeuille(
       prixVente: Number(p.finalSalePrice) || undefined,
       statut: (p.status === 'SOLD' || p.sold ? 'VENDU' : 'EN_VENTE') as StatutComparable,
       source: 'Portefeuille',
+      dpe: p.dpe?.classEnergy || undefined,
     }))
     .filter((c) => c.prix > 0 && c.surface > 0);
 }
@@ -239,4 +252,3 @@ export function ancienneteAnnonce(dateParution?: string, maintenant = new Date()
   if (mois < 24) return `${mois} mois`;
   return `${Math.floor(mois / 12)} ans`;
 }
-

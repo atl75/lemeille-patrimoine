@@ -19,6 +19,7 @@ type Props = {
   onAcknowledge: () => void;
   onClose: () => void;
   acknowledgeLabel?: string;
+  inline?: boolean;
 };
 
 export default function DocumentReader({
@@ -27,11 +28,13 @@ export default function DocumentReader({
   onAcknowledge,
   onClose,
   acknowledgeLabel = "Je reconnais avoir lu et pris connaissance de l'intégralité du document.",
+  inline = false,
 }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const pagesHost = useRef<HTMLDivElement>(null);
   const pdfRef = useRef<any>(null);
   const renderToken = useRef(0);
+  const endMarker = useRef<HTMLParagraphElement>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +86,10 @@ export default function DocumentReader({
 
   useEffect(() => {
     let cancelled = false;
+    const rendering = renderToken;
+    let task:any;
+    setLoading(true);setError(null);setReachedEnd(false);setChecked(false);
+    pdfRef.current=null;pagesHost.current?.replaceChildren();renderToken.current++;
     (async () => {
       try {
         const pdfjs: any = await import("pdfjs-dist");
@@ -90,10 +97,11 @@ export default function DocumentReader({
         // Nos PDF n'embarquent pas leurs polices (Helvetica, Times standard).
         // Sans standardFontDataUrl, pdf.js ne peut pas charger les polices de
         // substitution et les caractères accentués sont rendus de travers.
-        const pdf = await pdfjs.getDocument({
+        task = pdfjs.getDocument({
           url,
           standardFontDataUrl: "/pdfjs/standard_fonts/",
-        }).promise;
+        });
+        const pdf=await task.promise;
         if (cancelled) return;
         pdfRef.current = pdf;
         setNumPages(pdf.numPages);
@@ -105,7 +113,7 @@ export default function DocumentReader({
         }
       }
     })();
-    return () => { cancelled = true; };
+    return () => { cancelled = true;rendering.current++;pdfRef.current=null;void task?.destroy(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);
 
@@ -128,6 +136,7 @@ export default function DocumentReader({
 
   // Fin de lecture : on tolère 40 px pour ne pas piéger le lecteur au pixel près.
   const onScroll = () => {
+    if(inline || loading || error)return;
     const el = scroller.current;
     if (!el || reachedEnd) return;
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 40) setReachedEnd(true);
@@ -136,10 +145,17 @@ export default function DocumentReader({
   // Document plus court que l'écran : il n'y a rien à faire défiler.
   useEffect(() => {
     const el = scroller.current;
-    if (!loading && el && el.scrollHeight <= el.clientHeight + 40) setReachedEnd(true);
-  }, [loading, numPages, zoom]);
+    if (!inline && !loading && !error && el && el.scrollHeight <= el.clientHeight + 40) setReachedEnd(true);
+  }, [inline, loading, error, numPages, zoom]);
+
+  useEffect(()=>{
+    if(!inline || loading || error || !endMarker.current)return;
+    const observer=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting))setReachedEnd(true);},{threshold:0.5});
+    observer.observe(endMarker.current);return ()=>observer.disconnect();
+  },[inline,loading,error,numPages]);
 
   useEffect(() => {
+    if(inline)return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -148,15 +164,15 @@ export default function DocumentReader({
       document.body.style.overflow = previous;
       document.removeEventListener("keydown", onKey);
     };
-  }, [onClose]);
+  }, [onClose, inline]);
 
   return (
     <div
-      role="dialog"
-      aria-modal="true"
+      role={inline ? "region" : "dialog"}
+      aria-modal={inline ? undefined : true}
       aria-label={title}
-      className="fixed inset-0 z-[60] flex flex-col bg-[#12241b]"
-      style={{ height: "100dvh" }}
+      className={inline ? "my-6 overflow-hidden rounded-xl border border-[#1F3B2C] bg-[#12241b]" : "fixed inset-0 z-[60] flex flex-col bg-[#12241b]"}
+      style={inline ? undefined : { height: "100dvh" }}
       data-testid="document-reader"
     >
       <div className="flex shrink-0 items-center justify-between gap-2 bg-[#1F3B2C] px-3 py-2.5 text-white">
@@ -171,16 +187,16 @@ export default function DocumentReader({
             className="rounded p-2 disabled:opacity-30" aria-label="Agrandir" data-testid="button-doc-zoom-in">
             <ZoomIn size={18} />
           </button>
-          <button type="button" onClick={onClose} className="rounded p-2" aria-label="Fermer" data-testid="button-doc-close">
+          {!inline && <button type="button" onClick={onClose} className="rounded p-2" aria-label="Fermer" data-testid="button-doc-close">
             <X size={20} />
-          </button>
+          </button>}
         </div>
       </div>
 
       <div
         ref={scroller}
         onScroll={onScroll}
-        className="flex-1 overflow-auto overscroll-contain px-3 py-3"
+        className={inline ? "overflow-x-auto px-3 py-3" : "flex-1 overflow-auto overscroll-contain px-3 py-3"}
         style={{ WebkitOverflowScrolling: "touch" }}
         data-testid="document-scroller"
       >
@@ -200,7 +216,7 @@ export default function DocumentReader({
         )}
         <div ref={pagesHost} />
         {!loading && !error && (
-          <p className="pb-2 pt-1 text-center text-xs text-white/40">
+          <p ref={endMarker} className="pb-2 pt-1 text-center text-xs text-white/70">
             {numPages > 1 ? `Fin du document — ${numPages} pages` : "Fin du document"}
           </p>
         )}
@@ -208,9 +224,9 @@ export default function DocumentReader({
 
       {/* Accusé de lecture, en pied de document */}
       <div className="shrink-0 border-t border-black/10 bg-white px-4 pb-[env(safe-area-inset-bottom)] pt-3">
-        {!reachedEnd && !error ? (
+        {error || loading || !reachedEnd ? (
           <p className="pb-3 text-center text-xs text-gray-500" data-testid="text-scroll-hint">
-            Faites défiler jusqu&apos;à la fin du document pour pouvoir le valider.
+            {error ? "Lecture non validée : rechargez la page pour réessayer. La signature reste bloquée." : "Faites défiler jusqu’à la fin du document pour pouvoir le valider."}
           </p>
         ) : (
           <>
@@ -227,7 +243,7 @@ export default function DocumentReader({
             <button
               type="button"
               onClick={onAcknowledge}
-              disabled={!checked}
+              disabled={!checked || loading || !!error || !reachedEnd}
               className="mb-3 w-full rounded-xl bg-[#B89C6D] py-3.5 font-medium text-white disabled:opacity-40"
               data-testid="button-acknowledge-document"
             >

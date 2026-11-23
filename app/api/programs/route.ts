@@ -1,17 +1,16 @@
 import { NextResponse } from 'next/server';
-import { readJSON, writeJSON, uid } from '@/lib/utils';
+import { readJSON, updateJSON, uid } from '@/lib/utils';
 import type { NextRequest } from 'next/server';
 import { isAdmin } from '@/lib/adminGuard';
 import { insertProgramSchema } from '@/shared/schema';
+import { programCollection, publicPrograms } from '@/lib/programsData';
 
 const FILE = 'programs.json';
 
 export async function GET(req: NextRequest) {
-  const data = await readJSON(FILE);
-  if (isAdmin(req)) {
-    return NextResponse.json(data);
-  }
-  return NextResponse.json(data.filter((p: any) => p.visible !== false));
+  const data = await readJSON(FILE, { fresh: true });
+  const result = isAdmin(req) ? programCollection(data) : publicPrograms(data);
+  return NextResponse.json(result, { headers: { 'Cache-Control': 'private, no-store', Vary: 'Cookie' } });
 }
 
 export async function POST(req: NextRequest) {
@@ -21,9 +20,7 @@ export async function POST(req: NextRequest) {
   if (!validation.success) {
     return NextResponse.json({ error: 'Validation failed', details: validation.error }, { status: 400 });
   }
-  const data = await readJSON(FILE);
   const item = { id: uid('p'), ...validation.data };
-  data.push(item);
-  await writeJSON(FILE, data);
+  await updateJSON(FILE, data => { data.push(item); });
   return NextResponse.json(item);
 }

@@ -1,13 +1,16 @@
 import Hero from "@/components/Hero";
+import JsonLd from '@/components/JsonLd';
 import Breadcrumb from "@/components/Breadcrumb";
 import Link from "next/link";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
+import { pageMetadata } from '@/lib/pageMetadata';
+
+export const metadata: Metadata = pageMetadata({
   title: "Questions fréquentes | Lemeille Patrimoine",
   description: "Achat, vente, défiscalisation, honoraires : les réponses aux questions les plus fréquentes posées à votre agence immobilière à Rouen.",
   alternates: { canonical: "/faq" },
-};
+});
 
 type QA = { q: string; a: string };
 type Cat = { titre: string; items: QA[] };
@@ -35,7 +38,7 @@ const FAQ: Cat[] = [
     items: [
       {
         q: "Comment estimez-vous mon bien ?",
-        a: "Nous réalisons une estimation fondée sur les caractéristiques du bien, les références de ventes récentes et la dynamique du marché local. Vous pouvez obtenir une première évaluation gratuite et sans engagement via notre page estimation.",
+        a: "Arthur Lemeille visite votre bien, analyse ses caractéristiques et les ventes récentes du secteur, puis vous remet un avis de valeur sous 24 heures maximum après la visite. L’estimation est gratuite et sans engagement. Le formulaire en ligne prépare votre échange ; il ne calcule pas de prix automatique.",
       },
       {
         q: "Quels sont vos honoraires ?",
@@ -69,7 +72,7 @@ const FAQ: Cat[] = [
     items: [
       {
         q: "Sous quel délai obtient-on une réponse ?",
-        a: "Nos conseillers vous répondent sous 48h. Vous pouvez nous joindre par téléphone au +33 6 87 15 72 59, par email ou via le formulaire de contact.",
+        a: "Je vous réponds personnellement sous 48h. Vous pouvez me joindre par téléphone au +33 6 87 15 72 59, par email ou via le formulaire de contact. Arthur Lemeille est votre seul interlocuteur au sein de l’agence.",
       },
     ],
   },
@@ -90,7 +93,7 @@ export default function Page() {
 
   return (
     <main>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLd data={jsonLd} />
       <Hero
         title="Questions fréquentes"
         subtitle="Achat, vente, défiscalisation, honoraires — l'essentiel pour bien démarrer votre projet."
@@ -120,7 +123,7 @@ export default function Page() {
         <div className="mt-10 card p-6 max-w-3xl">
           <p className="opacity-85">
             Vous ne trouvez pas votre réponse ?{" "}
-            <Link href="/contact" className="text-[#B89C6D] underline">Contactez-nous</Link> — nos conseillers vous répondent sous 48h.
+            <Link href="/contact" className="text-luxe underline">Contactez-moi</Link> — je vous réponds personnellement sous 48h. Arthur Lemeille
           </p>
         </div>
       </section>

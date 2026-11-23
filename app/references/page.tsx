@@ -6,12 +6,14 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { surfaceFr } from "@/lib/formatFr";
 
-export const metadata: Metadata = {
+import { pageMetadata } from '@/lib/pageMetadata';
+
+export const metadata: Metadata = pageMetadata({
   title: "Nos références & ventes | Lemeille Patrimoine",
   description:
     "Découvrez nos dernières ventes et références — le reflet de notre savoir-faire dans l'immobilier de caractère à Rouen et sur le Plateau Nord.",
   alternates: { canonical: "/references" },
-};
+});
 
 function apiBase() {
   return process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT || "3000"}`;
@@ -130,7 +132,7 @@ export default async function Page() {
                         {p.title}{region ? ` · ${region}` : ""}
                       </div>
                       <div className="text-sm opacity-70 mt-1">
-                        {p.type === "MAISON" ? "Maison" : "Appartement"}
+                        {p.type === "IMMEUBLE" ? "Immeuble" : p.type === "MAISON" ? "Maison" : "Appartement"}
                         {p.surface ? ` · ${surfaceFr(p.surface)}` : ""}
                         {p.rooms ? ` · ${p.rooms} pièces` : ""}
                       </div>

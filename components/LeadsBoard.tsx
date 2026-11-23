@@ -10,6 +10,7 @@ import MoneyInput from "@/components/MoneyInput";
 import { needsFollowUp, formatDate, PRIORITY_META, PRIORITY_CYCLE } from "@/lib/typesLead";
 import type { Lead, Action, Attachment } from "@/lib/typesLead";
 import { parOrdreAntichronologique } from "@/lib/commentairesLead";
+import SuiviNotificationsLead from "@/components/SuiviNotificationsLead";
 
 
 export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
@@ -26,8 +27,10 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
   async function ouvrirEstimation(lead: Lead) {
     setEstimationEnCours(lead.id);
     try {
-      const liste = await fetch('/api/estimations').then(r => r.ok ? r.json() : []);
-      const sienne = (Array.isArray(liste) ? liste : []).find((e: any) => e?.leadId === lead.id);
+      const liste = await fetch('/api/estimations').then(r => r.ok ? r.json() : Promise.reject(new Error('Chargement impossible')));
+      const siennes = (Array.isArray(liste) ? liste : []).filter((e: any) => e?.leadId === lead.id);
+      if (siennes.length > 1) { window.location.href = `/admin/estimations?leadId=${encodeURIComponent(lead.id)}`; return; }
+      const sienne = siennes[0];
       if (sienne) { window.location.href = `/admin/estimations/${sienne.id}`; return; }
 
       const nom = [lead.firstName, lead.lastName].filter(Boolean).join(' ').trim();
@@ -47,6 +50,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           leadId: lead.id,
+          creationKey: `premiere-estimation-${lead.id}`,
           titre: nom ? `Estimation — ${nom}` : 'Estimation',
           demandeur: nom || undefined,
           adresse: lead.address || bien.city || '',
@@ -119,23 +123,25 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
 
   // Déplace un lead dans le pipeline (change son statut ; optimiste + PATCH).
   const changeStatus = async (leadId: string, status: string) => {
-    setLeads(ls => ls.map(l => l.id === leadId ? { ...l, status, lastActivityAt: new Date().toISOString() } : l));
     try {
-      await fetch(`/api/leads/${leadId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
-    } catch { fetchLeads(); }
+      const r = await fetch(`/api/leads/${leadId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+      if (!r.ok) throw new Error('Statut non enregistré');
+      setLeads(ls => ls.map(l => l.id === leadId ? { ...l, status, lastActivityAt: new Date().toISOString() } : l));
+    } catch { toast('❌ Statut non enregistré. Actualisation du dossier.'); fetchLeads(); }
   };
 
   // Change la priorité d'un lead (optimiste + PATCH).
   const cyclePriority = async (lead: Lead) => {
     const idx = PRIORITY_CYCLE.indexOf((lead.priority as any) ?? null);
     const next = PRIORITY_CYCLE[(idx + 1) % PRIORITY_CYCLE.length];
-    setLeads(ls => ls.map(l => l.id === lead.id ? { ...l, priority: next, lastActivityAt: new Date().toISOString() } : l));
     try {
-      await fetch(`/api/leads/${lead.id}`, {
+      const r = await fetch(`/api/leads/${lead.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ priority: next }),
       });
-    } catch { fetchLeads(); }
+      if (!r.ok) throw new Error('Priorité non enregistrée');
+      setLeads(ls => ls.map(l => l.id === lead.id ? { ...l, priority: next, lastActivityAt: new Date().toISOString() } : l));
+    } catch { toast('❌ Priorité non enregistrée. Actualisation du dossier.'); fetchLeads(); }
   };
   // Éléments du mandat saisis pour un vendeur (avant création du bien)
   const [mandatForm, setMandatForm] = useState({
@@ -231,7 +237,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
         images: [],
         features: [],
         map: { precision: 'AREA', query: address, zoom: 12 },
-        dpe: { classEnergy: 'D', classGES: 'D', consumptionKwh: 0, emissionsKg: 0, date: '', ref: '' },
+        dpe: { classEnergy: '', classGES: '', date: '', ref: '' },
         visible: false,
         netSellerAmount: net || undefined,
         commissionPercentage: pct || undefined,
@@ -1061,7 +1067,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
           {filteredLeads.map(lead => (
             <div
               key={lead.id}
-              className={`card p-6 border-l-4 ${
+              className={`card min-w-0 p-6 border-l-4 ${
                 (lead.category || 'immobilier') === 'patrimoine'
                   ? 'border-l-purple-400'
                   : (lead.role || 'ACHETEUR') === 'VENDEUR'
@@ -1071,7 +1077,7 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
               data-testid={`lead-${lead.id}`}
             >
               <div className="flex flex-wrap gap-4 justify-between items-start">
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-3 mb-2 flex-wrap">
                     <h3 className="font-semibold text-lg">
                       {lead.firstName} {lead.lastName}
@@ -1113,8 +1119,9 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                       {lead.priority ? PRIORITY_META[lead.priority].label : '± Priorité'}
                     </button>
 
+                    <SuiviNotificationsLead suivi={lead.notificationSuivi} />
                     {/* Boutons d'action (spécifiques au rôle), Modifier et Supprimer */}
-                    <div className="flex gap-2 ml-auto">
+                    <div className="flex flex-wrap gap-2 ml-auto">
                       {(lead.category || 'immobilier') === 'immobilier' && (lead.role || 'ACHETEUR') === 'ACHETEUR' && (
                         <button
                           onClick={() => openBuyerPanel(lead)}
@@ -1328,9 +1335,18 @@ export function LeadsBoard({ role }: { role: 'ACHETEUR' | 'VENDEUR' }){
                           <option value="MAISON">Maison</option>
                         </select>
                         <input className="input text-sm" type="number" min="0" placeholder="Pièces" value={mandatForm.rooms} onChange={e => setMandatForm({ ...mandatForm, rooms: e.target.value })} />
-                        <input className="input text-sm" placeholder="Réf. cadastrale" value={mandatForm.cadastre} onChange={e => setMandatForm({ ...mandatForm, cadastre: e.target.value })} />
-                        <input className="input text-sm" type="number" min="0" placeholder="Surface Carrez (m²)" value={mandatForm.surface} onChange={e => setMandatForm({ ...mandatForm, surface: e.target.value })} />
-                        <input className="input text-sm" type="number" min="0" placeholder="Surface hors Carrez (m²)" value={mandatForm.annexSurface} onChange={e => setMandatForm({ ...mandatForm, annexSurface: e.target.value })} />
+                        <label className="text-xs font-medium">
+                          Emplacement cadastral — commune, section et parcelle(s)
+                          <input className="input text-sm mt-1 w-full" placeholder="Ex. : Rouen, section AB, parcelle 123" data-testid="mandat-cadastre" value={mandatForm.cadastre} onChange={e => setMandatForm({ ...mandatForm, cadastre: e.target.value })} />
+                        </label>
+                        <label className="text-xs font-medium">
+                          Surface Carrez (m²)
+                          <input className="input text-sm mt-1 w-full" type="number" min="0" step="0.01" inputMode="decimal" placeholder="Ex. : 65,42" data-testid="mandat-surface-carrez" value={mandatForm.surface} onChange={e => setMandatForm({ ...mandatForm, surface: e.target.value })} />
+                        </label>
+                        <label className="text-xs font-medium">
+                          Surface hors Carrez (m²)
+                          <input className="input text-sm mt-1 w-full" type="number" min="0" step="0.01" inputMode="decimal" placeholder="Ex. : 8,25" data-testid="mandat-surface-hors-carrez" value={mandatForm.annexSurface} onChange={e => setMandatForm({ ...mandatForm, annexSurface: e.target.value })} />
+                        </label>
                         {mandatForm.type === 'MAISON' && (
                           <input className="input text-sm" type="number" min="0" placeholder="Terrain (m²)" value={mandatForm.landSize} onChange={e => setMandatForm({ ...mandatForm, landSize: e.target.value })} />
                         )}

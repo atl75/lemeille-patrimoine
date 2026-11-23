@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { readJSON, writeJSON } from '@/lib/utils';
+import { readJSON, updateJSON } from '@/lib/utils';
 import { isAdmin } from '@/lib/adminGuard';
 import type { NextRequest } from 'next/server';
 
@@ -17,11 +17,9 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const v = String(body?.feature ?? '').trim();
   if (!v) return NextResponse.json({ error: 'Prestation vide' }, { status: 400 });
-  const data = await readJSON(FILE);
-  const list: string[] = Array.isArray(data) ? data : [];
-  if (!list.some((f) => f.toLowerCase() === v.toLowerCase())) {
-    list.push(v);
-    await writeJSON(FILE, list);
-  }
-  return NextResponse.json({ ok: true, features: list });
+  const result = await updateJSON(FILE, list => {
+    if (!list.some((f: string) => f.toLowerCase() === v.toLowerCase())) list.push(v);
+    return { ok: true, features: list };
+  });
+  return NextResponse.json(result);
 }

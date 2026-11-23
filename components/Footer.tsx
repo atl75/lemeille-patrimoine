@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AudiencePreferencesButton } from '@/components/AnalyticsProvider';
 
 export function Footer() {
   const year = new Date().getFullYear();
@@ -73,7 +74,7 @@ export function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               className={`${link} inline-flex items-center gap-2 mt-0.5`}
-              aria-label="Suivez Lemeille Patrimoine sur X (Twitter)"
+              aria-label="@lempatrimoine — Suivez Lemeille Patrimoine sur X (Twitter)"
             >
               <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true">
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
@@ -85,7 +86,7 @@ export function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               className={`${link} inline-flex items-center gap-2`}
-              aria-label="La chaîne YouTube de Lemeille Patrimoine"
+              aria-label="Notre chaîne YouTube — Lemeille Patrimoine"
             >
               <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true">
                 <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.6 15.6V8.4l6.3 3.6-6.3 3.6z" />
@@ -97,7 +98,7 @@ export function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               className={`${link} inline-flex items-center gap-2`}
-              aria-label="Le profil LinkedIn d'Arthur Lemeille"
+              aria-label="Arthur Lemeille sur LinkedIn — profil professionnel"
             >
               <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true">
                 <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05a3.75 3.75 0 0 1 3.37-1.85c3.6 0 4.27 2.37 4.27 5.46zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z" />
@@ -149,6 +150,7 @@ export function Footer() {
       <div className="border-t border-gold/15">
         <div className="container py-5 text-xs text-luxe/70">
           &copy; {year} Lemeille Patrimoine — Tous droits réservés.
+          <div className="mt-2"><AudiencePreferencesButton /></div>
         </div>
       </div>
     </footer>

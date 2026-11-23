@@ -49,7 +49,8 @@ export default function GalerieRealisation({ photos, titre }: { photos: PhotoRea
                     type="button"
                     onClick={() => setIndex(i)}
                     aria-label={`Agrandir : ${p.legende || `${g.label} ${i + 1}`}`}
-                    className="group relative block w-full cursor-zoom-in overflow-hidden rounded-xl border"
+                    className="gallery-photo-button group relative block w-full cursor-zoom-in overflow-hidden rounded-xl border"
+                    aria-haspopup="dialog"
                     data-testid={`button-galerie-${i}`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}

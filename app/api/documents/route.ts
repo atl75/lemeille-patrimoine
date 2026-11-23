@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
     propertyId: p.id, propertyTitle: p.title || '', propertyCity: p.city || '',
     // Désignation figée à la création : le document reste lisible même si le
     // bien est retiré du portefeuille par la suite.
-    propertyLabel: [p.type === 'MAISON' ? propertyTypology(p) : `Appartement ${propertyTypology(p)}`,
+    propertyLabel: [p.type === 'MAISON' || p.type === 'IMMEUBLE' ? propertyTypology(p) : `Appartement ${propertyTypology(p)}`,
                     p.surface ? `${p.surface} m²` : null].filter(Boolean).join(' · '),
     client: b.client || {}, offerAmount: docData.offerAmount, atAskingPrice: docData.atAskingPrice,
     sequestreAmount: docData.sequestreAmount, validityDays: docData.validityDays, financing: docData.financing,

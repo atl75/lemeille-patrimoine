@@ -13,7 +13,9 @@ import type { Metadata } from 'next';
 import { OG_IMAGE } from '@/lib/ogImage';
 import { surfaceFr } from "@/lib/formatFr";
 
-export const metadata: Metadata = {
+import { pageMetadata } from '@/lib/pageMetadata';
+
+export const metadata: Metadata = pageMetadata({
   title: 'Biens à vendre à Rouen | Lemeille Patrimoine',
   description: 'Maisons et appartements à vendre à Rouen, Mont-Saint-Aignan, Bois-Guillaume et Plateau Nord. Biens de caractère sélectionnés, accompagnement personnalisé.',
   alternates: {
@@ -26,7 +28,7 @@ export const metadata: Metadata = {
     url: '/immobilier',
     type: 'website',
   }
-};
+});
 
 // ISR : page mise en cache et régénérée au plus toutes les 5 min. Les
 // modifications de biens dans l'admin déclenchent une régénération immédiate
@@ -36,6 +38,7 @@ export const revalidate = 300;
 const SECTORS = [
   { value: "paris", label: "Paris" },
   { value: "normandie", label: "Normandie" },
+  { value: "est", label: "Est" },
   { value: "cote-azur", label: "Côte d'Azur" },
 ];
 
@@ -58,8 +61,9 @@ const SECTOR_CITY: Record<string, string[]> = {
 };
 
 function norm(s:string=""){ return s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase(); }
-function matchSector(city:string, slug?:string){
+function matchSector(city:string, slug?:string, region?:string){
   if(!slug) return true;
+  if(slug === 'est') return String(region || '').toUpperCase() === 'EST';
   const list = SECTOR_CITY[slug];
   if(!list) return true;
   const c = norm(city);
@@ -126,6 +130,7 @@ export default async function Page({ searchParams }: {
   const isSoldView = showSold === "true";
   
   let items = all.filter(p => {
+    if (sector === 'est' && !matchSector(p.city || '', sector, p.region)) return false;
     // Filtrer selon vue : vendus/sous promesse ou en vente
     if (isSoldView) {
       // Afficher les biens vendus ET les biens sous promesse
@@ -150,7 +155,7 @@ export default async function Page({ searchParams }: {
       if (pType !== propertyType.toUpperCase()) return false;
     }
     
-    if (!matchSector(p.city||"", sector)) return false;
+    if (!matchSector(p.city||"", sector, p.region)) return false;
     const price = toNum(p.price) || 0;
     const surf  = toNum(p.surface) || 0;
     const rooms = toNum(p.rooms) || 0;
@@ -280,8 +285,8 @@ export default async function Page({ searchParams }: {
         {/* Bandeau estimation */}
         <div className="card p-4 flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
-            <div className="luxe text-lg">Vous vendez ? Estimation gratuite en 2 minutes</div>
-            <div className="text-sm opacity-80">Obtenez une fourchette indicative puis un avis de valeur précis.</div>
+            <div className="luxe text-lg">Vous vendez ? Demandez votre estimation gratuite</div>
+            <div className="text-sm opacity-80">Arthur Lemeille vous rappelle sous 48 heures. Votre avis de valeur est remis sous 24 heures maximum après la visite.</div>
           </div>
           <Link className="btn btn-gold" href="/immobilier/estimation" data-testid="link-estimation">Estimer mon bien</Link>
         </div>

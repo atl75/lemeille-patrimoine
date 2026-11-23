@@ -5,7 +5,12 @@ import Img from "@/components/Img";
 import type { Metadata } from 'next';
 import { OG_IMAGE } from '@/lib/ogImage';
 
-export const metadata: Metadata = {
+import { pageMetadata } from '@/lib/pageMetadata';
+import { articleReader } from '@/lib/articlesData';
+
+export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = pageMetadata({
   title: "Actualités immobilières | Lemeille Patrimoine",
   description: "Analyses du marché immobilier rouennais, fiscalité (Malraux, Monument Historique, Déficit Foncier) et conseils patrimoniaux.",
   alternates: {
@@ -18,15 +23,11 @@ export const metadata: Metadata = {
     url: '/actualites',
     type: 'website',
   }
-};
+});
 
 async function getArticles(){
-  const base = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT||'3000'}`;
-  const r = await fetch(`${base}/api/articles`, { cache: 'no-store' });
-  const data = r.ok ? await r.json() : [];
-  return Array.isArray(data)
-    ? data.sort((a: any, b: any) => (a.publishedAt < b.publishedAt ? 1 : -1))
-    : [];
+  const data = await articleReader.list();
+  return data.sort((a, b) => a.publishedAt === b.publishedAt ? 0 : a.publishedAt < b.publishedAt ? 1 : -1);
 }
 
 export default async function Page(){

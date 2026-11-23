@@ -1,35 +1,38 @@
-import { NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
+import { NextResponse } from 'next/server';
+import { isAdmin } from '@/lib/adminGuard';
+import { readJSON } from '@/lib/utils';
+import { DOCUMENT_FILE, isPublicDocument } from '@/lib/documentAccess';
+import { readStoredDocument } from '@/lib/documentStore';
 
-const UPLOAD_DIR = path.join(process.cwd(), "data", "uploads");
-const CONTENT_TYPE: Record<string, string> = {
-  pdf: "application/pdf",
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
+export const dynamic = 'force-dynamic';
+const headers = {
+  'Cache-Control': 'private, no-store',
+  Vary: 'Cookie',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Robots-Tag': 'noindex, noarchive',
 };
 
-// Sert un document stocké sur le volume persistant, en « inline » (consultable
-// dans un onglet). Le nom est strictement validé pour éviter tout path traversal.
-export async function GET(_req: Request, { params }: { params: Promise<{ file: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ file: string }> }) {
   const { file } = await params;
-  if (!/^[a-zA-Z0-9]+\.(pdf|jpe?g|png|webp)$/.test(file)) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
+  const notFound = () => NextResponse.json({ error: 'Not found' }, { status: 404, headers });
+  if (!DOCUMENT_FILE.test(file)) return notFound();
   try {
-    const buf = await fs.readFile(path.join(UPLOAD_DIR, file));
-    const ext = file.split(".").pop()!.toLowerCase();
-    return new NextResponse(new Uint8Array(buf), {
-      status: 200,
-      headers: {
-        "Content-Type": CONTENT_TYPE[ext] || "application/octet-stream",
-        "Content-Disposition": `inline; filename="${file}"`,
-        "Cache-Control": "public, max-age=31536000, immutable",
-      },
+    if (!isAdmin(req)) {
+      // Lecture fraîche : retirer un plan ou masquer le bien retire l'accès
+      // sans attendre le cache court de lecture des pages.
+      const [properties, programs] = await Promise.all([
+        readJSON('properties.json', { fresh: true }),
+        readJSON('programs.json', { fresh: true }),
+      ]);
+      if (!isPublicDocument(file, properties, programs, process.env.NEXT_PUBLIC_SITE_URL)) return notFound();
+    }
+    const { buffer, mime } = await readStoredDocument(file);
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: { ...headers, 'Content-Type': mime, 'Content-Disposition': `inline; filename="${file}"` },
     });
-  } catch {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return notFound();
+    console.error('[documents] Lecture indisponible');
+    return NextResponse.json({ error: 'Document momentanément indisponible' }, { status: 503, headers });
   }
 }

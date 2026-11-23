@@ -1,4 +1,5 @@
 import Hero from "@/components/Hero";
+import CompositionImmeuble from '@/components/CompositionImmeuble';
 import Breadcrumb from "@/components/Breadcrumb";
 import DPECard from "@/components/DPECard";
 import MapEmbed from "@/components/MapEmbed";
@@ -11,17 +12,28 @@ import { propertyLabel, propertyTypology } from "@/lib/propertyLabel";
 import CapaciteEmpruntSimulator from "@/components/CapaciteEmpruntSimulator";
 import PlanViewer from "@/components/PlanViewer";
 import { notFound } from "next/navigation";
-import { seoTitle } from '@/lib/seoTitle';
 import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/pageMetadata';
 import { isThinListing } from '@/lib/thinListing';
 import Link from "next/link";
 import { SECTORS, sectorSlugFor } from "@/lib/sectors";
 import { surfaceFr } from "@/lib/formatFr";
+import { contactBien } from "@/lib/propertyContact";
+import { getProperty } from "@/lib/propertyPageData";
 
-async function getProperty(id: string){
-  const base = process.env.NEXT_PUBLIC_SITE_URL || `http://127.0.0.1:${process.env.PORT||'3000'}`;
-  const r = await fetch(`${base}/api/properties/${id}`, { cache: 'no-store' });
-  return r.ok ? r.json() : null;
+export const dynamic = 'force-dynamic';
+
+function propertyMetaDescription(p: any): string {
+  const facts = [
+    String(p.title || '').trim(),
+    p.surface ? surfaceFr(p.surface) : null,
+    p.rooms ? `${p.rooms} pièce${Number(p.rooms) > 1 ? 's' : ''}` : null,
+    p.price && !p.priceOnRequest ? `${Number(p.price).toLocaleString('fr-FR')} €` : null,
+  ].filter(Boolean);
+
+  return facts.length
+    ? `${facts.join(' · ')}.`
+    : 'Bien immobilier à découvrir avec Lemeille Patrimoine.';
 }
 
 export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -31,22 +43,14 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
   // s'exécute avant le composant et fige déjà le statut de la réponse.
   if (!p) notFound();
 
-  const region = p.region ? String(p.region).replaceAll('_', ' ') : '';
-  // Ville avant surface : c'est elle qui porte la recherche locale.
-  const title = seoTitle([`${propertyTypology(p)}${p.city ? ` · ${p.city}` : ''}`, p.surface ? surfaceFr(p.surface) : null, region]);
-  // Une description de remplissage (« . », quelques caractères) n'en est pas une :
-  // on lui préfère un résumé construit à partir des caractéristiques du bien.
-  const saisie = String(p.description || '').trim();
-  const description = saisie.length >= 40
-    ? saisie.slice(0, 155)
-    : [
-        `${p.type === 'MAISON' ? 'Maison' : 'Appartement'}${p.rooms ? ` T${p.rooms}` : ''} à ${p.city}`,
-        p.surface ? surfaceFr(p.surface) : null,
-        p.price && !p.priceOnRequest ? `${Number(p.price).toLocaleString('fr-FR')} €` : null,
-      ].filter(Boolean).join(' · ') + '. Visite sur rendez-vous avec Lemeille Patrimoine.';
+  const fallbackTitle = `${propertyTypology(p)}${p.city ? ` à ${p.city}` : ''}`;
+  // Le titre commercial est le meilleur signal de recherche pour une fiche :
+  // ne pas le tronquer littéralement dans la balise <title>.
+  const title = `${String(p.title || fallbackTitle).trim()} | Lemeille Patrimoine`;
+  const description = propertyMetaDescription(p);
   const coverImage = Array.isArray(p.images) && p.images.length ? p.images[0] : undefined;
 
-  return {
+  return pageMetadata({
     title,
     description,
     // Fiche vendue sans contenu : retirée de l'index sans casser l'URL.
@@ -58,19 +62,26 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
       url: `/immobilier/biens/${p.id}`,
       type: 'website',
       images: coverImage ? [{ url: coverImage }] : undefined,
-    }
-  };
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: coverImage ? [coverImage] : undefined,
+    },
+  });
 }
 
 export default async function Page(props: { params: Promise<{ id: string }> }){
   const params = await props.params;
   const p = await getProperty(params.id);
-  // Bien inexistant ou masqué : vrai 404 (l'API renvoie déjà 404 sur
-  // visible === false). Un 200 « Bien introuvable » serait indexé par Google
+  // Bien inexistant ou masqué : vrai 404. Le lecteur public ne renvoie jamais
+  // visible === false. Un 200 « Bien introuvable » serait indexé par Google
   // comme une page valide — un « soft 404 » pénalisé au référencement.
   if (!p) notFound();
   const imgs: string[] = Array.isArray(p.images) && p.images.length ? p.images : ['/logo.svg'];
   const video = getVideoInfo(p.videoUrl);
+  const contact = contactBien(p);
   // Plans : plusieurs documents possibles (repli sur le plan unique hérité)
   const plans: string[] = Array.isArray(p.floorPlans) && p.floorPlans.length
     ? p.floorPlans
@@ -116,15 +127,15 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
     <main>
       <PropertySeoJsonLd property={p} />
       <Hero
-        title={`${propertyTypology(p)}${p.surface ? ` · ${surfaceFr(p.surface)}` : ''}${p.city ? ` · ${p.city}` : ''}`}
+        title={p.title || `${propertyTypology(p)}${p.city ? ` · ${p.city}` : ''}`}
         subtitle={<span>
-          {p.status === 'OFFER_RECEIVED' && (
-            <span className="mr-2 inline-block rounded-full bg-amber-500 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-white align-middle">Sous offre</span>
+          {contact.statut && (
+            <span className="mr-2 inline-block rounded-full bg-luxe px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-white align-middle">{contact.statut}</span>
           )}
-          {p.title}{p.region?` · ${String(p.region).replaceAll('_',' ')}`:''}
+          {propertyTypology(p)}{p.surface ? ` · ${surfaceFr(p.surface)}` : ''}{p.city ? ` · ${p.city}` : ''}{p.region ? ` · ${String(p.region).replaceAll('_', ' ')}` : ''}
         </span>}
-        primary={{label:"Consulter la fiche PDF", href:`/api/properties/${p.id}/pdf`, blank:true}}
-        secondary={{label:"Contact", href:`/contact?ref=${encodeURIComponent(p.id)}`}}
+        primary={contact}
+        secondary={{label:"Consulter la fiche PDF", href:`/api/properties/${p.id}/pdf`, blank:true}}
         // La première photo du bien fait l'en-tête. Un bien sans photo retombe
         // sur l'en-tête éditorial de Hero — pas de cadre vide.
         image={(p.images && p.images[0]) || undefined}
@@ -137,6 +148,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
         {/* Colonne gauche (galerie + infos) */}
         <div className="md:col-span-2">
           <PropertyGallery images={imgs} title={p.title} />
+          {p.type==='IMMEUBLE' && <CompositionImmeuble lots={p.buildingLots || []} />}
 
           {video && (
             <div className="card p-6 mt-6">
@@ -170,7 +182,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
 
         </div>
 
-        {/* Colonne droite : flex vertical, cartes et bouton PDF pleine largeur,
+        {/* Colonne droite : flex vertical, cartes et contact pleine largeur,
             empilés naturellement (pas d'espace vide sous la dernière carte). */}
         <div className="flex flex-col gap-4">
           {/* Rendu une seule fois : en mobile la colonne de droite passe sous la
@@ -185,12 +197,13 @@ export default async function Page(props: { params: Promise<{ id: string }> }){
             {/* Lien vers le secteur : c'est le maillage qu'attend Google pour
                 comprendre notre ancrage quartier par quartier. */}
             {secteur && (
-              <Link href={`/secteurs/${secteur}`} className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-[#B89C6D] hover:gap-2.5 transition-all" data-testid="link-secteur">
+              <Link href={`/secteurs/${secteur}`} className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-luxe/80 hover:gap-2.5 transition-all" data-testid="link-secteur">
                 Le marché à {SECTORS[secteur].title} →
               </Link>
             )}
           </div>
-          <a className="btn btn-gold text-center w-full" href={`/api/properties/${p.id}/pdf`} target="_blank" rel="noopener noreferrer">Consulter la fiche PDF</a>
+          <Link className="btn btn-gold text-center w-full" href={contact.href}>{contact.label}</Link>
+          <a className="text-center underline underline-offset-4 py-3" href={`/api/properties/${p.id}/pdf`} target="_blank" rel="noopener noreferrer">Consulter la fiche PDF</a>
         </div>
       </section>
 

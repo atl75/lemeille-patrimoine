@@ -3,6 +3,8 @@ import type { NextRequest } from 'next/server';
 import { readJSON } from '@/lib/utils';
 import { buildMandatePdf } from '@/lib/mandatPdf';
 import { buildAvenantPdf } from '@/lib/avenantPdf';
+import { erreurPdfMandatImmeuble } from '@/lib/validationMandatImmeuble';
+import { versionDocumentSignature } from '@/lib/signatureIntegrity';
 
 // Route PUBLIQUE : sert le PDF du mandat correspondant au jeton de signature,
 // affiché en ligne (inline) pour que le mandant puisse le lire avant de signer.
@@ -19,6 +21,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
     for (const m of mandats) {
       for (const av of (Array.isArray(m.avenants) ? m.avenants : [])) {
         if ((av.signers || []).some((s: any) => s.token && s.token === token)) {
+          const version=_req.nextUrl.searchParams.get('version');
+          if(version && version!==versionDocumentSignature(m,av))return NextResponse.json({error:'Le document a changé. Rechargez la page.'},{status:409});
           const bytes = await buildAvenantPdf(m, av);
           return new NextResponse(Buffer.from(bytes), {
             status: 200,
@@ -39,6 +43,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
       p = (Array.isArray(props) ? props : []).find((x: any) => x.mandateSignToken && x.mandateSignToken === token);
     }
     if (!p) return NextResponse.json({ error: 'Lien invalide' }, { status: 404 });
+    const version=_req.nextUrl.searchParams.get('version');
+    if(version && version!==versionDocumentSignature(p))return NextResponse.json({error:'Le document a changé. Rechargez la page.'},{status:409});
+    const erreur=erreurPdfMandatImmeuble(p);if(erreur)return NextResponse.json({error:'Les informations de ce mandat doivent être vérifiées par l’agence avant sa préparation.'},{status:409});
 
     const bytes = await buildMandatePdf(p);
     return new NextResponse(Buffer.from(bytes), {

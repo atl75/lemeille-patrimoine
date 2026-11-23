@@ -1,4 +1,5 @@
 import Link from "next/link";
+import JsonLd from '@/components/JsonLd';
 import Hero from "@/components/Hero";
 import Breadcrumb from "@/components/Breadcrumb";
 import Section from "@/components/Section";
@@ -10,18 +11,20 @@ import { OG_IMAGE } from '@/lib/ogImage';
 // Chiffre annoncé, aligné sur l'accueil — voir app/page.tsx.
 const VENTES_REALISEES = '50+';
 
-export const metadata: Metadata = {
+import { pageMetadata } from '@/lib/pageMetadata';
+
+export const metadata: Metadata = pageMetadata({
   title: "Vendre son bien à Rouen | Lemeille Patrimoine",
-  description: "Vendre votre maison ou appartement à Rouen et sur le Plateau Nord : estimation gratuite sous 3 jours, photos professionnelles, accompagnement complet.",
+  description: "Vendez votre maison ou appartement à Rouen et sur le Plateau Nord : estimation gratuite après visite, photos soignées et accompagnement jusqu’à la signature.",
   alternates: { canonical: "/vendre" },
   openGraph: {
       images: OG_IMAGE,
     title: "Vendre son bien à Rouen — estimation gratuite",
     description:
-      "Estimation gratuite et avis de valeur sous 3 jours pour votre maison ou appartement à Rouen et sur le Plateau Nord.",
+      "Estimation gratuite de votre bien à Rouen et sur le Plateau Nord. Avis de valeur argumenté sous 24 heures maximum après la visite.",
     url: "/vendre",
   },
-};
+});
 
 // Rendu à la requête : lecture des biens depuis le volume monté au démarrage.
 export const dynamic = "force-dynamic";
@@ -36,7 +39,7 @@ async function getSoldCount() {
 }
 
 const ETAPES: [string, string][] = [
-  ["1. Estimation", "Visite du bien, analyse des ventes réelles du quartier et remise d'un avis de valeur argumenté sous 3 jours."],
+  ["1. Estimation", "Visite du bien, analyse des ventes réelles du quartier et remise d'un avis de valeur argumenté sous 24 heures maximum après la visite."],
   ["2. Mise en valeur", "Reportage photo soigné, description travaillée, plans et diagnostics réunis avant la mise en ligne."],
   ["3. Diffusion ciblée", "Publication sur les grands portails, notre site et notre fichier d'acquéreurs qualifiés — ou en off-market si vous préférez la discrétion."],
   ["4. Visites & retours", "Visites accompagnées, filtrage des candidats et compte rendu après chaque visite."],
@@ -46,7 +49,7 @@ const ETAPES: [string, string][] = [
 
 const FAQ: [string, string][] = [
   ["Combien coûte l'estimation ?", "Rien. L'estimation et l'avis de valeur sont gratuits et sans engagement, que vous vendiez avec nous ou non."],
-  ["En combien de temps ai-je mon avis de valeur ?", "Sous 3 jours après la visite du bien. Vous obtenez immédiatement une fourchette indicative en ligne."],
+  ["En combien de temps ai-je mon avis de valeur ?", "Sous 24 heures maximum après la visite du bien. Le formulaire prépare notre échange : je vous rappelle pour organiser la visite. Aucun prix automatique n'est affiché en ligne."],
   ["Quels sont vos honoraires ?", "Ils sont dégressifs selon le prix du bien et annoncés à l'avance, par écrit, dans le mandat. Notre barème est public sur le site."],
   ["Puis-je vendre sans que l'annonce soit publiée ?", "Oui. Nous pratiquons la vente off-market : le bien n'est présenté qu'à notre fichier d'acquéreurs, en toute confidentialité."],
   ["Sur quel secteur intervenez-vous ?", "Rouen et sa métropole : Rouen centre et rive gauche, Mont-Saint-Aignan, Bois-Guillaume, Bihorel, Isneauville, Le Mesnil-Esnard, Franqueville-Saint-Pierre et les communes voisines."],
@@ -66,13 +69,13 @@ export default async function Page() {
 
   return (
     <main>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      <JsonLd data={faqJsonLd} />
 
       <Hero
         title="Vendre votre bien à Rouen"
-        subtitle={<span>Estimation gratuite, avis de valeur sous 3 jours et accompagnement jusqu&apos;à la signature.</span>}
+        subtitle={<span>Estimation gratuite, avis de valeur sous 24 heures maximum après la visite et accompagnement jusqu&apos;à la signature.</span>}
         primary={{ label: "Estimer mon bien", href: "#estimation" }}
-        secondary={{ label: "Parler à un conseiller", href: "/contact?topic=Vendre" }}
+        secondary={{ label: "Parler de mon projet", href: "/contact?topic=Vendre#form" }}
         image="/hero-normandie.jpg"
       />
 
@@ -84,7 +87,7 @@ export default async function Page() {
         <div className="container py-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           {[
             [`${soldCount > 50 ? soldCount : VENTES_REALISEES} ventes réalisées`, "Rouen & Plateau Nord"],
-            ["Avis de valeur sous 3 jours", "Gratuit et sans engagement"],
+            ["Avis de valeur sous 24 heures maximum après la visite", "Gratuit et sans engagement"],
             ["Honoraires transparents", "Barème public, annoncés par écrit"],
             ["Interlocuteur unique", "Réponse sous 48h"],
           ].map(([t, s], i) => (
@@ -168,8 +171,9 @@ export default async function Page() {
             </p>
           </div>
 
-          <div className="card p-6">
-            <div className="luxe text-xl mb-1">Notre matériel et notre méthode</div>
+          <details className="card p-6" data-photo-method>
+            <summary className="luxe text-xl cursor-pointer rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-luxe">Notre matériel et notre méthode</summary>
+            <div className="mt-4">
             <p className="text-xs opacity-70 mb-4">Le matériel ne suffit pas : c&apos;est la technique de prise de vue qui fait la différence.</p>
             <ul className="space-y-4 text-sm">
               {[
@@ -190,7 +194,8 @@ export default async function Page() {
               Nous retouchons la lumière et les perspectives, jamais la réalité du bien : une photo qui promet
               ce que la visite ne tient produit des visites inutiles et des acquéreurs déçus.
             </p>
-          </div>
+            </div>
+          </details>
         </div>
       </Section>
 
@@ -206,10 +211,10 @@ export default async function Page() {
       </Section>
 
       {/* Estimation */}
-      <div id="estimation">
+      <div id="estimation" className="scroll-mt-24">
         <Section
           title="Estimez votre bien gratuitement"
-          subtitle="Obtenez immédiatement une fourchette indicative, puis un avis de valeur personnalisé sous 3 jours."
+          subtitle="Décrivez votre bien pour préparer notre échange. Votre avis de valeur personnalisé vous sera remis sous 24 heures maximum après la visite, gratuitement et sans engagement."
         >
           <div className="max-w-3xl mx-auto">
             <EstimationForm />
@@ -234,7 +239,7 @@ export default async function Page() {
           ou notre <Link href="/bareme-honoraires" className="underline hover:text-[#B89C6D]">barème d&apos;honoraires</Link>.
         </p>
         <div className="mt-6 text-center">
-          <Link href="/contact?topic=Vendre" className="btn btn-gold">Parler à un conseiller</Link>
+          <Link href="/contact?topic=Vendre#form" className="btn btn-gold">Parlons de votre projet</Link>
         </div>
       </Section>
     </main>

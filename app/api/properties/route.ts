@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { envoyerLot } from '@/lib/envoiEmail';
-import { readJSON, writeJSON, uid } from '@/lib/utils';
+import { readJSON, updateJSON, uid } from '@/lib/utils';
 import type { NextRequest } from 'next/server';
 import { isAdmin } from '@/lib/adminGuard';
 import { toPublicProperty } from '@/lib/publicProperty';
@@ -8,6 +8,7 @@ import { revalidatePublicProperties } from '@/lib/revalidateProperties';
 import { rememberNotaries } from '@/lib/rememberNotaries';
 import { EMAIL_SIGNATURE_HTML } from '@/lib/emailSignature';
 import { insertPropertySchema } from '@/shared/schema';
+import { erreurPublicationBien } from '@/lib/publicationBien';
 
 const FILE = 'properties.json';
 
@@ -73,10 +74,10 @@ export async function POST(req: NextRequest) {
   if (!validation.success) {
     return NextResponse.json({ error: 'Validation failed', details: validation.error }, { status: 400 });
   }
-  const data = await readJSON(FILE);
+  const erreur = erreurPublicationBien(validation.data);
+  if (erreur) return NextResponse.json({ error: erreur }, { status: 400 });
   const item = { id: uid('b'), ...validation.data };
-  data.push(item);
-  await writeJSON(FILE, data);
+  await updateJSON(FILE, data => { data.push(item); });
   revalidatePublicProperties();
   await rememberNotaries(item);
   await notifySubscribers(item);

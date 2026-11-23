@@ -4,6 +4,9 @@ import Link from "next/link";
 import AdminShell from "@/components/AdminShell";
 import Breadcrumb from "@/components/Breadcrumb";
 import { useToast } from "@/components/Toast";
+import { useVersionedSave } from "@/lib/useVersionedSave";
+import EtatSauvegarde from "@/components/EtatSauvegarde";
+import { annoncesActives } from "@/lib/ajustementPrix";
 import { propertyLabel } from "@/lib/propertyLabel";
 import DocumentPositionnement from "@/components/DocumentPositionnement";
 import DeposePdf from "@/components/DeposePdf";
@@ -81,6 +84,12 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [dvfTerrainMin, setDvfTerrainMin] = useState("");
   const [dvfTerrainMax, setDvfTerrainMax] = useState("");
   const [chargeDvf, setChargeDvf] = useState(false);
+  const [messageDvf, setMessageDvf] = useState('');
+  const cleDvf = (rayon = rayonDvf) => JSON.stringify([bien?.id, bien?.map?.query, bien?.surface, bien?.type,
+    rayon, dvfDepuis, dvfPieces, dvfSurfaceMin, dvfSurfaceMax, dvfTerrainMin, dvfTerrainMax]);
+  const cleDvfCourante = useRef(''); cleDvfCourante.current = cleDvf();
+  const cleFiltres = cleDvf();
+  useEffect(() => { setDvf(null); }, [cleFiltres]);
   /** Prix de référence du secteur, relevé par l'agent sur une page tierce. */
   const [reference, setReference] = useState<ReferenceM2 | null>(null);
   const [collageRef, setCollageRef] = useState("");
@@ -89,12 +98,12 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [diagnosticRef, setDiagnosticRef] = useState<string | null>(null);
   /** URL du détail des ventes, quand le navigateur refuse un onglet. */
   const [apercuVentes, setApercuVentes] = useState<string | null>(null);
-  const [enregistrement, setEnregistrement] = useState(false);
+
 
   useEffect(() => {
     let annule = false;
     fetch("/api/properties")
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : Promise.reject(new Error("Chargement impossible")))
       .then((d: any[]) => {
         if (annule) return;
         const liste = Array.isArray(d) ? d : [];
@@ -132,7 +141,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
    * pièce maîtresse à chaque rafraîchissement.
    */
   useEffect(() => {
-    if (etat !== "ok" || !bien || dvf) return;
+    if (etat !== "ok" || !bien || bien.type==='IMMEUBLE' || dvf) return;
     const adresse = (bien.map?.query || "").trim() || [bien.city, bien.region].filter(Boolean).join(" ");
     if (!adresse) return;
     chercherDvf(rayonDvf);
@@ -147,8 +156,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     return comparablesDuPortefeuille(bien, tous).filter(c => !dejaLa.has(c.id));
   }, [bien, tous, comparables]);
 
-  const pos = useMemo(() => bien ? positionner(bien, comparables) : null, [bien, comparables]);
-  const fourchette = useMemo(() => bien ? fourchetteConseillee(bien, comparables) : null, [bien, comparables]);
+  const pos = useMemo(() => bien ? positionner(bien, annoncesActives(comparables)) : null, [bien, comparables]);
+  const fourchette = useMemo(() => bien ? fourchetteConseillee(bien, annoncesActives(comparables)) : null, [bien, comparables]);
 
   /**
    * La fourchette recommandée s'appuie sur la MEILLEURE preuve disponible.
@@ -302,10 +311,13 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
    * celle d'un concurrent, mais des actes.
    */
   const chercherDvf = async (rayon = rayonDvf) => {
+    const cle = cleDvf(rayon);
     // L'adresse exacte du bien vit dans map.query ; la ville sert de repli.
     const adresse = (bien?.map?.query || "").trim() || [bien?.city, bien?.region].filter(Boolean).join(" ");
     if (!adresse.trim()) { toast("Renseignez l'adresse du bien pour chercher les ventes autour."); return; }
     setChargeDvf(true);
+    setDvf(null);
+    setMessageDvf('');
     try {
       const r = await fetch("/api/dvf", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -320,10 +332,12 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                                terrainMin: Number(dvfTerrainMin) || undefined, terrainMax: Number(dvfTerrainMax) || undefined }),
       });
       const d = await r.json();
-      if (!r.ok) { toast(d?.error ?? "Recherche impossible."); return; }
+      if (!r.ok) { const message = d?.error ?? "Recherche impossible."; setMessageDvf(message); toast(message); return; }
+      if (cle !== cleDvfCourante.current) { setMessageDvf('Les filtres ont changé. Relancez la recherche.'); return; }
       setDvf({ ventes: d.ventes ?? [], stats: d.stats ?? null, adresse: d.adresse, precision: d.precision, lat: d.lat, lon: d.lon });
-      if (!d.ventes?.length) toast("Aucune vente comparable trouvée dans ce rayon.");
+      setMessageDvf(d.information || '');
     } catch {
+      setMessageDvf('Recherche impossible. Vérifiez votre connexion puis réessayez.');
       toast("Recherche impossible.");
     } finally {
       setChargeDvf(false);
@@ -367,6 +381,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       <p class="src">
         Adresse : ${ech(dvf.adresse)}${dvf.precision !== "housenumber" ? " (rue seulement, pas le numéro)" : ""} —
         rayon ${rayonDvf} m${dvfDepuis ? ` — à partir de ${dvfDepuis}` : ""}${dvfPieces ? ` — ${dvfPieces} pièces` : ""}.<br>
+        ${ech(messageDvf)}<br>
         Source : demandes de valeurs foncières (DGFiP), fichiers geo-dvf publiés sur data.gouv.fr sous licence ouverte.
         Seules les mutations portant UN SEUL logement sont retenues : lorsqu'un acte en couvre plusieurs,
         le prix déclaré est celui de l'ensemble et le prix au m² n'aurait aucun sens.
@@ -417,7 +432,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       <header>
         <h1>${dvf.ventes.length} ventes signées autour du bien</h1>
         <p>${ech(dvf.adresse)} — rayon ${rayonDvf} m. Source : demandes de valeurs foncières (DGFiP),
-licence ouverte. Fond de carte OpenStreetMap.</p>
+licence ouverte. Fond de carte OpenStreetMap. ${ech(messageDvf)}</p>
       </header>
       <div id="carte"></div>
       <div class="lg">
@@ -608,59 +623,15 @@ licence ouverte. Fond de carte OpenStreetMap.</p>
     dvfTerrainMin: Number(dvfTerrainMin) || undefined,
     dvfTerrainMax: Number(dvfTerrainMax) || undefined,
   });
-  const modifie = etat === "ok" && instantaneEnregistre.current !== JSON.stringify(aEnregistrer());
-
-  /* Quitter la page en emportant son travail : le navigateur demande
-     confirmation tant qu'il reste des modifications non enregistrées. */
-  useEffect(() => {
-    if (!modifie) return;
-    const avertir = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
-    window.addEventListener("beforeunload", avertir);
-    return () => window.removeEventListener("beforeunload", avertir);
-  }, [modifie]);
-
-  // Une fois le bien chargé, on fige l'état de référence.
-  useEffect(() => {
-    if (etat === "ok") instantaneEnregistre.current = JSON.stringify(aEnregistrer());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [etat]);
-
-  /**
-   * ENREGISTREMENT AUTOMATIQUE, une seconde et demie après la dernière frappe.
-   *
-   * Le prix de référence se lisait à l'écran sans rejoindre le stockage : un
-   * rechargement le perdait en silence, et l'on découvrait son absence en
-   * présentant. Plutôt que de compter sur un clic, la page garde ce qu'on lui
-   * donne. Le délai évite d'écrire à chaque caractère tapé.
-   */
-  useEffect(() => {
-    if (!modifie || enregistrement) return;
-    const t = setTimeout(() => { enregistrer(true); }, 1500);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modifie, enregistrement]);
-
-  const enregistrer = async (automatique = false) => {
-    setEnregistrement(true);
-    try {
-      const r = await fetch(`/api/properties/${id}/ajustement`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(aEnregistrer()),
-      });
-      if (r.ok) instantaneEnregistre.current = JSON.stringify(aEnregistrer());
-      // Un enregistrement automatique ne s'annonce pas : le bandeau le dit déjà.
-      if (!automatique) toast(r.ok ? "Argumentaire enregistré." : "Erreur lors de l'enregistrement.");
-      else if (!r.ok) toast("L'enregistrement automatique a échoué.");
-    } catch {
-      if (!automatique) toast("Erreur lors de l'enregistrement.");
-    } finally {
-      setEnregistrement(false);
-    }
-  };
+  const sauvegarde = useVersionedSave({ url: `/api/properties/${id}/ajustement`, method: "PUT",
+    payload: aEnregistrer(), enabled: etat === "ok" && bien?.id === id && bien?.type!=='IMMEUBLE', initialRevision: bien?.ajustementPrix?.revision || 0 });
+  const modifie = sauvegarde.dirty;
+  const enregistrement = sauvegarde.status === "saving";
+  const enregistrer = async (_automatique = false) => { if (await sauvegarde.flush()) toast("Argumentaire enregistré."); };
 
   if (etat === "chargement") return <AdminShell title="Ajustement de prix"><div className="card p-6 opacity-70">Chargement…</div></AdminShell>;
   if (etat === "introuvable" || !bien) return <AdminShell title="Ajustement de prix"><div className="card p-6">Bien introuvable. <Link className="underline" href="/admin/contenu/biens">Retour à la liste</Link></div></AdminShell>;
+  if(bien.type==='IMMEUBLE') return <AdminShell title="Prix de l’immeuble"><div className="card p-6">L’outil de comparaison maison/appartement ne couvre pas un immeuble entier. Une analyse dédiée des lots, revenus, charges et comparables est nécessaire. <Link className="underline" href={`/admin/contenu/biens/${id}`}>Retour à la fiche</Link></div></AdminShell>;
 
   /**
    * Les onglets des tiroirs portent l'ESSENTIEL de ce qu'ils contiennent.
@@ -669,7 +640,8 @@ licence ouverte. Fond de carte OpenStreetMap.</p>
    */
   const resumeDvf = chargeDvf ? "recherche en cours…"
     : dvf?.stats ? `${dvf.stats.nombre} ventes à moins de ${rayonDvf} m · médiane ${eurM2(dvf.stats.medianeM2)}`
-    : dvf ? "aucune vente dans ce rayon"
+    : dvf ? "aucune vente dans les fichiers consultés"
+    : messageDvf ? "recherche indisponible — voir le détail"
     : "pas encore recherchées";
   const resumeReference = reference
     ? `${eurM2(reference.m2)}${reference.bas && reference.haut && reference.bas !== reference.haut
@@ -691,6 +663,9 @@ licence ouverte. Fond de carte OpenStreetMap.</p>
 
   return (
     <AdminShell title="Argumentaire de prix">
+      <EtatSauvegarde save={sauvegarde} />
+      <p className="no-print mb-3"><Link className="underline" href={`/admin/estimations?propertyId=${encodeURIComponent(id)}`}>Ouvrir / créer les avis de valeur de ce bien</Link></p>
+      <p className="no-print mb-3 text-sm">Repositionnement commercial : Q1 à médiane, sans correction DPE/état. Les prix affichés sont calculés séparément des ventes déclarées et des actes DVF.</p>
       <style>{`@media print { .sans-impression { display: none !important; } .card { break-inside: avoid; } }`}</style>
 
       <div className="sans-impression">
@@ -923,6 +898,7 @@ licence ouverte. Fond de carte OpenStreetMap.</p>
         <>
           {/* ————— Les ventes réellement signées autour ————— */}
           <CollapsibleSection title="Ventes signées autour du bien" subtitle={resumeDvf}>
+            {messageDvf && <p role="status" className="mb-3 text-sm text-stone-700" data-testid="dvf-source-status">{messageDvf}</p>}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <select value={rayonDvf} onChange={e => setRayonDvf(Number(e.target.value))}
@@ -1000,7 +976,7 @@ licence ouverte. Fond de carte OpenStreetMap.</p>
               </div>
             )}
             {dvf && !dvf.stats && (
-              <p className="mt-3 text-sm opacity-75 italic">Aucune vente comparable dans ce rayon — essayez plus large.</p>
+              <p className="mt-3 text-sm opacity-75 italic">Aucune vente comparable dans les fichiers consultés avec ces filtres — essayez un rayon plus large.</p>
             )}
           </CollapsibleSection>
 

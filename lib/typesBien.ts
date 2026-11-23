@@ -9,6 +9,7 @@ export type Bien = {
   id: string;
   title: string;
   type: string;
+  buildingLots?: import('./immeuble').LotImmeuble[];
   city: string;
   region: string;
   price: number;
@@ -65,8 +66,8 @@ export type Bien = {
   dpe: {
     classEnergy: string;
     classGES: string;
-    consumptionKwh: number;
-    emissionsKg: number;
+    consumptionKwh?: number;
+    emissionsKg?: number;
     date: string;
     ref: string;
   };
@@ -100,6 +101,7 @@ export type Bien = {
   chargesStatement?: string;
   // Argumentaire de baisse de prix, préparé pour l'entretien vendeur
   ajustementPrix?: {
+    revision?: number;
     comparables?: import('./ajustementPrix').Comparable[];
     prixCible?: number;
     dateMiseEnVente?: string;
@@ -140,15 +142,15 @@ export const BIEN_VIERGE: Partial<Bien> = {
   features: [],
   map: { precision: "AREA", query: "", zoom: 14 },
   dpe: {
-    classEnergy: "D",
-    classGES: "D",
-    consumptionKwh: 0,
-    emissionsKg: 0,
-    date: new Date().toISOString().split('T')[0],
+    classEnergy: "",
+    classGES: "",
+    consumptionKwh: undefined,
+    emissionsKg: undefined,
+    date: "",
     ref: ""
   },
   featured: false,
-  visible: true,
+  visible: false,
   sold: false,
   status: 'AVAILABLE',
   soldDate: undefined,

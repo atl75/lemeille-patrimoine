@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
+import { contenuAbsent } from './missingCollection.ts';
 import {
   disponible as gcsDisponible,
   lireJSON as gcsLire,
@@ -8,20 +9,22 @@ import {
   modifierAtomiquement,
 } from './gcsStore.ts';
 const DATA_DIR = path.join(process.cwd(), 'data');
-async function ensureDataDir() { try { await fs.mkdir(DATA_DIR, { recursive: true }); } catch {} }
+async function ensureDataDir() { await fs.mkdir(DATA_DIR, { recursive: true }); }
 // Lecture par l'API GCS quand elle est disponible, sinon par le fichier monté.
 // Le chemin doit être LE MÊME que celui de l'écriture : lire par gcsfuse ce
 // qu'on écrit par l'API donne deux vues divergentes du même fichier.
-export async function readJSON(file: string) {
-  try {
-    const parAPI = await gcsLire(file);
-    if (parAPI !== null) return parAPI;
-  } catch (e) {
-    console.error(`[donnees] lecture API indisponible pour ${file}, repli fichier :`, e);
+async function readLocalJSON(file: string) {
+  try { return JSON.parse(await fs.readFile(path.join(DATA_DIR, file), 'utf-8')); }
+  catch (error) {
+    // Les collections métier protégées ne peuvent pas être recréées implicitement.
+    // Un JSON vide/corrompu, un refus d'accès ou une panne ne valent jamais « [] ».
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return contenuAbsent(file);
+    throw error;
   }
-  await ensureDataDir();
-  const p = path.join(DATA_DIR, file);
-  try { const raw = await fs.readFile(p, 'utf-8'); return JSON.parse(raw || '[]'); } catch { return []; }
+}
+export async function readJSON(file: string, options: { fresh?: boolean } = {}) {
+  if (await gcsDisponible()) return gcsLire(file, options);
+  return readLocalJSON(file);
 }
 
 // Sérialise les opérations d'écriture d'un même fichier (une file par fichier)
@@ -30,7 +33,9 @@ const fileChains = new Map<string, Promise<unknown>>();
 function withFileLock<T>(file: string, fn: () => Promise<T>): Promise<T> {
   const prev = fileChains.get(file) || Promise.resolve();
   const run = prev.then(fn, fn);
-  fileChains.set(file, run.then(() => {}, () => {}));
+  const settled = run.then(() => {}, () => {});
+  fileChains.set(file, settled);
+  void settled.then(() => { if (fileChains.get(file) === settled) fileChains.delete(file); });
   return run;
 }
 
@@ -46,10 +51,9 @@ async function atomicWrite(p: string, data: any) {
 export function writeJSON(file: string, data: any): Promise<void> {
   const p = path.join(DATA_DIR, file);
   return withFileLock(file, async () => {
-    try {
-      if (await gcsEcrire(file, data)) return;
-    } catch (e) {
-      console.error(`[donnees] écriture API indisponible pour ${file}, repli fichier :`, e);
+    if (await gcsDisponible()) {
+      if (!(await gcsEcrire(file, data))) throw new Error('Stockage GCS devenu indisponible');
+      return;
     }
     await ensureDataDir();
     await atomicWrite(p, data);
@@ -87,24 +91,21 @@ export async function updateJSON<T = any>(
   // Si le compare-et-échange épuise ses tentatives, on LÈVE. Retomber sur le
   // fichier réécrirait par-dessus une écriture concurrente réussie : c'est
   // exactement le défaut qui a fait annuler la première version.
-  try {
-    if (await gcsDisponible()) {
+  if (await gcsDisponible()) {
       const r = await modifierAtomiquement<T | typeof SANS_ECRITURE>(
         file,
         mutate as any,
         (x: unknown) => x === SANS_ECRITURE
       );
       if (r.ok) return r.resultat;
-    }
-  } catch (e) {
-    if (await gcsDisponible()) throw e;   // l'API est là mais a échoué : ne pas masquer
-    console.error(`[donnees] API indisponible pour ${file}, repli fichier :`, e);
+      throw new Error('Stockage GCS devenu indisponible');
   }
 
   const p = path.join(DATA_DIR, file);
   return withFileLock(file, async () => {
     await ensureDataDir();
-    const data = await readJSON(file);
+    const data = await readLocalJSON(file);
+    if (!Array.isArray(data)) throw new Error(`Collection attendue pour ${file}`);
     const result = await mutate(data);
     if (result === SANS_ECRITURE) return result;
     await atomicWrite(p, Array.isArray(result) ? result : data);

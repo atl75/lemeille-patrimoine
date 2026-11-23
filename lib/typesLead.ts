@@ -35,6 +35,7 @@ export type Attachment = {
 };
 
 export type Lead = {
+  notificationSuivi?: import('./suiviNotificationLead').SuiviNotificationLead;
   id: string;
   createdAt: string;
   lastActivityAt?: string;

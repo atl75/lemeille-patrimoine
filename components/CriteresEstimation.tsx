@@ -37,16 +37,17 @@ const FIABILITE: Record<Fiabilite, { court: string; titre: string; cls: string }
 const signe = (n: number) => (n > 0 ? "+" : "") + n.toFixed(0).replace("-", "−") + " %";
 
 export default function CriteresEstimation({
-  type, choix, corrections, ajustements, onChoix, onCorrection,
+  type, choix, corrections, ajustements, onChoix, onCorrection, seulementDpeEtat = false,
 }: {
   type: TypeBien;
+  seulementDpeEtat?: boolean;
   choix: Choix;
   corrections: Corrections;
   ajustements: Ajustement[];
   onChoix: (c: Critere, cle: string) => void;
   onCorrection: (c: Critere, valeur: number | null) => void;
 }) {
-  const liste = criteresDe(BAREME_COURANT, type);
+  const liste = criteresDe(BAREME_COURANT, type).filter(c => !seulementDpeEtat || ['dpe','etat'].includes(c));
   const avertissements = alertes(ajustements);
 
   return (
@@ -59,7 +60,7 @@ export default function CriteresEstimation({
       ))}
 
       {liste.map((critere) => {
-        const echelle = BAREME_COURANT.criteres[critere];
+        const echelle = BAREME_COURANT.criteres[critere]!;
         const modalites = modalitesDe(BAREME_COURANT, critere, type);
         const retenu = choix[critere];
         const ligne = ajustements.find((a) => a.critere === critere);

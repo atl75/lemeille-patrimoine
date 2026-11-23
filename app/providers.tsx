@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children, measurementId }: { children: React.ReactNode; measurementId: string }) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -19,7 +19,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AnalyticsProvider>
+      <AnalyticsProvider measurementId={measurementId}>
         {children}
       </AnalyticsProvider>
     </QueryClientProvider>

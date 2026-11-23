@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import fs from "fs/promises";
 import path from "path";
 import os from "os";
+import { COLLECTIONS_PROTEGEES, CollectionAbsente } from '../lib/missingCollection.ts';
 
 // DATA_DIR est calculé à l'import à partir de process.cwd() : il faut donc se
 // placer dans un dossier jetable AVANT de charger le module.
@@ -82,9 +83,52 @@ describe("updateJSON — écritures concurrentes", () => {
     assert.deepEqual(await utils.readJSON("jamais-cree.json"), []);
   });
 
-  test("un JSON illisible ne fait pas planter la lecture", async () => {
+  test('collections protégées absentes : lecture et mutation refusées, aucun fichier créé', async () => {
+    for (const file of COLLECTIONS_PROTEGEES) {
+      await assert.rejects(utils.readJSON(file), CollectionAbsente);
+      await assert.rejects(utils.updateJSON(file, () => assert.fail('mutation interdite')), CollectionAbsente);
+      await assert.rejects(fs.stat(path.join(bac, 'data', file)), { code: 'ENOENT' });
+    }
+  });
+
+  test('collection protégée restaurée : reprise sans redémarrage ni perte de son historique', async () => {
+    const file = path.join(bac, 'data', 'leads.json');
+    await fs.writeFile(file, '[{"id":"historique-fictif"}]');
+    await utils.updateJSON('leads.json', rows => { rows.push({ id: 'nouveau-fictif' }); });
+    assert.deepEqual(await utils.readJSON('leads.json'), [{ id: 'historique-fictif' }, { id: 'nouveau-fictif' }]);
+  });
+
+  test("un JSON illisible bloque la lecture et toute mutation", async () => {
     await fs.writeFile(path.join(bac, "data", "t4.json"), "{ceci n'est pas du json");
-    assert.deepEqual(await utils.readJSON("t4.json"), []);
+    await assert.rejects(utils.readJSON("t4.json"), SyntaxError);
+    let called = false;
+    await assert.rejects(utils.updateJSON("t4.json", () => { called = true; }), SyntaxError);
+    assert.equal(called, false);
+    assert.equal(await fs.readFile(path.join(bac, 'data', 't4.json'), 'utf8'), "{ceci n'est pas du json");
+  });
+
+  test("un fichier vide n'est pas une collection vide", async () => {
+    await fs.writeFile(path.join(bac, 'data', 'empty.json'), '');
+    await assert.rejects(utils.updateJSON('empty.json', data => data.push({ id: 1 })), SyntaxError);
+    assert.equal(await fs.readFile(path.join(bac, 'data', 'empty.json'), 'utf8'), '');
+  });
+
+  test("un objet ne peut pas être écrasé par une mutation de collection", async () => {
+    await fs.writeFile(path.join(bac, 'data', 'config.json'), '{"key":"preserve"}');
+    await assert.rejects(utils.updateJSON('config.json', () => []), /Collection attendue/);
+    assert.deepEqual(await utils.readJSON('config.json'), { key: 'preserve' });
+  });
+
+  test("une erreur de lecture autre que ENOENT est propagée", async () => {
+    await fs.mkdir(path.join(bac, 'data', 'directory.json'));
+    await assert.rejects(utils.readJSON('directory.json'), { code: 'EISDIR' });
+  });
+
+  test("une mutation rejetée ne bloque pas les écritures suivantes", async () => {
+    await fs.writeFile(path.join(bac, 'data', 'retry.json'), '[]');
+    await assert.rejects(utils.updateJSON('retry.json', () => { throw new Error('test'); }), /test/);
+    await utils.updateJSON('retry.json', data => { data.push({ id: 1 }); });
+    assert.deepEqual(await utils.readJSON('retry.json'), [{ id: 1 }]);
   });
 });
 
@@ -177,9 +221,9 @@ describe("analyserContenu — un fichier objet doit rester un objet", () => {
     assert.deepEqual(analyserContenu('[{"id":1}]'), [{ id: 1 }]);
   });
 
-  test("un corps vide vaut tableau vide", async () => {
+  test("un corps vide est une erreur, pas une collection vide", async () => {
     const { analyserContenu } = await import("../lib/gcsStore.ts");
-    assert.deepEqual(analyserContenu(""), []);
+    assert.throws(() => analyserContenu(""), /illisible/);
   });
 
   test("un JSON illisible lève plutôt que d'écraser", async () => {

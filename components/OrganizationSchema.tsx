@@ -1,3 +1,5 @@
+import JsonLd from './JsonLd';
+
 export function OrganizationSchema() {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://lemeillepatrimoine.com";
   
@@ -31,7 +33,7 @@ export function OrganizationSchema() {
       "sameAs": [
         "https://www.linkedin.com/in/arthurlemeille/",
         "https://www.instagram.com/lempatrimoine",
-        "https://www.orias.fr/home/showIntermediaire/89"
+        "https://www.orias.fr/home/showIntermediaire/890230337"
       ],
       "worksFor": { "@type": "Organization", "name": "Lemeille Patrimoine" },
       "alumniOf": [
@@ -194,9 +196,6 @@ export function OrganizationSchema() {
   };
 
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-    />
+    <JsonLd data={schema} />
   );
 }

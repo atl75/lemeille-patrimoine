@@ -15,7 +15,7 @@ const srcLabel = (s?: string) => s ? (SRC_LABEL[s] || s) : '';
 type Notary = { officeName: string; notaryName?: string; phone?: string; email?: string; clerkName?: string; clerkEmail?: string; properties: LinkedProp[] };
 
 const eur = (n?: number) => (n || n === 0) ? Math.round(Number(n)).toLocaleString("fr-FR") + " €" : "—";
-const typeLabel = (p: Prop) => ((p.type || "APPARTEMENT") === "MAISON" ? "Maison" : "Appartement") + (p.rooms ? ` T${p.rooms}` : "");
+const typeLabel = (p: Prop) => p.type === 'IMMEUBLE' ? 'Immeuble' : ((p.type || "APPARTEMENT") === "MAISON" ? "Maison" : "Appartement") + (p.rooms ? ` T${p.rooms}` : "");
 const statusLabel = (p: Prop) => p.status === "SOLD" || p.sold ? "Vendu" : p.status === "UNDER_OFFER" ? "Sous promesse" : p.status === "OFFER_RECEIVED" ? "Sous offre" : "En vente";
 const propLabel = (p: Prop) => p.title || typeLabel(p);
 

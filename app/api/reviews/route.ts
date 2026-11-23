@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { readJSON, writeJSON, uid } from '@/lib/utils';
+import { readJSON, updateJSON, uid } from '@/lib/utils';
 import type { NextRequest } from 'next/server';
 import { isAdmin } from '@/lib/adminGuard';
 import { insertReviewSchema } from '@/shared/schema';
@@ -21,9 +21,7 @@ export async function POST(req: NextRequest) {
   if (!validation.success) {
     return NextResponse.json({ error: 'Validation failed', details: validation.error }, { status: 400 });
   }
-  const data = await readJSON(FILE);
   const item = { id: uid('r'), ...validation.data };
-  data.push(item);
-  await writeJSON(FILE, data);
+  await updateJSON(FILE, data => { data.push(item); });
   return NextResponse.json(item);
 }

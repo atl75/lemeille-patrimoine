@@ -1,6 +1,7 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { trackEvent } from "@/lib/analytics";
+import { creerEnvoiDemandePublique } from "@/lib/publicLeadRequest";
 
 // Simulateur de capacité d'emprunt : mensualité maximale (taux d'endettement),
 // montant empruntable et budget d'acquisition. Aucun taux d'intérêt n'est
@@ -48,6 +49,8 @@ export default function CapaciteEmpruntSimulator({ propertyPrice }: Props = {}) 
   const [consent, setConsent] = useState(false);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState<null | boolean>(null);
+  const [envoyerDemande] = useState(() => creerEnvoiDemandePublique());
+  const envoiEnCours = useRef(false);
   const [erreur, setErreur] = useState("");
 
   const r = useMemo(() => {
@@ -88,19 +91,19 @@ export default function CapaciteEmpruntSimulator({ propertyPrice }: Props = {}) 
   }, [revenus, charges, apport, duree, taux, assurance, prix]);
 
   const envoyer = async () => {
+    if (envoiEnCours.current) return;
     setErreur("");
     if (!firstName || !lastName) return setErreur("Merci d'indiquer votre nom et prénom.");
     if (!phone && !email) return setErreur("Merci d'indiquer un téléphone ou un email.");
     if (!consent) return setErreur("Merci d'accepter la politique de confidentialité.");
+    envoiEnCours.current = true;
     setSending(true);
     try {
-      const res = await fetch("/api/leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      await envoyerDemande({
           source: modeBien ? "simulateur-financement-bien" : "simulateur-capacite-emprunt",
           topic: modeBien ? "Financement d'un bien" : "Capacité d'emprunt",
           firstName, lastName, email, phone,
+          consent,
           message: modeBien
             ? `Simulation financement d'un bien à ${eur(Number(prix) || 0)} — apport ${eur(Number(apport) || 0)}, ${duree} ans à ${taux} % → mensualité estimée ${eur(r.mensTotaleBien)} (revenus nécessaires ${eur(r.revenusNecessaires)}/mois).`
             : `Simulation capacité d'emprunt — revenus ${eur(Number(revenus) || 0)}/mois, apport ${eur(Number(apport) || 0)}, ${duree} ans à ${taux} % → budget estimé ${eur(r.budget)}.`,
@@ -109,12 +112,13 @@ export default function CapaciteEmpruntSimulator({ propertyPrice }: Props = {}) 
             duree, taux: Number(taux) || 0, assurance: Number(assurance) || 0,
             mensualiteMax: Math.round(r.mensMax), capitalEmpruntable: Math.round(r.capital), budget: Math.round(r.budget),
           },
-        }),
       });
-      setSent(res.ok);
-      if (res.ok) trackEvent("generate_lead", "capacite-emprunt", `${duree} ans`, Math.round(r.budget));
-    } catch { setSent(false); }
-    setSending(false);
+      setSent(true);
+      try { trackEvent("generate_lead", "capacite-emprunt"); } catch { /* La mesure ne bloque pas la confirmation. */ }
+    } catch (error) {
+      setSent(false);
+      setErreur(error instanceof Error ? error.message : 'Votre demande n’a pas pu être confirmée. Appelez Arthur au 06 87 15 72 59.');
+    } finally { envoiEnCours.current = false; setSending(false); }
   };
 
   // Champs décimaux (taux, assurance) : saisie numérique classique.
@@ -255,7 +259,7 @@ export default function CapaciteEmpruntSimulator({ propertyPrice }: Props = {}) 
             </div>
           ) : (
             <>
-              <div className="luxe text-lg mb-1">Affiner avec un conseiller</div>
+              <div className="luxe text-lg mb-1">Affiner votre projet avec Arthur Lemeille</div>
               <p className="text-sm opacity-75 mb-3">Recevez une étude personnalisée et, si vous le souhaitez, une mise en relation avec notre courtier partenaire.</p>
               <div className="grid grid-cols-2 gap-2">
                 <input className="input" aria-label="Prénom" placeholder="Prénom" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
@@ -267,8 +271,7 @@ export default function CapaciteEmpruntSimulator({ propertyPrice }: Props = {}) 
                 <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5" />
                 <span>J&apos;accepte la politique de confidentialité.</span>
               </label>
-              {erreur && <p className="text-sm text-red-600 mt-2">{erreur}</p>}
-              {sent === false && <p className="text-sm text-red-600 mt-2">L&apos;envoi a échoué. Réessayez ou appelez-nous.</p>}
+              {erreur && <p className="text-sm text-red-600 mt-2" role="alert">{erreur}</p>}
               <button onClick={envoyer} disabled={sending} className="btn btn-gold mt-3 disabled:opacity-60">
                 {sending ? "Envoi…" : "Recevoir mon étude personnalisée"}
               </button>

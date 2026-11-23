@@ -1,3 +1,5 @@
+import JsonLd from './JsonLd';
+
 type PropertyLd = {
   id: string;
   title: string;
@@ -24,7 +26,7 @@ export default function PropertySeoJsonLd({ property: p }: { property: PropertyL
   const images =
     Array.isArray(p.images) && p.images.length ? p.images.map(abs) : [`${base}/og-image.jpg`];
   const region = p.region ? String(p.region).replaceAll("_", " ") : undefined;
-  const residenceType = p.type === "MAISON" ? "SingleFamilyResidence" : "Apartment";
+  const residenceType = p.type === "IMMEUBLE" ? "Place" : p.type === "MAISON" ? "SingleFamilyResidence" : "Apartment";
   const available = !(p.sold || p.status === "SOLD");
 
   const jsonLd: Record<string, unknown> = {
@@ -65,9 +67,6 @@ export default function PropertySeoJsonLd({ property: p }: { property: PropertyL
   };
 
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-    />
+    <JsonLd data={jsonLd} />
   );
 }

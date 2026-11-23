@@ -2,6 +2,8 @@
 // secteurs (rendu) et les fiches biens (lien vers le secteur du bien).
 
 export type Sector = {
+  /** Inclusion volontaire au sitemap ; ne détermine pas l'indexabilité de la page. */
+  sitemap?: boolean;
   title: string;
   subtitle?: string;
   region?: string;
@@ -85,6 +87,7 @@ export const SECTORS: Record<string, Sector> = {
     highlights: ["Biens de caractère : Marais, Louvre, Île Saint-Louis", "Idéal pied-à-terre et investissement patrimonial", "Offre rare, forte demande locative"],
   },
   "bois-guillaume": {
+    sitemap: true,
     title: "Bois-Guillaume",
     subtitle: "Plateau Nord — maisons familiales et terrains arborés.",
     region: "NORMANDIE",
@@ -93,6 +96,7 @@ export const SECTORS: Record<string, Sector> = {
     highlights: ["Maisons familiales avec jardin, terrains arborés", "Écoles réputées, cadre résidentiel calme", "Marché tendu : estimation précise indispensable"],
   },
   "bihorel": {
+    sitemap: true,
     title: "Bihorel",
     subtitle: "Aux portes de Rouen — résidentiel prisé et proximité immédiate.",
     region: "NORMANDIE",
@@ -101,6 +105,7 @@ export const SECTORS: Record<string, Sector> = {
     highlights: ["Maisons de ville et pavillons de caractère", "À 5 minutes du centre de Rouen et du CHU", "Bon équilibre prix / qualité de vie"],
   },
   "isneauville": {
+    sitemap: true,
     title: "Isneauville",
     subtitle: "Nord de Rouen — constructions récentes et cadre verdoyant.",
     region: "NORMANDIE",
@@ -109,6 +114,7 @@ export const SECTORS: Record<string, Sector> = {
     highlights: ["Maisons récentes avec jardin", "Environnement verdoyant, écoles et commerces", "Accès rapide A28 et pôles d'activité"],
   },
   "rouen-rive-gauche": {
+    sitemap: true,
     title: "Rouen Rive Gauche",
     subtitle: "Saint-Sever, Grammont — investissement et rendement locatif.",
     region: "NORMANDIE",
@@ -121,6 +127,7 @@ export const SECTORS: Record<string, Sector> = {
     highlights: ["Prix d'entrée accessibles, bons rendements locatifs", "Quartiers en renouvellement urbain (Saint-Sever, Grammont)", "Forte demande locative étudiante et jeunes actifs"],
   },
   "mesnil-esnard-franqueville": {
+    sitemap: true,
     title: "Le Mesnil-Esnard & Franqueville-Saint-Pierre",
     locatif: "au Mesnil-Esnard & Franqueville-Saint-Pierre",
     subtitle: "Plateau Est — maisons familiales et vue sur la vallée.",
@@ -130,6 +137,7 @@ export const SECTORS: Record<string, Sector> = {
     highlights: ["Maisons familiales avec terrain", "Vue sur la vallée de la Seine pour certaines adresses", "Alternative au Plateau Nord, à 10 min de Rouen"],
   },
   "rouen-centre": {
+    sitemap: true,
     title: "Rouen & cœur historique",
     subtitle: "Quartier des musées, Préfecture, Saint-Maclou.",
     region: "NORMANDIE",
@@ -141,6 +149,7 @@ export const SECTORS: Record<string, Sector> = {
     highlights: ["Appartements de caractère au cœur historique", "Fort potentiel de défiscalisation (Malraux, MH)", "Marché dynamique, rendement locatif intéressant"],
   },
   "mont-saint-aignan-bois-guillaume": {
+    sitemap: true,
     title: "Mont-Saint-Aignan & Bois-Guillaume",
     subtitle: "Résidentiel recherché, maisons & appartements avec vues.",
     region: "NORMANDIE",
