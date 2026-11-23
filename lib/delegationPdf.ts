@@ -10,7 +10,7 @@ const border = rgb(.82, .85, .82);
 const pale = rgb(.96, .97, .95);
 const clean = (v: unknown) => String(v ?? '').normalize('NFC')
   .replace(/œ/g, 'oe').replace(/Œ/g, 'OE').replace(/[\u2018\u2019]/g, "'")
-  .replace(/[\u2013\u2014]/g, '-').replace(/[^\u0020-\u00FF\n]/g, ' ');
+  .replace(/[\u2013\u2014]/g, '-').replace(/[^\u0020-\u00FF\u20AC\n]/g, ' ');
 const value = (v: unknown) => clean(v).trim() || 'À compléter';
 const date = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)
   ? v.split('-').reverse().join('/') : value(v);
