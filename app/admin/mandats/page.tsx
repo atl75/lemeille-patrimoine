@@ -143,6 +143,10 @@ export default function Page() {
       .catch(() => { toast('Chargement impossible. Les saisies déjà affichées sont conservées.'); setLoading(false); });
   };
   useEffect(load, [toast]);
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('edit');
+    if (id) setEditingId(id);
+  }, []);
 
   const mandats = useMemo(() =>
     [...items].sort((a, b) => (a.mandateNumber || '').localeCompare(b.mandateNumber || '', 'fr', { numeric: true })),
@@ -247,7 +251,7 @@ export default function Page() {
       const d = await res.json();
       if (res.ok && d?.id) {
         setItems(prev => [...prev, d]);
-        setEditingId(d.id);
+        window.location.href = `/admin/mandats?edit=${encodeURIComponent(d.id)}`;
         setTimeout(() => document.getElementById(`row-${d.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
       } else { toast(d.error || 'Erreur à la création du mandat.'); }
     } catch { toast('Erreur réseau.'); }
@@ -289,7 +293,7 @@ export default function Page() {
   const inputCls = "w-full px-2 py-1 text-sm border rounded";
 
   return (
-    <AdminShell title="Registre des mandats">
+    <AdminShell title="Registre des mandats" wide>
       <Breadcrumb items={[{ label: "Accueil", href: "/" }, { label: "Administration", href: "/admin" }, { label: "Registre des mandats" }]} />
 
       <style>{`@media print {
@@ -316,6 +320,7 @@ export default function Page() {
             </div>
           </div>
           <div className="flex gap-2">
+            <a href="/admin/mandats/delegations" className="flex items-center gap-2 px-3 py-2 border border-[#B89C6D] text-[#1F3B2C] rounded hover:bg-[#B89C6D]/10">Délégations partenaires</a>
             <button onClick={createMandat} disabled={creating} className="flex items-center gap-2 px-3 py-2 border border-[#1F3B2C] text-[#1F3B2C] rounded hover:bg-[#1F3B2C]/5 disabled:opacity-60">
               <Plus className="w-4 h-4" /> {creating ? 'Création…' : 'Nouveau mandat'}
             </button>
@@ -398,14 +403,13 @@ export default function Page() {
                           ) : mandatFige(m) ? (
                             <span className="text-xs px-2 py-1 border rounded" title="Une première signature empêche la modification et la suppression."><Lock className="w-3 h-3 inline" /> Figé dès la première signature</span>
                           ) : (
-                            <button onClick={() => setEditingId(editingId === m.id ? null : m.id)} className={`text-xs px-2 py-1 border rounded ${editingId === m.id ? 'bg-[#1F3B2C] text-white border-[#1F3B2C]' : 'hover:bg-black/5'}`} data-testid={`button-edit-${m.id}`}>
-                              {editingId === m.id ? 'Fermer' : 'Modifier'}
-                            </button>
+                            <a href={`/admin/mandats?edit=${encodeURIComponent(m.id)}`} target="_blank" rel="noopener noreferrer" className="text-xs px-2 py-1 border rounded hover:bg-black/5" data-testid={`button-edit-${m.id}`}>Modifier ↗</a>
                           )}
                           {m.mandateSignStatus !== 'SIGNED' && (
                             <button onClick={() => handleSign(m)} disabled={edition.current.enCours(m.id)} data-testid={`invite-${m.id}`} title="Créer ou renvoyer les invitations par email" className="p-1 text-[#1F3B2C] hover:opacity-70 disabled:opacity-40"><PenLine className="w-4 h-4" /></button>
                           )}
                           <button type="button" onClick={() => recoverLinks(m)} disabled={readingLinks === m.id} data-testid={`recover-links-${m.id}`} className="text-xs px-2 py-1 border rounded disabled:opacity-40">Liens existants</button>
+                          <a href={`/admin/mandats/delegations?mandat=${encodeURIComponent(m.id)}`} className="text-xs px-2 py-1 border rounded">Déléguer</a>
                           <a href={`/api/mandats/${m.id}/pdf`} target="_blank" rel="noopener noreferrer" title="Mandat PDF" className="p-1 text-[#B89C6D] hover:opacity-70"><FileText className="w-4 h-4" /></a>
                           {!mandatFige(m) && <button onClick={() => remove(m)} disabled={edition.current.enCours(m.id)} data-testid={`delete-${m.id}`} title="Supprimer" className="p-1 text-red-600 hover:opacity-70 disabled:opacity-40"><Trash2 className="w-4 h-4" /></button>}
                           {edition.current.nonEnregistre(m.id) && <span className="text-xs text-amber-800">Modifications non enregistrées</span>}
@@ -535,10 +539,11 @@ export default function Page() {
                       );
                     })()}
 
-                    {editingId === m.id && (
+                    {editingId === m.id && !mandatFige(m) && (
                       <tr className="no-print">
-                        <td colSpan={10} className="px-3 py-3 bg-black/[0.02]" style={{ borderBottom: '1px solid #eee' }}>
+                        <td colSpan={10} className="fixed inset-0 z-[100] block overflow-y-auto bg-[#F4F1EB] px-4 py-6 lg:px-[max(6vw,48px)] shadow-2xl" style={{ borderBottom: '1px solid #eee' }}>
                           <fieldset disabled={edition.current.enCours(m.id)}>
+                          <div className="flex flex-wrap justify-between gap-3 items-center mb-6"><h2 className="text-2xl font-semibold">Mandat {m.mandateNumber} — modification</h2><button type="button" onClick={() => cancel(m)} className="border rounded px-4 py-2">Fermer</button></div>
                           <div className="grid md:grid-cols-3 gap-3">
                             <div>
                               <label className="block text-xs opacity-75 mb-1">N° de mandat</label>

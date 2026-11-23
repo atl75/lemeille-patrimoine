@@ -46,6 +46,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { id } = await params;
+  const linked = await readJSON('delegations-mandats.json');
+  if (!Array.isArray(linked)) return NextResponse.json({ error: 'Délégations indisponibles.' }, { status: 503 });
+  if (linked.some((d: any) => d.mandatId === id)) return NextResponse.json({ error: 'Ce mandat possède des délégations partenaires. Suppression bloquée.' }, { status: 409 });
   let signed = false;
   const removed = await updateJSON(FILE, data => {
     const i = data.findIndex((x: any) => x.id === id);
