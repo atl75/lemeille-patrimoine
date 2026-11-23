@@ -106,11 +106,12 @@ export async function createDelegationPdf(d: Data, mandate: Data): Promise<Uint8
   y -= cardH + 10;
   section('03', 'Périmètre et durée');
   row('Mission confiée', d.scope);
+  ensure(60);
   row('Secteur géographique', d.territory);
   row('Période', 'Du ' + date(d.startDate) + ' au ' + date(d.endDate));
 
   // Financial terms and both signatures remain together for normal-length exports.
-  newPage();
+  if (y < 500) newPage();
   section('04', 'Honoraires et conditions de collaboration');
   row('Part du délégataire', typeof d.feeSharePercent === 'number' && Number.isFinite(d.feeSharePercent)
     ? d.feeSharePercent.toLocaleString('fr-FR') + ' % des honoraires' : null);
