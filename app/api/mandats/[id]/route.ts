@@ -35,6 +35,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const data = await readJSON(FILE);
   const i = (Array.isArray(data) ? data : []).findIndex((x: any) => x.id === id);
   if (i < 0) return NextResponse.json({ error: 'Mandat non trouvé' }, { status: 404 });
+  if (data[i].mandateSignStatus === 'SIGNED') return NextResponse.json({ error: 'Mandat signé : suppression bloquée.' }, { status: 409 });
+  const linked = await readJSON('delegations-mandats.json');
+  if (Array.isArray(linked) && linked.some((d: any) => d.mandatId === id)) return NextResponse.json({ error: 'Ce mandat possède des délégations partenaires. Suppression bloquée.' }, { status: 409 });
   data.splice(i, 1);
   await writeJSON(FILE, data);
   return NextResponse.json({ success: true });
