@@ -172,7 +172,7 @@ export async function createDelegationPdf(d: Data, mandate: Data, agency?: { sig
     }
   }
   y = top - panelH - 20;
-  paragraph(agency ? 'Signature manuscrite reproduite pour Novus Capital. Aucun certificat de signature électronique n’est attaché à ce PDF.' : "Les champs remplissables ne constituent pas une signature électronique. Aucune signature n'est apposée par le site.", 8, muted);
+  if (!agency) paragraph("Les champs remplissables ne constituent pas une signature électronique. Aucune signature n'est apposée par le site.", 8, muted);
   const pages = pdf.getPages();
   pages.forEach((p, i) => {
     p.drawLine({ start: { x: M, y: 48 }, end: { x: M + W, y: 48 }, thickness: .5, color: border });
