@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   const status = allowed.includes(body.status) ? body.status : "BROUILLON";
   if (status === "ACTIVE" && parent.mandateSignStatus !== "SIGNED")
     return NextResponse.json({ error: "Une délégation ne peut devenir active qu'après signature du mandat d'origine." }, { status: 409 });
-  if (body.partnerSiren && !/^\\d{9}$/.test(clean(body.partnerSiren).replace(/\\s/g, "")))
+  if (body.partnerSiren && !/^\d{9}$/.test(clean(body.partnerSiren).replace(/\s/g, "")))
     return NextResponse.json({ error: "SIREN : 9 chiffres attendus" }, { status: 400 });
   if (body.startDate && body.endDate && body.endDate < body.startDate)
     return NextResponse.json({ error: "La date de fin précède le début" }, { status: 400 });
