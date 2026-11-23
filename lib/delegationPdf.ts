@@ -82,7 +82,7 @@ export async function createDelegationPdf(d: Data, mandate: Data): Promise<Uint8
   section('01', "Mandat d'origine et bien concerné");
   row('Numéro de mandat', mandate.mandateNumber || d.mandateNumber);
   row('Désignation du bien', mandate.designation || mandate.title || d.propertyTitle);
-  row('Adresse du bien', mandate.address);
+  row('Adresse du bien', mandate.map?.query || mandate.address || mandate.city);
   row('Mandant(s)', (mandate.owners || []).map((o: Data) => o.type === 'COMPANY'
     ? o.name : [o.firstName, o.lastName].filter(Boolean).join(' ')).join(', '));
   section('02', 'Les parties');
