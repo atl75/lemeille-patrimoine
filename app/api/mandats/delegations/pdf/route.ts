@@ -15,7 +15,15 @@ export async function GET(req: NextRequest) {
   if (!d) return NextResponse.json({ error: 'Délégation introuvable' }, { status: 404 });
   const mandate = mandats.find((x: any) => x.id === d.mandatId);
   if (!mandate) return NextResponse.json({ error: "Mandat d'origine introuvable" }, { status: 409 });
-  const bytes = await createDelegationPdf(d, mandate);
+  let bytes: Uint8Array;
+  try {
+    const agency = await readJSON('configuration/signature-delegant-20261123.json', { fresh: true });
+    if (typeof agency?.jpegBase64 !== 'string' || !agency.jpegBase64 || agency.jpegBase64.length > 4_000_000)
+      throw new Error('Signature indisponible');
+    bytes = await createDelegationPdf(d, mandate, { signatureJpeg: Buffer.from(agency.jpegBase64, 'base64') });
+  } catch {
+    return NextResponse.json({ error: 'La signature Novus Capital est momentanément indisponible. Réessayez avant de télécharger le document.' }, { status: 503, headers: { 'Cache-Control': 'private, no-store' } });
+  }
   const ref = String(mandate.mandateNumber || '').replace(/[^A-Za-z0-9-]/g, '').slice(0, 40);
   return new NextResponse(bytes as any, { headers: {
     'Content-Type': 'application/pdf',

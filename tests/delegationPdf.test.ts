@@ -1,7 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PDFDocument } from 'pdf-lib';
-import { createDelegationPdf } from '../lib/delegationPdf.ts';
+import { createDelegationPdf, delegationDateParis, formatDelegationCpi } from '../lib/delegationPdf.ts';
+
+test('CPI formatting preserves all digits and leaves incomplete values intact', () => {
+  assert.equal(formatDelegationCpi('CPI 76062024000000038'), '7606 2024 000 000 038');
+  assert.equal(formatDelegationCpi('7606 2024 000 000 038'), '7606 2024 000 000 038');
+  assert.equal(formatDelegationCpi('CPI à confirmer'), 'CPI à confirmer');
+});
+
+test('agency date uses the Paris calendar even across UTC midnight', () => {
+  assert.equal(delegationDateParis(new Date('2026-11-23T23:30:00Z')), '24/11/2026');
+  assert.equal(delegationDateParis(new Date('2026-07-23T22:30:00Z')), '24/07/2026');
+});
 
 test('delegation export has eight fillable fields and does not mutate records', async () => {
   const d = { partnerName: 'Agence fictive', representative: 'Camille Test', feeSharePercent: 0, feeNotes: 'Conditions fictives', status: 'ACTIVE' };
