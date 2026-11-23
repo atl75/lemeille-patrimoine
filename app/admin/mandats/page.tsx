@@ -162,7 +162,7 @@ export default function Page() {
   const removeOwner = (m: Mandat, oi: number) => patchLocal(m.id, { owners: (m.owners || []).filter((_, i) => i !== oi) });
   const fmtNum = (n?: number) => (n || n === 0) ? Number(n).toLocaleString('fr-FR') : '';
 
-  const save = async (m: Mandat) => {
+  const save = async (m: Mandat): Promise<boolean> => {
     setSavingId(m.id);
     try {
       const res = await fetch(`/api/mandats/${m.id}`, {
@@ -176,7 +176,7 @@ export default function Page() {
           owners: m.owners,
         }),
       });
-      if (!res.ok) { const d = await res.json().catch(() => ({})); toast(d.error || 'Erreur à l\'enregistrement.'); }
+      if (!res.ok) { const d = await res.json().catch(() => ({})); toast(d.error || 'Erreur à l\'enregistrement.'); return false; }
       else {
         // Mémorise les infos saisies pour chaque société (réinjectées la fois suivante).
         for (const o of (m.owners || [])) {
@@ -188,8 +188,9 @@ export default function Page() {
           }
         }
       }
-    } catch { toast('Erreur réseau.'); }
+    } catch { toast('Erreur réseau.'); setSavingId(null); return false; }
     setSavingId(null);
+    return true;
   };
 
   const handleSign = async (m: Mandat) => {
@@ -589,7 +590,7 @@ export default function Page() {
                             </div>
                           </div>
                           <div className="mt-3 flex gap-2">
-                            <button onClick={async () => { await save(m); setEditingId(null); window.history.replaceState(null, "", "/admin/mandats"); }} disabled={savingId === m.id} className="btn-luxe text-sm flex items-center gap-1 disabled:opacity-60">
+                            <button onClick={async () => { if (await save(m)) { setEditingId(null); window.history.replaceState(null, "", "/admin/mandats"); } }} disabled={savingId === m.id} className="btn-luxe text-sm flex items-center gap-1 disabled:opacity-60">
                               <Save className="w-3.5 h-3.5" /> {savingId === m.id ? 'Enregistrement…' : 'Enregistrer'}
                             </button>
                             <button onClick={() => { load(); setEditingId(null); window.history.replaceState(null, "", "/admin/mandats"); }} className="text-sm px-3 py-1.5 border rounded hover:bg-black/5">Annuler</button>
