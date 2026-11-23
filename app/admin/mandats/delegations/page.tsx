@@ -39,7 +39,7 @@ export default function Page() {
  };
  return <AdminShell title="Délégations partenaires" wide>
   <Breadcrumb items={[{label:"Administration",href:"/admin"},{label:"Registre des mandats",href:"/admin/mandats"},{label:"Délégations partenaires"}]}/>
-  <p className="mb-5 text-sm text-gray-700">Délégations rattachées aux mandats d'origine. Un brouillon ne constitue pas un accord signé. Vérifiez les habilitations, le mandat d'origine et les conditions de partage d'honoraires avant activation.</p>
+  <p className="mb-5 text-sm text-gray-700">Délégations rattachées aux mandats d&apos;origine. Un brouillon ne constitue pas un accord signé. Vérifiez les habilitations, le mandat d&apos;origine et les conditions de partage d&apos;honoraires avant activation.</p>
   {error&&<p role="alert" className="p-3 border border-red-400 text-red-700 bg-red-50 rounded mb-4">{error}</p>}
   <div className="grid xl:grid-cols-[minmax(330px,0.9fr)_minmax(500px,1.4fr)] gap-7 items-start">
    <form onSubmit={submit} className="card p-6 space-y-4">
