@@ -120,6 +120,10 @@ export default function Page() {
       .catch(() => { setItems([]); setLoading(false); });
   };
   useEffect(load, []);
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("edit");
+    if (id) setEditingId(id);
+  }, []);
 
   const mandats = useMemo(() =>
     [...items].sort((a, b) => (a.mandateNumber || '').localeCompare(b.mandateNumber || '', 'fr', { numeric: true })),
@@ -209,7 +213,7 @@ export default function Page() {
       const d = await res.json();
       if (res.ok && d?.id) {
         setItems(prev => [...prev, d]);
-        setEditingId(d.id);
+        window.location.href = `/admin/mandats?edit=${encodeURIComponent(d.id)}`;
         setTimeout(() => document.getElementById(`row-${d.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
       } else { toast(d.error || 'Erreur à la création du mandat.'); }
     } catch { toast('Erreur réseau.'); }
@@ -228,7 +232,7 @@ export default function Page() {
   const inputCls = "w-full px-2 py-1 text-sm border rounded";
 
   return (
-    <AdminShell title="Registre des mandats">
+    <AdminShell title="Registre des mandats" wide>
       <Breadcrumb items={[{ label: "Accueil", href: "/" }, { label: "Administration", href: "/admin" }, { label: "Registre des mandats" }]} />
 
       <style>{`@media print {
@@ -255,6 +259,7 @@ export default function Page() {
             </div>
           </div>
           <div className="flex gap-2">
+            <a href="/admin/mandats/delegations" className="flex items-center gap-2 px-3 py-2 border border-[#B89C6D] text-[#1F3B2C] rounded hover:bg-[#B89C6D]/10">Délégations partenaires</a>
             <button onClick={createMandat} disabled={creating} className="flex items-center gap-2 px-3 py-2 border border-[#1F3B2C] text-[#1F3B2C] rounded hover:bg-[#1F3B2C]/5 disabled:opacity-60">
               <Plus className="w-4 h-4" /> {creating ? 'Création…' : 'Nouveau mandat'}
             </button>
@@ -335,13 +340,12 @@ export default function Page() {
                               </button>
                             </>
                           ) : (
-                            <button onClick={() => setEditingId(editingId === m.id ? null : m.id)} className={`text-xs px-2 py-1 border rounded ${editingId === m.id ? 'bg-[#1F3B2C] text-white border-[#1F3B2C]' : 'hover:bg-black/5'}`} data-testid={`button-edit-${m.id}`}>
-                              {editingId === m.id ? 'Fermer' : 'Modifier'}
-                            </button>
+                            <a href={`/admin/mandats?edit=${encodeURIComponent(m.id)}`} target="_blank" rel="noopener noreferrer" className="text-xs px-2 py-1 border rounded hover:bg-black/5" data-testid={`button-edit-${m.id}`}>Modifier ↗</a>
                           )}
                           {m.mandateSignStatus !== 'SIGNED' && (
                             <button onClick={() => handleSign(m)} disabled={signingId === m.id} title="Générer le lien de signature" className="p-1 text-[#1F3B2C] hover:opacity-70 disabled:opacity-40"><PenLine className="w-4 h-4" /></button>
                           )}
+                          <a href={`/admin/mandats/delegations?mandat=${encodeURIComponent(m.id)}`} className="text-xs px-2 py-1 border rounded hover:bg-[#B89C6D]/10" title="Créer ou gérer une délégation">Déléguer</a>
                           <a href={`/api/mandats/${m.id}/pdf`} target="_blank" rel="noopener noreferrer" title="Mandat PDF" className="p-1 text-[#B89C6D] hover:opacity-70"><FileText className="w-4 h-4" /></a>
                           <button onClick={() => remove(m)} title="Supprimer" className="p-1 text-red-600 hover:opacity-70"><Trash2 className="w-4 h-4" /></button>
                         </div>
@@ -469,7 +473,7 @@ export default function Page() {
 
                     {editingId === m.id && (
                       <tr className="no-print">
-                        <td colSpan={10} className="px-3 py-3 bg-black/[0.02]" style={{ borderBottom: '1px solid #eee' }}>
+                        <td colSpan={10} className="fixed inset-0 z-[100] block overflow-y-auto bg-[#F4F1EB] px-6 py-8 lg:px-[max(6vw,48px)] shadow-2xl" style={{ borderBottom: '1px solid #eee' }}>
                           <div className="grid md:grid-cols-3 gap-3">
                             <div>
                               <label className="block text-xs opacity-75 mb-1">N° de mandat</label>
@@ -585,7 +589,7 @@ export default function Page() {
                             </div>
                           </div>
                           <div className="mt-3 flex gap-2">
-                            <button onClick={async () => { await save(m); setEditingId(null); }} disabled={savingId === m.id} className="btn-luxe text-sm flex items-center gap-1 disabled:opacity-60">
+                            <button onClick={async () => { await save(m); setEditingId(null); window.history.replaceState(null, "", "/admin/mandats"); }} disabled={savingId === m.id} className="btn-luxe text-sm flex items-center gap-1 disabled:opacity-60">
                               <Save className="w-3.5 h-3.5" /> {savingId === m.id ? 'Enregistrement…' : 'Enregistrer'}
                             </button>
                             <button onClick={() => { load(); setEditingId(null); }} className="text-sm px-3 py-1.5 border rounded hover:bg-black/5">Annuler</button>
