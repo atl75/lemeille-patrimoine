@@ -176,7 +176,7 @@ export default function Page() {
           owners: m.owners,
         }),
       });
-      if (!res.ok) { const d = await res.json().catch(() => ({})); toast(d.error || 'Erreur à l\'enregistrement.'); return false; }
+      if (!res.ok) { const d = await res.json().catch(() => ({})); toast(d.error || 'Erreur à l\'enregistrement.'); setSavingId(null); return false; }
       else {
         // Mémorise les infos saisies pour chaque société (réinjectées la fois suivante).
         for (const o of (m.owners || [])) {
