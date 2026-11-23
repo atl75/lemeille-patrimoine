@@ -426,9 +426,8 @@ export default function SectionFinances({
                       });
                       const d = await res.json();
                       if (res.ok) {
-                        if (await confirm(`Le mandat ${d.mandateNumber} a été créé à partir de ce bien. Le compléter et le signer dans le registre des mandats ?`, { title: 'Mandat généré' })) {
-                          window.location.href = '/admin/mandats';
-                        }
+                        toast(`Mandat ${d.mandateNumber} créé. Ouverture de la fiche pour le compléter.`);
+                        window.location.href = `/admin/mandats?edit=${encodeURIComponent(d.id)}`;
                       } else { toast(d.error || 'Erreur lors de la génération du mandat.'); }
                     } catch { toast('Erreur réseau.'); }
                     setGenMandate(false);
