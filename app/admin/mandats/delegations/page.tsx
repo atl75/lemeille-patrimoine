@@ -44,7 +44,7 @@ export default function Page() {
   <div className="grid xl:grid-cols-[minmax(330px,0.9fr)_minmax(500px,1.4fr)] gap-7 items-start">
    <form onSubmit={submit} className="card p-6 space-y-4">
     <h2 className="text-2xl luxe">Créer une délégation</h2>
-    <label className="grid gap-1 text-sm"><span>Mandat d'origine *</span><select required className="border rounded-lg p-3 bg-white" value={form.mandatId} onChange={e=>setForm(f=>({...f,mandatId:e.target.value}))}>
+    <label className="grid gap-1 text-sm"><span>Mandat d&apos;origine *</span><select required className="border rounded-lg p-3 bg-white" value={form.mandatId} onChange={e=>setForm(f=>({...f,mandatId:e.target.value}))}>
      <option value="">Choisir un mandat</option>{mandats.map(m=><option value={m.id} key={m.id}>{m.mandateNumber || m.id} — {m.title || m.designation || "Bien"} {m.mandateSignStatus==="SIGNED"?"(signé)":"(non signé)"}</option>)}
     </select></label>
     {field("partnerName","Raison sociale du partenaire *")}
