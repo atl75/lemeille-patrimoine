@@ -13,21 +13,32 @@ export async function GET(req: NextRequest) {
  const mandats = await readJSON("mandats.json");
  const mandate = (Array.isArray(mandats) ? mandats : []).find((x:any)=>x.id===d.mandatId);
  const pdf = await PDFDocument.create();
- const page = pdf.addPage([595,842]);
+ let page = pdf.addPage([595,842]);
  const font = await pdf.embedFont(StandardFonts.Helvetica);
  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
  const clean = (v: unknown) => String(v ?? "—").normalize("NFC").replace(/[\u2018\u2019]/g,"'").replace(/[\u2013\u2014]/g,"-").replace(/[^\u0020-\u00FF]/g," ");
  let y=790;
  const line = (value:string,strong=false,size=11) => {
    const f=strong?bold:font;
-   const words=value.split(/\s+/);
+   const words=clean(value).split(/\s+/).flatMap(word => {
+     const parts: string[] = []; let part = '';
+     for (const letter of word) { if (f.widthOfTextAtSize(part+letter,size)>495) { parts.push(part); part=''; } part+=letter; }
+     if (part) parts.push(part); return parts;
+   });
+   const draw = (text: string) => {
+     if (y < 55) {
+       page=pdf.addPage([595,842]); y=790;
+       page.drawText('PROJET DE DELEGATION - NON SIGNE - SUITE', {x:50,y,size:10,font:bold}); y-=30;
+     }
+     page.drawText(clean(text),{x:50,y,size,font:f,color:rgb(.13,.23,.18)}); y-=18;
+   };
    let current="";
    for(const word of words) {
      const candidate=current?current+" "+word:word;
-     if(f.widthOfTextAtSize(candidate,size)>495 && current) {page.drawText(clean(current),{x:50,y,size,font:f,color:rgb(.13,.23,.18)});y-=18;current=word;}
+     if(f.widthOfTextAtSize(candidate,size)>495 && current) {draw(current);current=word;}
      else current=candidate;
    }
-   if(current) {page.drawText(clean(current),{x:50,y,size,font:f,color:rgb(.13,.23,.18)});y-=18;}
+   if(current) draw(current);
  };
  line("LEMEILLE PATRIMOINE — PROJET DE DÉLÉGATION",true,16);y-=10;
  line("DOCUMENT DE TRAVAIL - NON SIGNÉ - À VÉRIFIER AVANT UTILISATION",true,10);y-=20;

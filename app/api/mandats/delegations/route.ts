@@ -10,7 +10,8 @@ const num = (v: unknown) => Number.isFinite(Number(v)) && Number(v) >= 0 ? Numbe
 export async function GET(req: NextRequest) {
   if (!isAdmin(req)) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   const all = await readJSON(FILE);
-  return NextResponse.json(Array.isArray(all) ? all : []);
+  if (!Array.isArray(all)) return NextResponse.json({ error: 'Collection de délégations invalide' }, { status: 503 });
+  return NextResponse.json(all, { headers: { 'Cache-Control': 'private, no-store' } });
 }
 
 export async function POST(req: NextRequest) {
@@ -44,7 +45,10 @@ export async function POST(req: NextRequest) {
     feeNotes: clean(body.feeNotes, 800), status,
     history: [{ date: now, status, action: "Création" }],
   };
-  await updateJSON(FILE, (data: any[]) => [...(Array.isArray(data) ? data : []), item]);
+  await updateJSON(FILE, (data: any[]) => {
+    if (!Array.isArray(data)) throw new Error('Collection de délégations invalide');
+    return [...data, item];
+  });
   return NextResponse.json(item, { status: 201 });
 }
 
@@ -61,8 +65,8 @@ export async function PATCH(req: NextRequest) {
     if (parent?.mandateSignStatus !== "SIGNED") return NextResponse.json({ error: "Mandat d'origine non signé" }, { status: 409 });
   }
   const now = new Date().toISOString();
-  await updateJSON(FILE, (data: any[]) => (Array.isArray(data) ? data : []).map((x: any) => x.id === body.id
+  await updateJSON(FILE, (data: any[]) => { if (!Array.isArray(data)) throw new Error('Collection de délégations invalide'); return data.map((x: any) => x.id === body.id
     ? { ...x, status: body.status, updatedAt: now, history: [...(x.history || []), { date: now, status: body.status, action: "Changement de statut" }] }
-    : x));
+    : x); });
   return NextResponse.json({ success: true });
 }
