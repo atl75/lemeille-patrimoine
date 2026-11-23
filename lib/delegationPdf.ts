@@ -92,7 +92,7 @@ export async function createDelegationPdf(d: Data, mandate: Data, agency?: { sig
     y -= 7;
   };
   newPage();
-  paragraph(agency ? 'Signature Novus Capital apposée à l’édition. À compléter et signer par le délégataire.' : 'Exemplaire à compléter et à signer par les deux parties.', 9, muted);
+  if (!agency) paragraph('Exemplaire à compléter et à signer par les deux parties.', 9, muted);
   section('01', "Mandat d'origine et bien concerné");
   row('Numéro de mandat', mandate.mandateNumber || d.mandateNumber);
   row('Désignation du bien', mandate.designation || mandate.title || d.propertyTitle);
