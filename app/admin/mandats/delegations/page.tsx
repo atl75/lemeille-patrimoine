@@ -7,7 +7,7 @@ type Mandat = { id: string; mandateNumber?: string; title?: string; designation?
 type Delegation = { id: string; mandatId: string; mandateNumber: string; propertyTitle: string; partnerName: string; partnerSiren?: string; partnerCard?: string; startDate?: string; endDate?: string; feeSharePercent?: number; status: string; history?: {date: string; status: string; action: string}[] };
 const statuses = ["BROUILLON", "A_SIGNER", "ACTIVE", "EXPIREE", "REVOQUEE"];
 const labels: Record<string,string> = { BROUILLON:"Brouillon", A_SIGNER:"À signer", ACTIVE:"Active", EXPIREE:"Expirée", REVOQUEE:"Révoquée" };
-const empty = { mandatId:"", partnerName:"", partnerSiren:"", partnerCard:"", partnerAddress:"", partnerEmail:"", partnerPhone:"", representative:"", territory:"", scope:"", startDate:"", endDate:"", feeSharePercent:50, feeNotes:"", status:"BROUILLON" };
+const empty = { mandatId:"", partnerName:"", partnerTradeName:"", partnerSiren:"", partnerCard:"", partnerAddress:"", partnerEmail:"", partnerPhone:"", representative:"", territory:"", scope:"", startDate:"", endDate:"", feeSharePercent:50, feeNotes:"", status:"BROUILLON" };
 
 export default function Page() {
  const [mandats,setMandats] = useState<Mandat[]>([]);
@@ -48,6 +48,7 @@ export default function Page() {
      <option value="">Choisir un mandat</option>{mandats.map(m=><option value={m.id} key={m.id}>{m.mandateNumber || m.id} — {m.title || m.designation || "Bien"} {m.mandateSignStatus==="SIGNED"?"(signé)":"(non signé)"}</option>)}
     </select></label>
     {field("partnerName","Raison sociale du partenaire *")}
+    {field("partnerTradeName","Enseigne du partenaire")}
     <div className="grid md:grid-cols-2 gap-3">{field("partnerSiren","SIREN (9 chiffres)")}{field("partnerCard","Carte professionnelle / CPI")}</div>
     {field("representative","Représentant légal")}
     {field("partnerAddress","Adresse du partenaire")}

@@ -86,22 +86,32 @@ export async function createDelegationPdf(d: Data, mandate: Data): Promise<Uint8
   row('Mandant(s)', (mandate.owners || []).map((o: Data) => o.type === 'COMPANY'
     ? o.name : [o.firstName, o.lastName].filter(Boolean).join(' ')).join(', '));
   section('02', 'Les parties');
+  const siren = (v: unknown) => {
+    const digits = clean(v).replace(/\s/g, '');
+    return /^\d{9}$/.test(digits) ? digits.match(/.{3}/g)!.join(' ') : value(v);
+  };
+  const labels = ['Enseigne', 'SIREN', 'Représentant légal', 'CPI', 'Adresse', 'Téléphone'];
   const parties = [
-    { heading: 'LE DÉLÉGANT', name: 'NOVUS CAPITAL SAS', lines: ['Enseigne : Lemeille Patrimoine', 'SIREN : 937 847 937', '50 rue de la Garenne', '76130 Mont-Saint-Aignan', 'Représentant : Arthur Lemeille', 'CPI 7606 2024 000 000 038'] },
-    { heading: 'LE DÉLÉGATAIRE', name: value(d.partnerName), lines: ['SIREN : ' + value(d.partnerSiren), 'Adresse : ' + value(d.partnerAddress), 'Représentant : ' + value(d.representative), 'Carte professionnelle : ' + value(d.partnerCard), 'Email : ' + value(d.partnerEmail), 'Téléphone : ' + value(d.partnerPhone)] },
+    { heading: 'LE DÉLÉGANT', name: 'NOVUS CAPITAL SAS', values: ['Lemeille Patrimoine', siren('937847937'), 'Arthur Lemeille', '7606 2024 000 000 038', '50 rue de la Garenne, 76130 Mont-Saint-Aignan', '+33 6 87 15 72 59'] },
+    { heading: 'LE DÉLÉGATAIRE', name: value(d.partnerName), values: [value(d.partnerTradeName), siren(d.partnerSiren), value(d.representative), value(d.partnerCard), value(d.partnerAddress), value(d.partnerPhone)] },
   ];
   const cardW = (W - 15) / 2;
-  const cards = parties.map(p => ({ ...p, nameLines: wrap(p.name, cardW - 24, 11, bold), body: p.lines.flatMap(l => wrap(l, cardW - 24, 9)) }));
-  const cardH = Math.max(...cards.map(p => 52 + p.nameLines.length * 15 + p.body.length * 13));
+  const cards = parties.map(p => ({ ...p, nameLines: wrap(p.name, cardW - 24, 11, bold), rows: p.values.map((v, i) => wrap(labels[i] + ' : ' + v, cardW - 24, 9)) }));
+  const nameH = Math.max(...cards.map(p => p.nameLines.length)) * 15;
+  // Shared row heights keep corresponding fields aligned even with long addresses.
+  const rowHeights = labels.map((_, i) => Math.max(...cards.map(p => p.rows[i].length)) * 13 + 7);
+  const cardH = 52 + nameH + rowHeights.reduce((a, b) => a + b, 0);
   ensure(cardH + 10);
   cards.forEach((p, i) => {
     const x = M + i * (cardW + 15);
     page.drawRectangle({ x, y: y - cardH + 10, width: cardW, height: cardH, color: pale, borderColor: border, borderWidth: .5 });
-    let cy = y - 9;
-    page.drawText(p.heading, { x: x + 12, y: cy, size: 8, font: bold, color: green }); cy -= 23;
-    for (const line of p.nameLines) { page.drawText(line, { x: x + 12, y: cy, size: 11, font: bold, color: ink }); cy -= 15; }
-    cy -= 8;
-    for (const line of p.body) { page.drawText(line, { x: x + 12, y: cy, size: 9, font: regular, color: ink }); cy -= 13; }
+    page.drawText(p.heading, { x: x + 12, y: y - 9, size: 8, font: bold, color: green });
+    p.nameLines.forEach((line, j) => page.drawText(line, { x: x + 12, y: y - 32 - j * 15, size: 11, font: bold, color: ink }));
+    let cy = y - 40 - nameH;
+    p.rows.forEach((lines, j) => {
+      lines.forEach((line, k) => page.drawText(line, { x: x + 12, y: cy - k * 13, size: 9, font: regular, color: ink }));
+      cy -= rowHeights[j];
+    });
   });
   y -= cardH + 10;
   section('03', 'Périmètre et durée');

@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   const item = {
     id: uid("delegation-"), mandatId, mandateNumber: parent.mandateNumber || "",
     propertyTitle: parent.title || parent.designation || "", createdAt: now, updatedAt: now,
-    partnerName: company, partnerSiren: clean(body.partnerSiren, 14),
+    partnerName: company, partnerTradeName: clean(body.partnerTradeName, 160), partnerSiren: clean(body.partnerSiren, 14),
     partnerCard: clean(body.partnerCard, 100), partnerAddress: clean(body.partnerAddress, 300),
     partnerEmail: clean(body.partnerEmail, 180), partnerPhone: clean(body.partnerPhone, 40),
     representative: clean(body.representative, 150),
