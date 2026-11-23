@@ -594,7 +594,7 @@ export default function Page() {
                               <Save className="w-3.5 h-3.5" /> {savingId === m.id ? 'Enregistrement…' : 'Enregistrer'}
                             </button>
                             <button onClick={() => { load(); setEditingId(null); window.history.replaceState(null, "", "/admin/mandats"); }} className="text-sm px-3 py-1.5 border rounded hover:bg-black/5">Annuler</button>
-                          </div></div></div>
+                          </div></div>
                         </td>
                       </tr>
                     )}
