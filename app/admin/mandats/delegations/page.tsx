@@ -68,7 +68,8 @@ export default function Page() {
      <div className="flex flex-wrap justify-between gap-2"><div><strong>{d.partnerName}</strong><p className="text-sm">{d.mandateNumber} — {d.propertyTitle}</p></div><span className="text-sm font-semibold">{labels[d.status]||d.status}</span></div>
      <p className="text-sm">SIREN : {d.partnerSiren||"—"} · CPI : {d.partnerCard||"—"} · Partenaire : {d.feeSharePercent??0}% des honoraires</p>
      <p className="text-sm">Période : {d.startDate||"—"} au {d.endDate||"—"}</p>
-     <div className="flex flex-wrap gap-3 items-center"><a className="underline text-[#1F3B2C] font-medium text-sm" target="_blank" rel="noopener noreferrer" href={`/api/mandats/delegations/pdf?id=${encodeURIComponent(d.id)}`}>Télécharger le projet PDF</a>
+     <p className="text-xs text-gray-600">PDF avec champs nom, qualité, lieu et date remplissables, et espaces de signature pour les deux parties. Aucune signature n&apos;est apposée automatiquement.</p>
+     <div className="flex flex-wrap gap-3 items-center"><a className="underline text-[#1F3B2C] font-medium text-sm" target="_blank" rel="noopener noreferrer" href={`/api/mandats/delegations/pdf?id=${encodeURIComponent(d.id)}`}>Télécharger le PDF à compléter et signer</a>
       <select aria-label={`Statut de ${d.partnerName}`} className="border rounded p-2 text-sm" value={d.status} onChange={e=>changeStatus(d,e.target.value)}>{statuses.map(x=><option key={x} value={x}>{labels[x]}</option>)}</select>
      </div>
      <details className="text-xs text-gray-600"><summary>Historique ({d.history?.length||0})</summary>{(d.history||[]).map((h,i)=><p key={i}>{new Date(h.date).toLocaleString("fr-FR")} : {h.action} — {labels[h.status]||h.status}</p>)}</details>
