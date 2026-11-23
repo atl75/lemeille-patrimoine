@@ -17,7 +17,7 @@ function NavLink({ href, label, isActive }: { href: string; label: string; isAct
   );
 }
 
-export default function AdminShell({ title, children }: { title: string; children: React.ReactNode }) {
+export default function AdminShell({ title, children, wide = false }: { title: string; children: React.ReactNode; wide?: boolean }) {
   const pathname = usePathname();
   
   return (
@@ -38,7 +38,7 @@ export default function AdminShell({ title, children }: { title: string; childre
           </div>
         </div>
       </section>
-      <section className="container py-8">{children}</section>
+      <section className={wide ? "w-full max-w-none px-4 lg:px-8 py-8" : "container py-8"}>{children}</section>
     </div>
   );
 }
