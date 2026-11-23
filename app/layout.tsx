@@ -1,21 +1,22 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { Inter, Playfair_Display } from 'next/font/google';
+import localFont from 'next/font/local';
 import RevealOnScroll from '@/components/RevealOnScroll';
 import { SiteChrome } from '@/components/SiteChrome';
 import { OrganizationSchema } from '@/components/OrganizationSchema';
 import { Providers } from './providers';
 
-const inter = Inter({ 
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
+const inter = localFont({
+  src: '../public/fonts/inter-latin.woff2',
+  weight: '300 700',
   variable: '--font-inter',
   display: 'swap',
 });
 
-const playfair = Playfair_Display({ 
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+const playfair = localFont({
+  src: '../public/fonts/playfair-latin.woff2',
+  weight: '400 700',
+  adjustFontFallback: 'Times New Roman',
   variable: '--font-playfair',
   display: 'swap',
 });
