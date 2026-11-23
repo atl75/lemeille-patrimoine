@@ -474,7 +474,7 @@ export default function Page() {
                     {editingId === m.id && (
                       <tr className="no-print">
                         <td colSpan={10} className="fixed inset-0 z-[100] block overflow-y-auto bg-[#F4F1EB] px-6 py-8 lg:px-[max(6vw,48px)] shadow-2xl" style={{ borderBottom: '1px solid #eee' }}>
-                          <div className="grid md:grid-cols-3 gap-3">
+                          <div className="max-w-7xl mx-auto"><div className="flex justify-between items-center mb-6"><div><h2 className="text-3xl text-[#1F3B2C] font-semibold">Mandat {m.mandateNumber}</h2><p>Édition du mandat — modifications enregistrées uniquement après validation</p></div><button onClick={() => { load(); setEditingId(null); window.history.replaceState(null, "", "/admin/mandats"); }} className="border rounded px-4 py-2">Fermer</button></div><div className="grid md:grid-cols-3 gap-5">
                             <div>
                               <label className="block text-xs opacity-75 mb-1">N° de mandat</label>
                               <input value={m.mandateNumber || ''} onChange={e => patchLocal(m.id, { mandateNumber: e.target.value })} className={inputCls} />
@@ -592,8 +592,8 @@ export default function Page() {
                             <button onClick={async () => { await save(m); setEditingId(null); window.history.replaceState(null, "", "/admin/mandats"); }} disabled={savingId === m.id} className="btn-luxe text-sm flex items-center gap-1 disabled:opacity-60">
                               <Save className="w-3.5 h-3.5" /> {savingId === m.id ? 'Enregistrement…' : 'Enregistrer'}
                             </button>
-                            <button onClick={() => { load(); setEditingId(null); }} className="text-sm px-3 py-1.5 border rounded hover:bg-black/5">Annuler</button>
-                          </div>
+                            <button onClick={() => { load(); setEditingId(null); window.history.replaceState(null, "", "/admin/mandats"); }} className="text-sm px-3 py-1.5 border rounded hover:bg-black/5">Annuler</button>
+                          </div></div></div>
                         </td>
                       </tr>
                     )}
