@@ -1,3 +1,4 @@
+import { propertyInCatalog } from './propertyVisibility.ts';
 import { readJSON } from '@/lib/utils';
 import { toPublicPropertyCard } from '@/lib/publicProperty';
 
@@ -8,6 +9,6 @@ import { toPublicPropertyCard } from '@/lib/publicProperty';
 export async function getPropertyCards() {
   const data = await readJSON('properties.json');
   return (Array.isArray(data) ? data : [])
-    .filter((p: any) => p && p.visible !== false)
+    .filter(propertyInCatalog)
     .map(toPublicPropertyCard);
 }

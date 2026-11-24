@@ -74,6 +74,7 @@ export type Bien = {
   featured?: boolean;
   entreeDeGamme?: boolean;
   visible?: boolean;
+  unlisted?: boolean;
   sold?: boolean;
   status?: 'AVAILABLE' | 'OFFER_RECEIVED' | 'UNDER_OFFER' | 'SOLD';
   soldDate?: string;

@@ -1,3 +1,4 @@
+import { propertyInCatalog } from '@/lib/propertyVisibility';
 import type { MetadataRoute } from 'next';
 import { readJSON } from '@/lib/utils';
 import { isThinListing } from '@/lib/thinListing';
@@ -40,7 +41,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]);
 
   const propertyUrls: MetadataRoute.Sitemap = (Array.isArray(properties) ? properties : [])
-    .filter((p: any) => p && p.visible !== false && !isThinListing(p))
+    .filter((p: any) => propertyInCatalog(p) && !isThinListing(p))
     .map((p: any) => ({ url: `${SITE}/immobilier/biens/${p.id}`, changeFrequency: 'weekly', priority: 0.8 }));
 
   const programUrls: MetadataRoute.Sitemap = (Array.isArray(programs) ? programs : [])

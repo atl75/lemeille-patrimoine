@@ -988,7 +988,13 @@ export default function FicheBienFormulaire({
                 data-testid="checkbox-visible"
                 className="w-3.5 h-3.5"
               />
-              <span>Visible</span>
+              <span>Fiche en ligne</span>
+            </label>
+            <label className="flex items-center gap-1.5 text-xs">
+              <input type="checkbox" checked={editing.unlisted === true}
+                onChange={e => updateField('unlisted', e.target.checked)}
+                data-testid="checkbox-unlisted" className="w-3.5 h-3.5" />
+              <span>Accessible par lien uniquement</span>
             </label>
             <label className="flex items-center gap-1.5 text-xs">
               <input
@@ -1001,6 +1007,8 @@ export default function FicheBienFormulaire({
               <span>Bien d&apos;investissement</span>
             </label>
           </div>
+          {editing.unlisted && <p className="mt-2 text-xs text-gray-600">{editing.visible === false ? 'La fiche est hors ligne. Cochez « Fiche en ligne » pour la rendre accessible par son lien.' : 'Fiche accessible à toute personne disposant du lien, absente de « Nos Biens » et des autres listes publiques. Non proposée à l’indexation Google ; le retrait d’un ancien résultat peut prendre du temps.'}</p>}
+
         </div>
 
         {/* Prix, finances et mandat — voir components/admin/SectionFinances.

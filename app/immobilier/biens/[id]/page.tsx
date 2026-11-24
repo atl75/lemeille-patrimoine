@@ -54,7 +54,7 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
     title,
     description,
     // Fiche vendue sans contenu : retirée de l'index sans casser l'URL.
-    robots: isThinListing(p) ? { index: false, follow: true } : undefined,
+    robots: (p.unlisted === true || isThinListing(p)) ? { index: false, follow: true } : undefined,
     alternates: { canonical: `/immobilier/biens/${p.id}` },
     openGraph: {
       title,

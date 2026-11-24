@@ -43,7 +43,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (idx === -1) return SANS_ECRITURE;
     // Le formulaire du bien ne gère QUE les champs du schéma. L'argumentaire de
     // prix lui est étranger : l'écraser revenait à le supprimer.
-    data[idx] = fusionneBien(data[idx], validation.data, Object.keys(insertPropertySchema.shape), id);
+    data[idx] = fusionneBien(data[idx], { ...validation.data, unlisted: validation.data.unlisted ?? data[idx].unlisted }, Object.keys(insertPropertySchema.shape), id);
     enregistre = data[idx];
     return data;
   });

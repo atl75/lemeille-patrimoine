@@ -150,6 +150,7 @@ export const insertPropertySchema = createInsertSchema(properties, {
    * acceptait la saisie. Une surface Carrez se déclare au centième.
    */
   surface: z.number().nonnegative(),
+  unlisted: z.boolean().optional(),
   status: z.enum(['AVAILABLE', 'OFFER_RECEIVED', 'UNDER_OFFER', 'SOLD']).default('AVAILABLE'),
   soldDate: z.string().optional(),
   cadastralReference: z.string().optional(),

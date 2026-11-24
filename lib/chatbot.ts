@@ -1,3 +1,4 @@
+import { propertyInCatalog } from './propertyVisibility';
 import { readJSON } from "@/lib/utils";
 
 export const CHAT_MODEL = "claude-haiku-4-5-20251001";
@@ -44,7 +45,7 @@ async function buildContextBlock() {
   ]);
 
   const activeProperties = Array.isArray(properties)
-    ? properties.filter((p: any) => p.visible !== false && !p.sold && p.status !== "SOLD").slice(0, 25)
+    ? properties.filter((p: any) => propertyInCatalog(p) && !p.sold && p.status !== "SOLD").slice(0, 25)
     : [];
   const visiblePrograms = Array.isArray(programs)
     ? programs.filter((p: any) => p.visible !== false).slice(0, 15)

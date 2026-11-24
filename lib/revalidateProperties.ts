@@ -7,6 +7,8 @@ export function revalidatePublicProperties() {
     revalidatePath('/');
     revalidatePath('/immobilier');
     revalidatePath('/references');
+    revalidatePath('/sitemap.xml');
+    revalidatePath('/vendre');
     revalidatePath('/secteurs/[slug]', 'page');
     revalidatePath('/immobilier/biens/[id]', 'page');
   } catch { /* no-op hors contexte de requête */ }

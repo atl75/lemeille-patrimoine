@@ -1,3 +1,4 @@
+import { propertyInCatalog } from '@/lib/propertyVisibility';
 import { NextResponse } from 'next/server';
 import { envoyerLot } from '@/lib/envoiEmail';
 import { readJSON, updateJSON, uid } from '@/lib/utils';
@@ -17,7 +18,7 @@ const FILE = 'properties.json';
 // échoue (ex. domaine Resend non encore vérifié).
 async function notifySubscribers(item: any) {
   try {
-    if (item.visible === false || !process.env.RESEND_API_KEY) return;
+    if (!propertyInCatalog(item) || !process.env.RESEND_API_KEY) return;
     const subs = await readJSON('subscribers.json');
     if (!Array.isArray(subs) || subs.length === 0) return;
     const matching = subs.filter(
@@ -64,7 +65,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(data);
   }
   return NextResponse.json(
-    data.filter((p: any) => p.visible !== false).map(toPublicProperty)
+    data.filter(propertyInCatalog).map(toPublicProperty)
   );
 }
 export async function POST(req: NextRequest) {
