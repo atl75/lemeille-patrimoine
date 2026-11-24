@@ -381,6 +381,7 @@ export default function FicheBienFormulaire({
   };
 
   if (!editing) return null;
+  const lienPublic = editing.id ? `https://lemeillepatrimoine.com/immobilier/biens/${encodeURIComponent(editing.id)}` : null;
 
   return (
     <>
@@ -1008,6 +1009,22 @@ export default function FicheBienFormulaire({
             </label>
           </div>
           {editing.unlisted && <p className="mt-2 text-xs text-gray-600">{editing.visible === false ? 'La fiche est hors ligne. Cochez « Fiche en ligne » pour la rendre accessible par son lien.' : 'Fiche accessible à toute personne disposant du lien, absente de « Nos Biens » et des autres listes publiques. Non proposée à l’indexation Google ; le retrait d’un ancien résultat peut prendre du temps.'}</p>}
+          {editing.unlisted && editing.visible !== false && (
+            lienPublic ? <div className="mt-3 rounded border bg-white p-3" data-testid="property-share-link">
+              <label htmlFor="property-public-link" className="block text-sm font-medium mb-2">Lien de la fiche à partager</label>
+              <div className="flex flex-wrap gap-2 items-center">
+                <input id="property-public-link" aria-label="Lien de la fiche à partager" type="text" readOnly value={lienPublic}
+                  onFocus={e => e.currentTarget.select()} className="min-w-0 flex-1 basis-64 rounded border px-3 py-2 text-sm" />
+                <button type="button" onClick={async () => {
+                  try { await navigator.clipboard.writeText(lienPublic); toast('Lien copié.'); }
+                  catch { toast('Copie automatique indisponible : sélectionnez le lien pour le copier.'); }
+                }} className="rounded border px-3 py-2 text-sm hover:bg-gray-50">Copier le lien</button>
+                <a href={lienPublic} target="_blank" rel="noopener noreferrer" className="rounded border px-3 py-2 text-sm hover:bg-gray-50">Ouvrir la fiche ↗</a>
+              </div>
+              {dirty && <p className="mt-2 text-xs text-amber-800">Sauvegardez la fiche pour appliquer vos derniers réglages avant de partager ce lien.</p>}
+            </div> : <p className="mt-2 text-xs text-gray-600">Sauvegardez ce nouveau bien pour obtenir son lien de partage.</p>
+          )}
+
 
         </div>
 
