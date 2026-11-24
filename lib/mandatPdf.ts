@@ -196,8 +196,8 @@ export async function buildMandatePdf(p: any): Promise<Uint8Array> {
   const gap = (n: number) => { y -= n; };
 
   const signline = (caption: string) => {
+    ensure(85);
     gap(56);
-    ensure(2);
     page.drawLine({ start: { x: M, y }, end: { x: M + 240, y }, thickness: 0.7, color: rule });
     y -= 11;
     page.drawText(clean(caption), { x: M, y, size: 7.5, font, color: grey });
@@ -393,6 +393,7 @@ export async function buildMandatePdf(p: any): Promise<Uint8Array> {
 
   // Dessine un bloc de signature (image + attestation si signé, sinon ligne vierge).
   const drawMandantSignature = async (label: string, sg: any) => {
+    ensure(110);
     gap(6);
     para(label, { size: 8, bold: true, justify: false, after: 0 });
     if (sg?.dataUrl && /^data:image\/png;base64,/.test(sg.dataUrl)) {

@@ -65,6 +65,7 @@ export default function Page() {
   const toast = useToast();
   const [savingId, setSavingId] = useState<string | null>(null);
   const [signingId, setSigningId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const edition = useRef(new EditionMandat());
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -82,6 +83,29 @@ export default function Page() {
       toast('Liens récupérés. Aucun email envoyé.');
     } catch { toast('Lecture impossible. Aucun email envoyé ; réessayez.'); }
     finally { setReadingLinks(null); }
+  };
+  const downloadMandate = async (m: Mandat) => {
+    if (edition.current.enCours(m.id) || edition.current.nonEnregistre(m.id)) {
+      toast('Enregistrez les modifications avant de télécharger le mandat.');
+      return;
+    }
+    setDownloadingId(m.id);
+    try {
+      const res = await fetch(`/api/mandats/${encodeURIComponent(m.id)}/pdf?download=1`, { cache: 'no-store', signal: AbortSignal.timeout(45000) });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Téléchargement du mandat impossible.');
+      }
+      if (!res.headers.get('content-type')?.includes('application/pdf')) throw new Error('Le document reçu n’est pas un PDF. Reconnectez-vous puis réessayez.');
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mandat-${String(m.mandateNumber || m.id).replace(/[^a-zA-Z0-9_-]/g, '-')}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+      toast('PDF téléchargé : imprimez-le pour recueillir les signatures manuscrites. Le statut du mandat reste inchangé.');
+    } catch (error) { toast(error instanceof Error ? error.message : 'Téléchargement impossible. Réessayez.'); }
+    finally { setDownloadingId(null); }
   };
   const copyLink = async (url: string) => {
     try { await navigator.clipboard.writeText(url); toast('Lien copié. Ne le partagez qu’avec le signataire concerné.'); }
@@ -388,7 +412,7 @@ export default function Page() {
                         })()}
                       </td>
                       <td className="px-3 py-2 no-print">
-                        <div className="flex gap-2 items-center">
+                        <div className="flex flex-wrap gap-2 items-center">
                           {m.mandateSignStatus === 'SIGNED' ? (
                             <>
                               <span className="text-xs px-2 py-1 border rounded bg-green-50 border-green-200 text-green-700 flex items-center gap-1" title="Mandat signé — figé, non modifiable"><Lock className="w-3 h-3" /> Figé</span>
@@ -410,6 +434,7 @@ export default function Page() {
                           )}
                           <button type="button" onClick={() => recoverLinks(m)} disabled={readingLinks === m.id} data-testid={`recover-links-${m.id}`} className="text-xs px-2 py-1 border rounded disabled:opacity-40">Liens existants</button>
                           <a href={`/admin/mandats/delegations?mandat=${encodeURIComponent(m.id)}`} className="text-xs px-2 py-1 border rounded">Déléguer</a>
+                          {m.mandateSignStatus !== 'SIGNED' && <button type="button" onClick={() => downloadMandate(m)} disabled={downloadingId !== null || edition.current.enCours(m.id)} data-testid={`manual-pdf-${m.id}`} title="Télécharger les informations enregistrées pour imprimer et signer à la main" className="text-xs px-2 py-1 border border-[#1F3B2C] text-[#1F3B2C] rounded flex items-center gap-1 hover:bg-[#1F3B2C]/5 disabled:opacity-40"><Printer className="w-3 h-3" /> {downloadingId === m.id ? 'Préparation du PDF…' : 'PDF pour signature manuelle'}</button>}
                           <a href={`/api/mandats/${m.id}/pdf`} target="_blank" rel="noopener noreferrer" title="Mandat PDF" className="p-1 text-[#B89C6D] hover:opacity-70"><FileText className="w-4 h-4" /></a>
                           {!mandatFige(m) && <button onClick={() => remove(m)} disabled={edition.current.enCours(m.id)} data-testid={`delete-${m.id}`} title="Supprimer" className="p-1 text-red-600 hover:opacity-70 disabled:opacity-40"><Trash2 className="w-4 h-4" /></button>}
                           {edition.current.nonEnregistre(m.id) && <span className="text-xs text-amber-800">Modifications non enregistrées</span>}

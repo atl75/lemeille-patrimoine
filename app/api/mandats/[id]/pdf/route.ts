@@ -9,19 +9,25 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const { id } = await params;
-    const data = await readJSON('mandats.json');
-    const m = (Array.isArray(data) ? data : []).find((x: any) => x.id === id);
+    const data = await readJSON('mandats.json', { fresh: true });
+    if (!Array.isArray(data)) return NextResponse.json({ error: 'Registre des mandats indisponible' }, { status: 503 });
+    const m = data.find((x: any) => x.id === id);
     if (!m) return NextResponse.json({ error: 'Mandat non trouvé' }, { status: 404 });
     const erreur=erreurPdfMandatImmeuble(m);if(erreur)return NextResponse.json({error:erreur},{status:409});
     const bytes = await buildMandatePdf(m);
+    const disposition = req.nextUrl.searchParams.get('download') === '1' ? 'attachment' : 'inline';
+    const reference = String(m.mandateNumber || id).replace(/[^a-zA-Z0-9_-]/g, '-');
     return new NextResponse(Buffer.from(bytes), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="mandat-${(m.mandateNumber || id)}.pdf"`,
+        'Cache-Control': 'private, no-store',
+        'Vary': 'Cookie',
+        'X-Content-Type-Options': 'nosniff',
+        'Content-Disposition': `${disposition}; filename="mandat-${reference}.pdf"`,
       },
     });
   } catch (e: any) {
-    return NextResponse.json({ error: 'Erreur PDF', details: e?.message }, { status: 500 });
+    return NextResponse.json({ error: 'Impossible de préparer le PDF du mandat. Réessayez.' }, { status: 500 });
   }
 }
