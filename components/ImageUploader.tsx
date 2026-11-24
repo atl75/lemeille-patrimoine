@@ -1,7 +1,7 @@
 "use client";
 import { useToast } from "@/components/Toast";
 import { cldImg } from "@/lib/cldImg";
-import { useState, useRef, useEffect, DragEvent } from "react";
+import { useState, useRef, useEffect, useId, DragEvent } from "react";
 import { Upload, X, Image as ImageIcon, ChevronUp, ChevronDown, GripVertical } from "lucide-react";
 import { useDragReorder } from "@/lib/useDragReorder";
 
@@ -13,6 +13,7 @@ type ImageUploaderProps = {
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 Mo
 
 export default function ImageUploader({ images, onChange }: ImageUploaderProps) {
+  const reorderId = useId();
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const toast = useToast();
@@ -186,6 +187,7 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
     const [img] = a.splice(de, 1);
     a.splice(vers, 0, img);
     onChange(a);
+    toast(`Photo déplacée en position ${vers + 1}. Enregistrez la fiche pour conserver cet ordre.`);
   });
 
   const handleBrowse = () => {
@@ -266,13 +268,13 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
       {/* Grille des images */}
       {images.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h4 className="font-medium text-sm">Images ajoutées ({images.length})</h4>
             <p className="text-xs text-gray-500">
-              Utilisez les flèches pour changer l&apos;ordre
+              Glissez la poignée « Déplacer » vers une autre photo, ou utilisez les flèches.
             </p>
           </div>
-          
+          <p className="text-xs text-gray-600">La première photo est la photo principale. Cliquez sur Enregistrer pour conserver le nouvel ordre.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {images.map((img, idx) => (
               <div
@@ -280,6 +282,26 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
                 {...drag.zone(idx)}
                 className={`group relative border rounded-lg overflow-hidden hover:border-[#B89C6D] transition bg-white ${drag.zone(idx).className}`}
               >
+                <div className="flex items-center justify-between gap-2 p-2 bg-white border-b">
+                  <button type="button" {...drag.poignee(idx)}
+                    title="Glisser vers une autre photo pour changer sa position"
+                    aria-label={`Déplacer la photo ${idx + 1}`}
+                    onKeyDown={e => {
+                      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) return;
+                      e.preventDefault();
+                      const target = e.key === 'Home' ? 0 : e.key === 'End' ? images.length - 1 : Math.max(0, Math.min(images.length - 1, idx + (['ArrowLeft', 'ArrowUp'].includes(e.key) ? -1 : 1)));
+                      if (target === idx) return;
+                      const next = [...images]; const [photo] = next.splice(idx, 1); next.splice(target, 0, photo); onChange(next);
+                      requestAnimationFrame(() => document.getElementById(`${reorderId}-${target}`)?.focus());
+                      toast(`Photo déplacée en position ${target + 1}. Enregistrez la fiche pour conserver cet ordre.`);
+                    }}
+                    id={`${reorderId}-${idx}`}
+                    className="inline-flex items-center gap-1.5 rounded border px-3 py-2 min-h-11 text-sm font-medium text-[#1F3B2C] select-none hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#B89C6D]"
+                    data-testid={`handle-image-${idx}`}>
+                    <GripVertical className="w-4 h-4" aria-hidden="true" /> Déplacer
+                  </button>
+                  <span className="text-xs text-gray-600">Photo {idx + 1}{idx === 0 ? ' · Principale' : ''}</span>
+                </div>
                 {/* Image de prévisualisation */}
                 <div className="aspect-video bg-gray-100 relative">
                   {img.startsWith("data:") || img.startsWith("http") || img.startsWith("/") ? (
@@ -287,6 +309,7 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
                       src={cldImg(img, 480)}
                       alt={`Image ${idx + 1}`}
                       loading="lazy"
+                      draggable={false}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -297,10 +320,6 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
                   
                   {/* Badge numéro et image principale */}
                   <div className="absolute top-2 left-2 flex items-center gap-2">
-                    <span {...drag.poignee(idx)}
-                      title="Glisser pour déplacer" aria-label={`Déplacer l'image ${idx + 1}`}
-                      className="select-none rounded bg-black/70 px-2 py-1 text-xs text-white"
-                      data-testid={`handle-image-${idx}`}>⠿</span>
                     <span className="bg-black/70 text-white text-xs font-medium px-2 py-1 rounded">
                       #{idx + 1}
                     </span>
@@ -314,7 +333,7 @@ export default function ImageUploader({ images, onChange }: ImageUploaderProps) 
                   {/* Contrôles (apparaissent au survol) */}
                   {/* Sur écran tactile il n'y a pas de survol : les contrôles restent
                       visibles, sinon ils sont inatteignables sur iPad. */}
-                  <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/25 opacity-100 transition-colors md:bg-black/0 md:opacity-0 md:group-hover:bg-black/40 md:group-hover:opacity-100">
+                  <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/25 opacity-100 transition-colors md:bg-black/0 md:opacity-0 md:group-hover:bg-black/40 md:group-hover:opacity-100 md:focus-within:opacity-100">
                     {/* Réorganisation */}
                     <div className="flex gap-1 bg-white rounded shadow-lg">
                       <button
