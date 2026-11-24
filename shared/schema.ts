@@ -150,7 +150,6 @@ export const insertPropertySchema = createInsertSchema(properties, {
    * acceptait la saisie. Une surface Carrez se déclare au centième.
    */
   surface: z.number().nonnegative(),
-  unlisted: z.boolean().optional(),
   status: z.enum(['AVAILABLE', 'OFFER_RECEIVED', 'UNDER_OFFER', 'SOLD']).default('AVAILABLE'),
   soldDate: z.string().optional(),
   cadastralReference: z.string().optional(),
@@ -205,6 +204,7 @@ export const insertPropertySchema = createInsertSchema(properties, {
   agMinutes: z.array(z.string()).optional(),
   chargesStatement: z.string().optional()
 }).extend({
+  unlisted: z.boolean().optional(),
   buildingLots:z.array(z.object({id:z.string().min(1).max(100),label:z.string().trim().min(1).max(100),
     type:z.enum(['APPARTEMENT','LOCAL_COMMERCIAL','BUREAU','ANNEXE','AUTRE']),surface:z.number().finite().positive().max(1000000).optional(),
     occupancy:z.enum(['INCONNU','LIBRE','OCCUPE'])}).strict()).max(50)
