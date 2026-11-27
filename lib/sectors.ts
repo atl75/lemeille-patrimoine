@@ -151,11 +151,11 @@ export const SECTORS: Record<string, Sector> = {
   "mont-saint-aignan-bois-guillaume": {
     sitemap: true,
     title: "Mont-Saint-Aignan & Bois-Guillaume",
-    subtitle: "Résidentiel recherché, maisons & appartements avec vues.",
+    subtitle: "Je me déplace chez vous à Mont-Saint-Aignan et à Bois-Guillaume pour estimer votre maison et vous expliquer le prix que je retiens. Arthur Lemeille",
     region: "NORMANDIE",
     cities: ["Mont-Saint-Aignan","Bois-Guillaume"],
-    description: "Sur les hauteurs de Rouen, Mont-Saint-Aignan et Bois-Guillaume forment le secteur résidentiel le plus recherché de la métropole : maisons familiales, terrains arborés, vues dégagées et proximité des meilleures écoles. Un marché stable, porté par une demande familiale constante.",
-    highlights: ["Maisons familiales & terrains arborés", "Environnement résidentiel prisé, écoles réputées", "Valeurs stables et demande soutenue"],
+    locatif: "à Mont-Saint-Aignan ou à Bois-Guillaume",
+    description: "Faites estimer votre maison à Mont-Saint-Aignan ou à Bois-Guillaume. Visite chez vous, ventes comparables et avis de valeur écrit sous 24 heures maximum après la visite.",
   },
   "saint-aygulf-frejus": {
     title: "Saint-Aygulf & Fréjus",
